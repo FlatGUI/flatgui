@@ -1,0 +1,5 @@
+(def cl (-> (Thread/currentThread) (.getContextClassLoader)))
+(-> cl (.addURL (java.net.URL. "file:///C:/Projects/FlatGUI/version3/FlatGUI")))
+(load "flatgui/util/matrix")
+(load "clojure/test")
+(clojure.test/run-all-tests)
