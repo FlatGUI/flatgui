@@ -6,6 +6,14 @@
 ; the terms of this license.
 ; You must not remove this notice, or any other, from this software.
 
-(ns flatgui.theme-test
-  (:require [clojure.test :refer :all]
-            [flatgui.theme :refer :all]))
+;breaks IDE (load-string (slurp "../projectcommon.clj"))
+(def flatgui-version "0.1.0-SNAPSHOT")
+
+(defproject org.flatgui/flatguiskins flatgui-version
+  :description "Default FlatGUI skins"
+  :license {:name "Eclipse Public License"
+            :url "http://www.eclipse.org/legal/epl-v10.html"}
+  :dependencies [[org.clojure/clojure "1.6.0"]
+                 [org.flatgui/flatguicore ~flatgui-version]]
+  :omit-source true
+  :aot :all)
