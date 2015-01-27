@@ -23,7 +23,15 @@
                  [org.eclipse.jetty.websocket/websocket-servlet ~jetty-version]
                  [org.eclipse.jetty/jetty-util ~jetty-version]
                  [junit/junit "4.12"]]
+  :deploy-repositories {"releases" {:url "https://oss.sonatype.org/service/local/staging/deploy/maven2/" :creds :gpg}
+                        "snapshots" {:url "https://oss.sonatype.org/content/repositories/snapshots/" :creds :gpg}}
   :java-source-paths ["src/flatgui/core"
                       "src/flatgui/controlcenter"]
   :omit-source true
-  :aot :all)
+  :aot :all
+
+  :scm {:url "https://github.com/flatgui/flatgui/"}
+  :pom-addition [:developers [:developer
+                              [:name "Denys Lebediev"]
+                              [:email "denis@flatgui.org"]
+                              [:timezone "+2"]]])

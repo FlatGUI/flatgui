@@ -19,5 +19,13 @@
                  [org.flatgui/flatguicore ~flatgui-version]
                  [org.flatgui/flatguithemes ~flatgui-version]
                  [org.flatgui/flatguiskins ~flatgui-version]]
+  :deploy-repositories {"releases" {:url "https://oss.sonatype.org/service/local/staging/deploy/maven2/" :creds :gpg}
+                        "snapshots" {:url "https://oss.sonatype.org/content/repositories/snapshots/" :creds :gpg}}
   :omit-source true
-  :aot :all)
+  :aot :all
+
+  :scm {:url "https://github.com/flatgui/flatgui/"}
+  :pom-addition [:developers [:developer
+                              [:name "Denys Lebediev"]
+                              [:email "denis@flatgui.org"]
+                              [:timezone "+2"]]])
