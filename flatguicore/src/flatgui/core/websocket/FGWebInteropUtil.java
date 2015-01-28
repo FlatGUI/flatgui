@@ -9,6 +9,8 @@
  */
 package flatgui.core.websocket;
 
+import flatgui.core.IFGInteropUtil;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -17,7 +19,7 @@ import java.awt.*;
  *         Date: 8/14/13
  *         Time: 11:03 PM
  */
-public class FGWebInteropUtil
+public class FGWebInteropUtil implements IFGInteropUtil
 {
     private final double unitSizePx_;
     private final Font referenceFont_;

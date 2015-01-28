@@ -68,10 +68,10 @@ public class FGModule implements IFGModule
 //    }
 
     @Override
-    public void evolve(Collection<Object> targetCellIds, Object repaintReason)
+    public void evolve(Collection<Object> targetCellIds, Object inputEvent)
     {
         Var evolver = getEvolver();
-        evolver.invoke(containerName_, targetCellIds, repaintReason);
+        evolver.invoke(containerName_, targetCellIds, inputEvent);
     }
 
     @Override
@@ -113,15 +113,6 @@ public class FGModule implements IFGModule
     }
 
     @Override
-    public Object getFocusOwnerId()
-    {
-        Object container = getContainer();
-        Var getFocusOwner = clojure.lang.RT.var(
-                "flatgui.focusmanagement", "get-focus-owner-id");
-        return getFocusOwner.invoke(container);
-    }
-
-    @Override
     public List<Object> getPaintChangesSequence(Collection dirtyRects)
     {
         Object container = getContainer();
@@ -137,7 +128,7 @@ public class FGModule implements IFGModule
     }
 
     @Override
-    public FGMouseTargetComponentInfo getCellIdsAt(double x, double y, FGComponentPath knownPath)
+    public FGMouseTargetComponentInfo getMouseTargetInfoAt(double x, double y, FGComponentPath knownPath)
     {
         Object container = getContainer();
 
@@ -167,7 +158,7 @@ public class FGModule implements IFGModule
             Object xRelativeVec = getMouseRelXFromPath.invoke(targetPath);
             Object yRelativeVec = getMouseRelYFromPath.invoke(targetPath);
 
-            //System.out.println("-DLTEMP- FGModule.getCellIdsAt " + ((Collection)targetPath).size() + " " + targetIds + " - " + xRelativeVec + " - " + yRelativeVec);
+            //System.out.println("-DLTEMP- FGModule.getMouseTargetInfoAt " + ((Collection)targetPath).size() + " " + targetIds + " - " + xRelativeVec + " - " + yRelativeVec);
 
             return new FGMouseTargetComponentInfo(new FGComponentPath(targetPath, targetIds), xRelativeVec, yRelativeVec);
         }
@@ -183,11 +174,6 @@ public class FGModule implements IFGModule
         return getContainer();
     }
 
-    @Override
-    public Map<Object, Object> getCell(String cellId)
-    {
-        return null;
-    }
 
 //    @Override
 //    public Object getObjectFromContainer(String name)

@@ -20,19 +20,9 @@ import java.util.Map;
  */
 public interface IFGModule
 {
-//    public void start(String... source);
-//
-//    public void initializeFromContent(String content);
+    public void evolve(Collection<Object> targetCellIds, Object inputEvent);
 
-    public Map<Object, Object> getCell(String cellId);
-
-    public void evolve(Collection<Object> targetCellIds, Object repaintReason);
-
-    public Object getFocusOwnerId();
-
-    public FGMouseTargetComponentInfo getCellIdsAt(double x, double y, FGComponentPath knownPath);
-
-    //public Object getObjectFromContainer(String name);
+    public FGMouseTargetComponentInfo getMouseTargetInfoAt(double x, double y, FGComponentPath knownPath);
 
     public Object getContainerObject();
 

@@ -9,6 +9,8 @@
  */
 package flatgui.core.awt;
 
+import flatgui.core.IFGInteropUtil;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -17,7 +19,7 @@ import java.awt.*;
  *         Date: 8/14/13
  *         Time: 11:03 PM
  */
-public class FGAWTInteropUtil
+public class FGAWTInteropUtil implements IFGInteropUtil
 {
     // TODO temporary
     private final Component hostComponent_;

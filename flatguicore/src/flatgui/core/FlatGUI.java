@@ -14,10 +14,12 @@ import flatgui.controlcenter.IFGStateProvider;
 import flatgui.core.websocket.FGAppServer;
 
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.function.Consumer;
 
 /**
  * @author Denis Lebedev
@@ -76,7 +78,12 @@ public class FlatGUI
 
         // TODO apply the font with which it was actually initialized
 
-        Component c = container.getContainerComponent();
+        HostComponent c = new HostComponent(container);
+        ActionListener eventFedCallBack = c.getEventFedCallback();
+
+        Consumer<Object> inputEventConsumer = container.connect(eventFedCallBack, c);
+        c.setInputEventConsumer(inputEventConsumer);
+
         return c;
     }
 

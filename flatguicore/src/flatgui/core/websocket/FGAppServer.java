@@ -59,7 +59,7 @@ public class FGAppServer
     {
         if (!baseInit_)
         {
-            FGContainerBase.setRefContainer(new FGWebContainer(new FGModule(null)));
+            FGContainerBase.setRefContainer(new FGContainer(new FGModule(null)));
             baseInit_ = true;
         }
         FGClientAppLoader.initializeFromContent(sourceCode);
@@ -73,7 +73,7 @@ public class FGAppServer
     {
         if (!baseInit_)
         {
-            FGContainerBase.setRefContainer(new FGWebContainer(new FGModule(null)));
+            FGContainerBase.setRefContainer(new FGContainer(new FGModule(null)));
             baseInit_ = true;
         }
 

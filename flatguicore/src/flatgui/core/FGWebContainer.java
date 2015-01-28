@@ -16,6 +16,7 @@ import flatgui.core.websocket.FGPaintVectorBinaryCoder;
 import flatgui.core.websocket.FGWebInteropUtil;
 
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -24,22 +25,17 @@ import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.function.BinaryOperator;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
  * @author Denis Lebedev
  */
-public class FGWebContainer implements IFGContainer
+public class FGWebContainer
 {
-    //@todo
-    public static final int UNIT_SIZE_PX = 64;
-
     public static final byte POSITION_MATRIX_MAP_COMMAND_CODE = 0;
     public static final byte VIEWPORT_MATRIX_MAP_COMMAND_CODE = 1;
     public static final byte CLIP_SIZE_MAP_COMMAND_CODE = 2;
@@ -51,8 +47,6 @@ public class FGWebContainer implements IFGContainer
 
     public static final byte REPAINT_CACHED_COMMAND_CODE = 7;
 
-
-    private final FGRepaintReasonParser reasonParser_;
 
     private static Set<String> RECT_COMMANDS;
     static
@@ -67,201 +61,48 @@ public class FGWebContainer implements IFGContainer
         RECT_COMMANDS.add("setClip");
     }
 
-    private final FGWebInteropUtil interopUtil_;
-
-    private final Map<String, Object> containerProperties_;
-    private final Map<String, Object> targetedProperties_;
-
-    private final IFGModule module_;
 
     private final FGContainerStateTransmitter stateTransmitter_;
 
-    private ExecutorService evolverExecutorService_;
+
+    private final FGContainer fgContainer_;
+    private Consumer<Object> eventConsumer_;
 
     public FGWebContainer(IFGModule module)
     {
-        reasonParser_ = new FGRepaintReasonParser();
-        reasonParser_.registerReasonClassParser(MouseEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
-        reasonParser_.registerReasonClassParser(MouseWheelEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
-        reasonParser_.registerReasonClassParser(KeyEvent.class, new FGKeyEventParser());
-        reasonParser_.registerReasonClassParser(FGContainer.FGTimerEvent.class, new IFGRepaintReasonParser<FGContainer.FGTimerEvent>() {
-            @Override
-            public Map<String, Object> initialize(IFGModule fgModule) {
-                return null;
-            }
+        fgContainer_ = new FGContainer(module);
+        eventConsumer_ = fgContainer_.connect(e -> {}, this);
 
-            @Override
-            public Map<String, Object> getTargetedPropertyValues(FGContainer.FGTimerEvent fgTimerEvent) {
-                return new HashMap<>();
-            }
-
-            @Override
-            public Map<FGContainer.FGTimerEvent, Collection<Object>> getTargetCellIds(FGContainer.FGTimerEvent fgTimerEvent, IFGModule fgModule, Map<String, Object> generalPropertyMap) {
-                return Collections.emptyMap();
-            }
-        });
-
-        module_ = module;
+        // TODO Specifics
         stateTransmitter_ = new FGContainerStateTransmitter(module);
-
-        interopUtil_ = new FGWebInteropUtil(UNIT_SIZE_PX);
-
-        containerProperties_ = new HashMap<>();
-        containerProperties_.put(GENERAL_PROPERTY_UNIT_SIZE, UNIT_SIZE_PX);
-
-        targetedProperties_ = new HashMap<>();
-
-//        Timer repaintTimer = new Timer("FlatGUI Blink Helper Timer", true);
-//        repaintTimer.schedule(new TimerTask()
-//        {
-//            @Override
-//            public void run()
-//            {
-//                //EventQueue.invokeLater(() -> cycle(new FGTimerEvent()));
-//            }
-//        }, 250, 250);
-
-        Map<String, Object> initialGeneralProperties = reasonParser_.initialize(module_);
-        if (initialGeneralProperties != null)
-        {
-            containerProperties_.putAll(initialGeneralProperties);
-        }
     }
 
-    @Override
+    //
+    public IFGContainer getContainer()
+    {
+        return fgContainer_;
+    }
+    //
+
     public void initialize()
     {
-        evolverExecutorService_ = Executors.newSingleThreadExecutor();
+        fgContainer_.initialize();
     }
 
-    @Override
     public void unInitialize()
     {
-        evolverExecutorService_.shutdown();
+        fgContainer_.unInitialize();
     }
-
-    @Override
-    public Component getContainerComponent()
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public IFGModule getFGModule()
-    {
-        return module_;
-    }
-
-    ///
-
-    @Override
-    public Object getGeneralProperty(String propertyName)
-    {
-        return containerProperties_.get(propertyName);
-    }
-
-    @Override
-    public Object getAWTUtil()
-    {
-        return interopUtil_;
-    }
-
-    ///
-
-    private void cycle(Object repaintReason)
-    {
-        if (repaintReason == null)
-        {
-            throw new IllegalArgumentException();
-        }
-
-        targetedProperties_.clear();
-        if (repaintReason != null)
-        {
-            Map<String, Object> propertiesFromReason = reasonParser_.getTargetedPropertyValues(repaintReason);
-            for (String propertyName : propertiesFromReason.keySet())
-            {
-                targetedProperties_.put(propertyName,
-                        propertiesFromReason.get(propertyName));
-            }
-        }
-
-        Map<String, Object> generalProperties = new HashMap<>();
-        Map<Object, Collection<Object>> reasonMap = reasonParser_.getTargetCellIds(repaintReason, module_, generalProperties);
-        if (generalProperties != null)
-        {
-            containerProperties_.putAll(generalProperties);
-        }
-        for (Object reason : reasonMap.keySet())
-        {
-            Collection<Object> targetCellIds_ = reasonMap.get(reason);
-
-            if (targetCellIds_ == null || !targetCellIds_.isEmpty())
-            {
-                module_.evolve(targetCellIds_, reason);
-            }
-        }
-    }
-
-//    public synchronized java.util.List<Object> getPaintAllVector()
-//    {
-//        Future<java.util.List<Object>> paintFuture = evolverExecutorService_.submit(() -> {
-//            long t = System.currentTimeMillis();
-//            //System.out.println("-------------------------- Started painting...");
-//
-//            // @todo these 0, 0, 1024, 768 coords are just for demo
-//            java.util.List<Object> result = module_.getPaintAllSequence(0, 0, 1024, 768);
-//
-//            //System.out.println("---------------------------- ...done painting in " + (System.currentTimeMillis() - t) + " millis.");
-//
-//            return result;
-//        });
-//        try
-//        {
-//            return paintFuture.get();
-//        }
-//        catch (InterruptedException | ExecutionException e)
-//        {
-//            e.printStackTrace();
-//            return null;
-//        }
-//    }
-
-//    public synchronized java.util.List<Object> getPaintVector()
-//    {
-//        Future<java.util.List<Object>> paintFuture = evolverExecutorService_.submit(() -> {
-//            long t = System.currentTimeMillis();
-//            //System.out.println("-------------------------- Started painting...");
-//
-//            java.util.List<Object> result = module_.getPaintChangesSequence(null);
-//
-//            java.util.List<Object> compressed = compressPaintVector(result);
-//
-//
-//            //System.out.println("---------------------------- ...done painting in " + (System.currentTimeMillis() - t) + " millis.");
-//
-//            return compressed;
-//        });
-//        try
-//        {
-//            return paintFuture.get();
-//        }
-//        catch (InterruptedException | ExecutionException e)
-//        {
-//            e.printStackTrace();
-//            return null;
-//        }
-//    }
 
     public synchronized void feedEvent(Object repaintReason)
     {
-        evolverExecutorService_.submit(() -> cycle(repaintReason));
+        eventConsumer_.accept(repaintReason);
     }
 
     public synchronized Collection<ByteBuffer> getResponseForClient()
     {
         Future<Collection<ByteBuffer>> responseFuture =
-                evolverExecutorService_.submit(() -> stateTransmitter_.computeDataDiffsToTransmit());
+                fgContainer_.submitTask(() -> stateTransmitter_.computeDataDiffsToTransmit());
 
         try
         {
@@ -397,8 +238,8 @@ public class FGWebContainer implements IFGContainer
 //            }
             else
             {
-                double ctxScaled = ctx / UNIT_SIZE_PX;
-                double ctyScaled = cty / UNIT_SIZE_PX;
+                double ctxScaled = ctx / IFGContainer.UNIT_SIZE_PX;
+                double ctyScaled = cty / IFGContainer.UNIT_SIZE_PX;
 
                 switch (command)
                 {
@@ -694,8 +535,8 @@ public class FGWebContainer implements IFGContainer
         @Override
         protected int writeValue(ByteArrayOutputStream stream, int n, List<Number> value)
         {
-            int w = (int)(value.get(0).doubleValue() * UNIT_SIZE_PX);
-            int h = (int)(value.get(1).doubleValue() * UNIT_SIZE_PX);
+            int w = (int)(value.get(0).doubleValue() * IFGContainer.UNIT_SIZE_PX);
+            int h = (int)(value.get(1).doubleValue() * IFGContainer.UNIT_SIZE_PX);
             stream.write((byte)(w & 0xFF));
             stream.write((byte)(h & 0xFF));
             stream.write((byte)((w >> 8) & 0x0F | (h >> 4) & 0xF0));

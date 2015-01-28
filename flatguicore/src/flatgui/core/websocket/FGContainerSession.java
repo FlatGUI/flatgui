@@ -35,7 +35,7 @@ public class FGContainerSession
         IFGModule fgModule = new FGModule(containerName_);
         container_ = new FGWebContainer(fgModule);
         FGAppServer.instantiateContainer(applicationName, containerName_);
-        FGContainerBase.registerContainer(containerName_, container_);
+        FGContainerBase.registerContainer(containerName_, container_.getContainer());
         FGContainerBase.initializeContainer(containerName_);
         parser_ = new FGInputEventDecoder();
         binaryCoder_ = new FGPaintVectorBinaryCoder();

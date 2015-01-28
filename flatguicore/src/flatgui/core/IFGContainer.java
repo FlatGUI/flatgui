@@ -9,7 +9,10 @@
  */
 package flatgui.core;
 
-import java.awt.*;
+import java.awt.event.ActionListener;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.function.Consumer;
 
 /**
  * @author Denys Lebediev
@@ -18,15 +21,20 @@ import java.awt.*;
  */
 public interface IFGContainer
 {
+    // TODO
+    public static final int UNIT_SIZE_PX = 64;
     public static final String GENERAL_PROPERTY_UNIT_SIZE = "UnitSizePx";
+
 
     public void initialize();
 
     public void unInitialize();
 
-    public Component getContainerComponent();
-
     public IFGModule getFGModule();
+
+    public Consumer<Object> connect(ActionListener eventFedCallback, Object hostContext);
+
+    public <T> Future<T> submitTask(Callable<T> callable);
 
     // TODO following methods do not belong to here
 

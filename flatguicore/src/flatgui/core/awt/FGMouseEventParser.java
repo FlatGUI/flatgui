@@ -74,7 +74,7 @@ public class FGMouseEventParser implements IFGRepaintReasonParser<MouseEvent>
         double mouseX = ((double)mouseEvent.getX()) / ((double)unitSizePx_);
         double mouseY = ((double)mouseEvent.getY()) / ((double)unitSizePx_);
 
-        FGMouseTargetComponentInfo componentInfo = fgModule.getCellIdsAt(
+        FGMouseTargetComponentInfo componentInfo = fgModule.getMouseTargetInfoAt(
                 mouseX, mouseY, newLeftButtonDown && leftButtonDown_ ? pressedPath_ : null);
         IFGModule.FGComponentPath targetPath = componentInfo.getComponentPath();
         Object xRelativeVec = componentInfo.getXRelativeVec();
