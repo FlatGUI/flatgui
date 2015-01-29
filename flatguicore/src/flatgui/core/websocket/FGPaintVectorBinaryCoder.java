@@ -10,7 +10,7 @@
 
 package flatgui.core.websocket;
 
-import flatgui.core.FGWebContainer;
+import flatgui.core.IFGContainer;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -19,16 +19,11 @@ import java.awt.geom.AffineTransform;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.nio.file.OpenOption;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -38,7 +33,7 @@ import java.util.zip.GZIPOutputStream;
 public class FGPaintVectorBinaryCoder
 {
     // TODO get rid of this
-    private static int UNIT_SIZE_PX = FGWebContainer.UNIT_SIZE_PX;
+    private static int UNIT_SIZE_PX = IFGContainer.UNIT_SIZE_PX;
 
     private Map<String, ICommandCoder> cmdNameToCoder_;
 

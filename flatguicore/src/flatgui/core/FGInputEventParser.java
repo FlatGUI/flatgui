@@ -18,17 +18,17 @@ import java.util.Map;
  *         Date: 8/11/13
  *         Time: 4:06 PM
  */
-public class FGRepaintReasonParser implements IFGRepaintReasonParser<Object>
+public class FGInputEventParser implements IFGInputEventParser<Object>
 {
-    private Map<Object, IFGRepaintReasonParser<?>> implMap_;
+    private Map<Object, IFGInputEventParser<?>> implMap_;
 
-    public FGRepaintReasonParser()
+    public FGInputEventParser()
     {
         implMap_ = new HashMap<>();
     }
 
     public <C> void registerReasonClassParser(Class<C> reasonClass,
-                                         IFGRepaintReasonParser<? super C> parser)
+                                         IFGInputEventParser<? super C> parser)
     {
         implMap_.put(getMapKeyForClass(reasonClass), parser);
     }
@@ -37,7 +37,7 @@ public class FGRepaintReasonParser implements IFGRepaintReasonParser<Object>
     public Map<String, Object> initialize(IFGModule fgModule)
     {
         Map<String, Object> allProperties = new HashMap<>();
-        for (IFGRepaintReasonParser<?> impl : implMap_.values())
+        for (IFGInputEventParser<?> impl : implMap_.values())
         {
             Map<String, Object> implMap = impl.initialize(fgModule);
             if (implMap != null)
@@ -70,10 +70,10 @@ public class FGRepaintReasonParser implements IFGRepaintReasonParser<Object>
         return reason != null ? getMapKeyForClass(reason.getClass()) : "<null>";
     }
 
-    private IFGRepaintReasonParser<Object> getRepaintReasonParser(Object reason)
+    private IFGInputEventParser<Object> getRepaintReasonParser(Object reason)
     {
-        IFGRepaintReasonParser<Object> parser =
-                (IFGRepaintReasonParser<Object>) implMap_.get(getMapKey(reason));
+        IFGInputEventParser<Object> parser =
+                (IFGInputEventParser<Object>) implMap_.get(getMapKey(reason));
         if (parser != null)
         {
             return parser;

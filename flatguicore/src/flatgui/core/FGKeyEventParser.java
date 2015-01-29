@@ -7,10 +7,7 @@
  * the terms of this license.
  * You must not remove this notice, or any other, from this software.
  */
-package flatgui.core.awt;
-
-import flatgui.core.IFGModule;
-import flatgui.core.IFGRepaintReasonParser;
+package flatgui.core;
 
 import java.awt.event.KeyEvent;
 import java.util.*;
@@ -20,7 +17,7 @@ import java.util.*;
  *         Date: 8/15/13
  *         Time: 9:24 PM
  */
-public class FGKeyEventParser implements IFGRepaintReasonParser<KeyEvent>
+public class FGKeyEventParser implements IFGInputEventParser<KeyEvent>
 {
     public static final String CHANNEL_NAME = "keyboard";
     public static final String FOCUS_ORDER_VECTOR_NAME = "focus-order";

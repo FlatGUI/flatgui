@@ -8,18 +8,20 @@
  * You must not remove this notice, or any other, from this software.
  */
 
-package flatgui.core;
+package flatgui.core.awt;
+
+import flatgui.core.FGComponentPath;
 
 /**
  * @author Denis Lebedev
  */
 public class FGMouseTargetComponentInfo
 {
-    private IFGModule.FGComponentPath componentPath_;
+    private FGComponentPath componentPath_;
     private Object xRelativeVec_;
     private Object yRelativeVec_;
 
-    public FGMouseTargetComponentInfo(IFGModule.FGComponentPath componentPath,
+    public FGMouseTargetComponentInfo(FGComponentPath componentPath,
                                       Object xRelativeVec, Object yRelativeVec)
     {
         componentPath_ = componentPath;
@@ -28,7 +30,7 @@ public class FGMouseTargetComponentInfo
     }
 
 
-    public IFGModule.FGComponentPath getComponentPath()
+    public FGComponentPath getComponentPath()
     {
         return componentPath_;
     }

@@ -7,9 +7,7 @@
  * the terms of this license.
  * You must not remove this notice, or any other, from this software.
  */
-package flatgui.core.awt;
-
-import flatgui.core.IFGInteropUtil;
+package flatgui.core;
 
 import javax.swing.*;
 import java.awt.*;
@@ -19,52 +17,39 @@ import java.awt.*;
  *         Date: 8/14/13
  *         Time: 11:03 PM
  */
-public class FGAWTInteropUtil implements IFGInteropUtil
+public class FGDummyInteropUtil implements IFGInteropUtil
 {
-    // TODO temporary
-    private final Component hostComponent_;
-    // TODO temporary
-    private final Font font_;
-
     private final double unitSizePx_;
+    private final Font referenceFont_;
+    private final FontMetrics referenceFontMetrics_;
 
-    public FGAWTInteropUtil(Component hostComponent, int unitSizePx)
+    public FGDummyInteropUtil(int unitSizePx)
     {
-        hostComponent_ = hostComponent;
-        font_ = UIManager.getFont("Label.font");
         unitSizePx_ = unitSizePx;
+        referenceFont_ = new Font("Tahoma", Font.PLAIN, 12);
+        referenceFontMetrics_ = new Container().getFontMetrics(referenceFont_);
     }
 
     public double getStringWidth(String str)
     {
-        return getStringWidth(str, font_);
+        return getStringWidth(str, referenceFont_);
     }
 
     public double getStringWidth(String str, Font font)
     {
-        if (font == null)
-        {
-            throw new NullPointerException("Font is null");
-        }
-
-        double widthPx = SwingUtilities.computeStringWidth(
-                hostComponent_.getFontMetrics(font), str);
+        double widthPx = SwingUtilities.computeStringWidth(referenceFontMetrics_, str);
         return widthPx / unitSizePx_;
     }
 
     public double getFontAscent()
     {
-        return getFontAscent(font_);
+        return getFontAscent(referenceFont_);
     }
 
     public double getFontAscent(Font font)
     {
-        //Component c = hostComponent_ != null ? hostComponent_ : dummyComponent_;
-        Component c = hostComponent_;
-        FontMetrics fm = c.getFontMetrics(font);
-        double heightPx = fm.getAscent();
+        double heightPx = referenceFontMetrics_.getAscent();
         //@todo what does this 0.75 mean?
         return 0.75 * heightPx / unitSizePx_;
     }
-
 }
