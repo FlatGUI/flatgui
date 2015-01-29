@@ -10,9 +10,9 @@
 
 package flatgui.samples.bookpanel;
 
+import flatgui.core.FGTemplate;
+import flatgui.core.IFGTemplate;
 import flatgui.core.websocket.FGAppServer;
-import flatgui.core2.FGTemplate;
-import flatgui.core2.IFGTemplate;
 
 import java.io.*;
 import java.net.URL;

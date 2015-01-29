@@ -10,13 +10,14 @@
 package flatgui.core;
 
 import clojure.lang.Var;
+import flatgui.core.awt.FGMouseTargetComponentInfo;
 
 import java.util.*;
 
 /**
  * @author Denis Lebedev
  */
-public class FGModule implements IFGModule
+class FGModule implements IFGModule
 {
     static final String FG_CORE_NAMESPACE = "flatgui.appcontainer";
     static final String GET_CONTAINER_FN_NAME = "get-container";

@@ -11,8 +11,8 @@
 package flatgui.core.websocket;
 
 import flatgui.core.FGContainer;
-import flatgui.core2.IFGContainerHost;
-import flatgui.core2.IFGTemplate;
+import flatgui.core.IFGContainerHost;
+import flatgui.core.IFGTemplate;
 
 import java.net.InetAddress;
 import java.util.Map;

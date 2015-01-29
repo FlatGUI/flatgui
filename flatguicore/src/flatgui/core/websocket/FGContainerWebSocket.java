@@ -11,7 +11,7 @@
 package flatgui.core.websocket;
 
 import flatgui.core.FGWebContainerWrapper;
-import flatgui.core2.IFGTemplate;
+import flatgui.core.IFGTemplate;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 

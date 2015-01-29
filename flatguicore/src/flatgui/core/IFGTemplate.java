@@ -8,7 +8,7 @@
  * You must not remove this notice, or any other, from this software.
  */
 
-package flatgui.core2;
+package flatgui.core;
 
 /**
  * @author Denis Lebedev

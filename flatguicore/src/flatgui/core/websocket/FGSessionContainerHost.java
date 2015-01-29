@@ -8,27 +8,19 @@
  * You must not remove this notice, or any other, from this software.
  */
 
-package flatgui.core2;
+package flatgui.core.websocket;
 
-import flatgui.core.HostComponent;
 import flatgui.core.IFGContainer;
-
-import java.awt.*;
-import java.awt.event.ActionListener;
-import java.util.function.Consumer;
+import flatgui.core.IFGContainerHost;
 
 /**
  * @author Denis Lebedev
  */
-public class FGAWTContainerHost implements IFGContainerHost<Component>
+public class FGSessionContainerHost implements IFGContainerHost<FGContainerSession>
 {
     @Override
-    public Component hostContainer(IFGContainer container)
+    public FGContainerSession hostContainer(IFGContainer container)
     {
-        HostComponent c = new HostComponent(container);
-        ActionListener eventFedCallBack = c.getEventFedCallback();
-        Consumer<Object> inputEventConsumer = container.connect(eventFedCallBack, c);
-        c.setInputEventConsumer(inputEventConsumer);
-        return c;
+        return new FGContainerSession(container);
     }
 }

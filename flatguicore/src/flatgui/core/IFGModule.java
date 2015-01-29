@@ -9,6 +9,8 @@
  */
 package flatgui.core;
 
+import flatgui.core.awt.FGMouseTargetComponentInfo;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -57,31 +59,5 @@ public interface IFGModule
     public List<Object> getPaintChangedSequence2();
 
     //
-
-    public static class FGComponentPath
-    {
-        private final Object targetComponentPath_;
-        private final Object targetIdPath_;
-
-        public FGComponentPath(Object targetComponentPath, Object targetIdPath)
-        {
-            if (targetComponentPath == null || targetIdPath == null)
-            {
-                throw new IllegalArgumentException();
-            }
-            targetComponentPath_ = targetComponentPath;
-            targetIdPath_ = targetIdPath;
-        }
-
-        public Object getTargetComponentPath()
-        {
-            return targetComponentPath_;
-        }
-
-        public Object getTargetIdPath()
-        {
-            return targetIdPath_;
-        }
-    }
 
 }

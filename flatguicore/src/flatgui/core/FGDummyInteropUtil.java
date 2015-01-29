@@ -9,8 +9,6 @@
  */
 package flatgui.core;
 
-import flatgui.core.IFGInteropUtil;
-
 import javax.swing.*;
 import java.awt.*;
 

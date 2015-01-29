@@ -17,7 +17,7 @@ import java.util.Map;
  *         Date: 8/11/13
  *         Time: 4:01 PM
  */
-public interface IFGRepaintReasonParser<Reason>
+public interface IFGInputEventParser<Reason>
 {
     public Map<String, Object> initialize(IFGModule fgModule);
 

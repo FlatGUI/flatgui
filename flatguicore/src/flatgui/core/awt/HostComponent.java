@@ -8,8 +8,10 @@
  * You must not remove this notice, or any other, from this software.
  */
 
-package flatgui.core;
+package flatgui.core.awt;
 
+import flatgui.core.FGContainer;
+import flatgui.core.IFGContainer;
 import flatgui.core.awt.FGDefaultPrimitivePainter;
 import flatgui.core.awt.IFGPrimitivePainter;
 

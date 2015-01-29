@@ -26,7 +26,8 @@
   :deploy-repositories {"releases" {:url "https://oss.sonatype.org/service/local/staging/deploy/maven2/" :creds :gpg}
                         "snapshots" {:url "https://oss.sonatype.org/content/repositories/snapshots/" :creds :gpg}}
   :java-source-paths ["src/flatgui/core"
-                      "src/flatgui/core2"
+                      "src/flatgui/core/awt"
+                      "src/flatgui/core/websocket"
                       "src/flatgui/controlcenter"]
   :omit-source true
   :aot :all

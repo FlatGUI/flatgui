@@ -10,8 +10,6 @@
 package flatgui.core;
 
 import clojure.lang.Var;
-import flatgui.core.awt.*;
-import flatgui.core2.IFGTemplate;
 
 import java.awt.event.*;
 import java.util.*;
@@ -28,7 +26,7 @@ public class FGContainer implements IFGContainer
 
 
 
-    private final FGRepaintReasonParser reasonParser_;
+    private final FGInputEventParser reasonParser_;
 
     private IFGInteropUtil interopUtil_;
 
@@ -56,11 +54,11 @@ public class FGContainer implements IFGContainer
         containerId_ = containerId;
         module_ = new FGModule(containerId);
 
-        reasonParser_ = new FGRepaintReasonParser();
+        reasonParser_ = new FGInputEventParser();
         reasonParser_.registerReasonClassParser(MouseEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
         reasonParser_.registerReasonClassParser(MouseWheelEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
         reasonParser_.registerReasonClassParser(KeyEvent.class, new FGKeyEventParser());
-        reasonParser_.registerReasonClassParser(FGContainer.FGTimerEvent.class, new IFGRepaintReasonParser<FGContainer.FGTimerEvent>() {
+        reasonParser_.registerReasonClassParser(FGContainer.FGTimerEvent.class, new IFGInputEventParser<FGTimerEvent>() {
             @Override
             public Map<String, Object> initialize(IFGModule fgModule) {
                 return null;
@@ -110,11 +108,11 @@ public class FGContainer implements IFGContainer
         containerId_ = name;
         module_ = new FGModule(name);
 
-        reasonParser_ = new FGRepaintReasonParser();
+        reasonParser_ = new FGInputEventParser();
         reasonParser_.registerReasonClassParser(MouseEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
         reasonParser_.registerReasonClassParser(MouseWheelEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
         reasonParser_.registerReasonClassParser(KeyEvent.class, new FGKeyEventParser());
-        reasonParser_.registerReasonClassParser(FGContainer.FGTimerEvent.class, new IFGRepaintReasonParser<FGContainer.FGTimerEvent>() {
+        reasonParser_.registerReasonClassParser(FGContainer.FGTimerEvent.class, new IFGInputEventParser<FGTimerEvent>() {
             @Override
             public Map<String, Object> initialize(IFGModule fgModule) {
                 return null;

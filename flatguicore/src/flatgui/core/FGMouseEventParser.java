@@ -7,11 +7,11 @@
  * the terms of this license.
  * You must not remove this notice, or any other, from this software.
  */
-package flatgui.core.awt;
+package flatgui.core;
 
-import flatgui.core.FGMouseTargetComponentInfo;
-import flatgui.core.IFGModule;
-import flatgui.core.IFGRepaintReasonParser;
+import flatgui.core.awt.FGMouseEvent;
+import flatgui.core.awt.FGMouseTargetComponentInfo;
+import flatgui.core.awt.FGMouseWheelEvent;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;
@@ -23,7 +23,7 @@ import java.util.*;
  *         Date: 8/11/13
  *         Time: 4:19 PM
  */
-public class FGMouseEventParser implements IFGRepaintReasonParser<MouseEvent>
+class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
 {
     public static final String CHANNEL_NAME = "mouse";
 
@@ -38,7 +38,7 @@ public class FGMouseEventParser implements IFGRepaintReasonParser<MouseEvent>
     // temporary, for debug
     static Collection<Object> latestPressedTargetCellIds_ = new HashSet<>();
 
-    private IFGModule.FGComponentPath pressedPath_;
+    private FGComponentPath pressedPath_;
 
     private Object lastTargetIdPath_;
     private Object lastXRelativeVec_;
@@ -76,7 +76,7 @@ public class FGMouseEventParser implements IFGRepaintReasonParser<MouseEvent>
 
         FGMouseTargetComponentInfo componentInfo = fgModule.getMouseTargetInfoAt(
                 mouseX, mouseY, newLeftButtonDown && leftButtonDown_ ? pressedPath_ : null);
-        IFGModule.FGComponentPath targetPath = componentInfo.getComponentPath();
+        FGComponentPath targetPath = componentInfo.getComponentPath();
         Object xRelativeVec = componentInfo.getXRelativeVec();
         Object yRelativeVec = componentInfo.getYRelativeVec();
 

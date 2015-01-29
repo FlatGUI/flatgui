@@ -8,19 +8,14 @@
  * You must not remove this notice, or any other, from this software.
  */
 
-package flatgui.core2;
+package flatgui.core;
 
 import flatgui.core.IFGContainer;
-import flatgui.core.websocket.FGContainerSession;
 
 /**
  * @author Denis Lebedev
  */
-public class FGSessionContainerHost implements IFGContainerHost<FGContainerSession>
+public interface IFGContainerHost<H>
 {
-    @Override
-    public FGContainerSession hostContainer(IFGContainer container)
-    {
-        return new FGContainerSession(container);
-    }
+    public H hostContainer(IFGContainer container);
 }

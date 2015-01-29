@@ -11,10 +11,7 @@ package flatgui.samples.bookpanel;
 
 import flatgui.controlcenter.view.ControlCenterFrame;
 import flatgui.core.*;
-import flatgui.core2.FGAWTContainerHost;
-import flatgui.core2.FGTemplate;
-import flatgui.core2.IFGContainerHost;
-import flatgui.core2.IFGTemplate;
+import flatgui.core.awt.FGAWTContainerHost;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
