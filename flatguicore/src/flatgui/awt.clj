@@ -7,12 +7,17 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns flatgui.awt
-  (:import [flatgui.core FGContainerBase])
-  (:use flatgui.util.matrix))
+  ;(:import [flatgui.core FGContainerBase])
+  (:use flatgui.util.matrix)
+  ; TODO temporary
+  (:import (flatgui.core.websocket FGWebInteropUtil)))
 
-(defn- container [] (FGContainerBase/getCurrentContainer))
+; TODO Further refactor
+;(defn- container [] (FGContainerBase/getCurrentContainer))
+;(defn awtutil [] (.getAWTUtil (container)))
+(defn- container [] nil)
+(defn awtutil [] (FGWebInteropUtil. 64.0))
 
-(defn awtutil [] (.getAWTUtil (container)))
 (defn strw [t] (.getStringWidth (awtutil) t))
 (defn strh [] (.getFontAscent (awtutil)))
 (defn halfstrh [] (/ (strh) 2))

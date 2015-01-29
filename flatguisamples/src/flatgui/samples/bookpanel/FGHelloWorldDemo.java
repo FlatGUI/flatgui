@@ -10,13 +10,16 @@
 package flatgui.samples.bookpanel;
 
 import flatgui.core.*;
+import flatgui.core2.FGAWTContainerHost;
+import flatgui.core2.FGTemplate;
+import flatgui.core2.IFGContainerHost;
+import flatgui.core2.IFGTemplate;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.util.Scanner;
 
@@ -27,8 +30,6 @@ public class FGHelloWorldDemo
 {
     public static final String CONTAINER_NS = "helloworld";
     public static final String CONTAINER_VAR_NAME = "hellopanel";
-    public static final String APP_NAME = "hellopanel";
-    public static final String CONTAINER_NAME = "hellopanel";
 
     public static void main(String[] args)
     {
@@ -45,26 +46,27 @@ public class FGHelloWorldDemo
                 {
                     frame.setIconImage(logoIcon);
                 }
+                URL formUrl = ClassLoader.getSystemResource("flatgui/samples/forms/helloworld.clj");
+                String sourceCode = new Scanner(new File(formUrl.toURI())).useDelimiter("\\Z").next();
+
+                IFGTemplate helloWorldTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
+
+                IFGContainer helloWorldInstance = new FGContainer(helloWorldTemplate);
+
+                helloWorldInstance.initialize();
+
+                IFGContainerHost<Component> awtHost = new FGAWTContainerHost();
+                Component awtComponent = awtHost.hostContainer(helloWorldInstance);
+
+                frame.add(awtComponent, BorderLayout.CENTER);
                 frame.addWindowListener(new WindowAdapter()
                 {
                     public void windowClosing(WindowEvent we)
                     {
+                        helloWorldInstance.unInitialize();
                         System.exit(0);
                     }
                 });
-
-                FlatGUI flatGui = new FlatGUI();
-
-                URL formUrl = ClassLoader.getSystemResource("flatgui/samples/forms/helloworld.clj");
-                flatGui.loadAppFromString(new Scanner(new File(formUrl.toURI())).useDelimiter("\\Z").next(),
-                        APP_NAME,
-                        CONTAINER_NAME,
-                        CONTAINER_NS,
-                        CONTAINER_VAR_NAME);
-
-                Component awtComponent = flatGui.getContainerComponent(APP_NAME, CONTAINER_NAME);
-
-                frame.add(awtComponent, BorderLayout.CENTER);
                 frame.setVisible(true);
                 awtComponent.requestFocusInWindow();
             }

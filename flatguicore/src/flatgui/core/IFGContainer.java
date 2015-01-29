@@ -26,6 +26,8 @@ public interface IFGContainer
     public static final String GENERAL_PROPERTY_UNIT_SIZE = "UnitSizePx";
 
 
+    public String getId();
+
     public void initialize();
 
     public void unInitialize();

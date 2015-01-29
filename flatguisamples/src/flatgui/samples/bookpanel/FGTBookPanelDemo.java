@@ -11,9 +11,12 @@ package flatgui.samples.bookpanel;
 
 import flatgui.controlcenter.view.ControlCenterFrame;
 import flatgui.core.*;
+import flatgui.core2.FGAWTContainerHost;
+import flatgui.core2.FGTemplate;
+import flatgui.core2.IFGContainerHost;
+import flatgui.core2.IFGTemplate;
 
 import javax.imageio.ImageIO;
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -28,8 +31,6 @@ public class FGTBookPanelDemo
 {
     public static final String CONTAINER_NS = "bookpanelmain";
     public static final String CONTAINER_VAR_NAME = "bookpanel";
-    public static final String APP_NAME = "bookpanel";
-    public static final String CONTAINER_NAME = "bookpanel";
 
     public static void main(String[] args)
     {
@@ -46,36 +47,40 @@ public class FGTBookPanelDemo
                 {
                     frame.setIconImage(logoIcon);
                 }
-                frame.addWindowListener(new WindowAdapter() {
-                    public void windowClosing(WindowEvent we) {
+
+//                JFrame controlCenterFrame = new ControlCenterFrame(
+//                        flatGui.getContainerStateProvider(APP_NAME,
+//                            CONTAINER_NAME, null));
+//                controlCenterFrame.setSize(1200, 900);
+//                controlCenterFrame.setLocation(100, 200);
+//                controlCenterFrame.setVisible(true);
+//                controlCenterFrame.setState(Frame.ICONIFIED);
+//                if (logoIcon != null)
+//                {
+//                    controlCenterFrame.setIconImage(logoIcon);
+//                }
+
+                URL formUrl = ClassLoader.getSystemResource("flatgui/samples/forms/bookpanelmain.clj");
+                String sourceCode = new Scanner(new File(formUrl.toURI())).useDelimiter("\\Z").next();
+
+                IFGTemplate bookPanelTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
+
+                IFGContainer bookPanelInstance = new FGContainer(bookPanelTemplate);
+
+                bookPanelInstance.initialize();
+
+                IFGContainerHost<Component> awtHost = new FGAWTContainerHost();
+                Component awtComponent = awtHost.hostContainer(bookPanelInstance);
+
+                frame.add(awtComponent, BorderLayout.CENTER);
+                frame.addWindowListener(new WindowAdapter()
+                {
+                    public void windowClosing(WindowEvent we)
+                    {
+                        bookPanelInstance.unInitialize();
                         System.exit(0);
                     }
                 });
-
-                FlatGUI flatGui = new FlatGUI();
-
-                URL formUrl = ClassLoader.getSystemResource("flatgui/samples/forms/bookpanelmain.clj");
-                flatGui.loadAppFromString(new Scanner(new File(formUrl.toURI())).useDelimiter("\\Z").next(),
-                        APP_NAME,
-                        CONTAINER_NAME,
-                        CONTAINER_NS,
-                        CONTAINER_VAR_NAME);
-
-                JFrame controlCenterFrame = new ControlCenterFrame(
-                        flatGui.getContainerStateProvider(APP_NAME,
-                            CONTAINER_NAME, null));
-                controlCenterFrame.setSize(1200, 900);
-                controlCenterFrame.setLocation(100, 200);
-                controlCenterFrame.setVisible(true);
-                controlCenterFrame.setState(Frame.ICONIFIED);
-                if (logoIcon != null)
-                {
-                    controlCenterFrame.setIconImage(logoIcon);
-                }
-
-                Component awtComponent = flatGui.getContainerComponent(APP_NAME, CONTAINER_NAME);
-
-                frame.add(awtComponent, BorderLayout.CENTER);
                 frame.setVisible(true);
                 awtComponent.requestFocusInWindow();
             }

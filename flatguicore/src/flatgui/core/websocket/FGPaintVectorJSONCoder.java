@@ -10,7 +10,6 @@
 
 package flatgui.core.websocket;
 
-import flatgui.core.FGWebContainer;
 import flatgui.core.IFGContainer;
 import org.json.JSONArray;
 import org.json.JSONException;

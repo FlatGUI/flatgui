@@ -10,6 +10,10 @@
 
 package flatgui.core.websocket;
 
+import flatgui.core.FGContainer;
+import flatgui.core2.IFGContainerHost;
+import flatgui.core2.IFGTemplate;
+
 import java.net.InetAddress;
 import java.util.Map;
 import java.util.Timer;
@@ -24,13 +28,12 @@ class FGContainerSessionHolder
     private static final String SPECIAL_CHARS = ".:/=";
     private static final long IDLE_SESSION_TIMEOUT = 15 * 60 * 1000;
 
-    private Object id_;
+    private final IFGContainerHost<FGContainerSession> sessionHost_;
+    private final Map<Object, FGContainerSession> sessionMap_;
 
-    private Map<Object, FGContainerSession> sessionMap_;
-
-    FGContainerSessionHolder(Object id)
+    FGContainerSessionHolder(IFGContainerHost<FGContainerSession> sessionHost)
     {
-        id_ = id;
+        sessionHost_ = sessionHost;
         sessionMap_ = new ConcurrentHashMap<>();
 
         Timer repaintTimer = new Timer("FlatGUI web container idle session cleaner", true);
@@ -51,28 +54,28 @@ class FGContainerSessionHolder
         }, IDLE_SESSION_TIMEOUT, IDLE_SESSION_TIMEOUT);
     }
 
-    @Override
-    public String toString()
+    FGContainerSession getSession(IFGTemplate template, InetAddress remoteAddress)
     {
-        return getClass().getSimpleName() + "[id="+id_+"]";
-    }
+        Object sessionId = getSessionId(template, remoteAddress);
 
-    FGContainerSession getSession(String applicationName, InetAddress remoteAddress)
-    {
-        FGContainerSession s = sessionMap_.computeIfAbsent(getSessionId(applicationName, remoteAddress),
-                k -> new FGContainerSession(applicationName, k));
+        FGContainerSession s = sessionMap_.computeIfAbsent(
+                getSessionId(template, remoteAddress),
+                k -> sessionHost_.hostContainer(new FGContainer(template, sessionId.toString())));
+
         FGAppServer.getFGLogger().debug(toString() + " state:");
         FGAppServer.getFGLogger().debug(sessionMap_.toString());
         FGAppServer.getFGLogger().debug(toString() +
-                " returning for app=" + applicationName + " remoteAddress=" + remoteAddress + " session: " + s);
+                " returning for remoteAddress=" + remoteAddress + " session: " + s);
+
         return s;
     }
 
     //private static long counter_ = 0;
-
-    private static Object getSessionId(String applicationName, InetAddress remoteAddress)
+    private static Object getSessionId(IFGTemplate template, InetAddress remoteAddress)
     {
-        String name = applicationName + "_" + remoteAddress.getHostAddress().toString();// + String.valueOf(counter_);
+        String name = template.getContainerNamespace() + "_" +
+                template.getContainerVarName() + "_" +
+                remoteAddress.getHostAddress().toString();// + String.valueOf(counter_);
         //counter_++;
         for (int i=0; i<SPECIAL_CHARS.length(); i++)
         {

@@ -9,8 +9,10 @@
  */
 package flatgui.core;
 
+import clojure.lang.Var;
 import flatgui.core.awt.*;
 import flatgui.core.websocket.FGWebInteropUtil;
+import flatgui.core2.IFGTemplate;
 
 import java.awt.event.*;
 import java.util.*;
@@ -22,7 +24,7 @@ import java.util.function.Consumer;
  */
 public class FGContainer implements IFGContainer
 {
-
+    private static final String REGISTER_FN_NAME = "register-container";
 
 
 
@@ -34,14 +36,27 @@ public class FGContainer implements IFGContainer
     private final Map<String, Object> containerProperties_;
     private final Map<String, Object> targetedProperties_;
 
+    private final String containerId_;
     private final IFGModule module_;
 
     private ExecutorService evolverExecutorService_;
 
     private ActionListener eventFedCallback_;
 
-    public FGContainer(IFGModule module)
+    public FGContainer(IFGTemplate template)
     {
+        this(template, template.getContainerVarName());
+    }
+
+    public FGContainer(IFGTemplate template, String containerId)
+    {
+        Var containerVar = clojure.lang.RT.var(template.getContainerNamespace(), template.getContainerVarName());
+        Var registerFn = clojure.lang.RT.var(FGModule.FG_CORE_NAMESPACE, REGISTER_FN_NAME);
+        registerFn.invoke(containerId, containerVar.get());
+
+        containerId_ = containerId;
+        module_ = new FGModule(containerId);
+
         reasonParser_ = new FGRepaintReasonParser();
         reasonParser_.registerReasonClassParser(MouseEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
         reasonParser_.registerReasonClassParser(MouseWheelEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
@@ -62,8 +77,6 @@ public class FGContainer implements IFGContainer
                 return Collections.emptyMap();
             }
         });
-
-        module_ = module;
 
 
         containerProperties_ = new HashMap<>();
@@ -90,6 +103,66 @@ public class FGContainer implements IFGContainer
         //interopUtil_ = new FGAWTInteropUtil((Component)hostContext, UNIT_SIZE_PX);
         // TODO temporary
         interopUtil_ = new FGWebInteropUtil(UNIT_SIZE_PX);
+    }
+
+    @Deprecated
+    public FGContainer(String name)
+    {
+        containerId_ = name;
+        module_ = new FGModule(name);
+
+        reasonParser_ = new FGRepaintReasonParser();
+        reasonParser_.registerReasonClassParser(MouseEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
+        reasonParser_.registerReasonClassParser(MouseWheelEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
+        reasonParser_.registerReasonClassParser(KeyEvent.class, new FGKeyEventParser());
+        reasonParser_.registerReasonClassParser(FGContainer.FGTimerEvent.class, new IFGRepaintReasonParser<FGContainer.FGTimerEvent>() {
+            @Override
+            public Map<String, Object> initialize(IFGModule fgModule) {
+                return null;
+            }
+
+            @Override
+            public Map<String, Object> getTargetedPropertyValues(FGContainer.FGTimerEvent fgTimerEvent) {
+                return new HashMap<>();
+            }
+
+            @Override
+            public Map<FGContainer.FGTimerEvent, Collection<Object>> getTargetCellIds(FGContainer.FGTimerEvent fgTimerEvent, IFGModule fgModule, Map<String, Object> generalPropertyMap) {
+                return Collections.emptyMap();
+            }
+        });
+
+
+        containerProperties_ = new HashMap<>();
+        containerProperties_.put(GENERAL_PROPERTY_UNIT_SIZE, UNIT_SIZE_PX);
+
+        targetedProperties_ = new HashMap<>();
+
+//        Timer repaintTimer = new Timer("FlatGUI Blink Helper Timer", true);
+//        repaintTimer.schedule(new TimerTask()
+//        {
+//            @Override
+//            public void run()
+//            {
+//                //EventQueue.invokeLater(() -> cycle(new FGTimerEvent()));
+//            }
+//        }, 250, 250);
+
+        Map<String, Object> initialGeneralProperties = reasonParser_.initialize(module_);
+        if (initialGeneralProperties != null)
+        {
+            containerProperties_.putAll(initialGeneralProperties);
+        }
+
+        //interopUtil_ = new FGAWTInteropUtil((Component)hostContext, UNIT_SIZE_PX);
+        // TODO temporary
+        interopUtil_ = new FGWebInteropUtil(UNIT_SIZE_PX);
+    }
+
+    @Override
+    public String getId()
+    {
+        return containerId_;
     }
 
     @Override

@@ -11,8 +11,15 @@
 package flatgui.core.websocket;
 
 import flatgui.core.*;
+import flatgui.core2.FGSessionContainerHost;
+import flatgui.core2.IFGTemplate;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
+import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
+import org.eclipse.jetty.websocket.servlet.WebSocketServlet;
+import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
 import java.net.InetSocketAddress;
 import java.util.HashMap;
@@ -23,121 +30,68 @@ import java.util.Map;
  */
 public class FGAppServer
 {
-    private static Server server_;
-    private static Map<InetSocketAddress, FGContainerSessionHolder> serverContext_;
-    private static Map<String, FGClientApp> applications_ = new HashMap<>();
     private static FGLogger logger_ = new FGLogger();
 
-    // TODO temporary
-    private static String defaultApplicationName_;
-    private static boolean baseInit_ = false;
+    // TODO Some template provider
+    private final IFGTemplate template_;
 
-    private FGAppServer()
+    private Server server_;
+
+
+    public FGAppServer(IFGTemplate template, int port) throws Exception
     {
-    }
-
-    public static void start(int port) throws Exception
-    {
-        serverContext_ = new HashMap<>();
-
+        template_ = template;
         server_ = new Server(port);
 
         ServletHandler handler = new ServletHandler();
         server_.setHandler(handler);
 
-        handler.addServletWithMapping(FGWebSocketServlet.class, "/*");
+        ServletHolder h = new ServletHolder(new FGWebSocketServlet(template_));
 
+        //handler.addServletWithMapping(FGWebSocketServlet.class, "/*");
+        handler.addServletWithMapping(h, "/*");
+    }
+
+    public void start() throws Exception
+    {
         server_.start();
+    }
+
+    public void join() throws Exception
+    {
         server_.join();
     }
 
-    public static void deployApplication(
-            String clientNs,
-            String clientContainerVarName,
-            String applicationName,
-            String sourceCode)
-    {
-        if (!baseInit_)
-        {
-            FGContainerBase.setRefContainer(new FGContainer(new FGModule(null)));
-            baseInit_ = true;
-        }
-        FGClientAppLoader.initializeFromContent(sourceCode);
-        applications_.put(applicationName, new FGClientApp(clientNs, clientContainerVarName));
-    }
-
-    public static void deployApplication1(
-            String clientNs,
-            String clientContainerVarName,
-            String applicationName)
-    {
-        if (!baseInit_)
-        {
-            FGContainerBase.setRefContainer(new FGContainer(new FGModule(null)));
-            baseInit_ = true;
-        }
-
-        applications_.put(applicationName, new FGClientApp(clientNs, clientContainerVarName));
-    }
-
-    public static void instantiateContainer(String applicationName, String containerName)
-    {
-        FGClientApp app = applications_.get(applicationName);
-        if (app != null)
-        {
-            FGClientAppLoader.registerContainer(app.getContainerNs(), app.getContainerVarName(), containerName);
-        }
-        else
-        {
-            throw new IllegalStateException("No application with name '" + applicationName + "' deployed.");
-        }
-    }
-
-    //TODO temporary
-
-    public static void setDefaultApplicationName(String defaultApplicationName)
-    {
-        defaultApplicationName_ = defaultApplicationName;
-    }
-
-    public static String getDefaultApplicationName()
-    {
-        return defaultApplicationName_;
-    }
-
     // Private
-
-    static synchronized FGContainerSessionHolder getSessionHolder(InetSocketAddress localAddr)
-    {
-        ensureInitialized();
-        FGContainerSessionHolder holder = serverContext_.get(localAddr);
-        if (holder == null)
-        {
-            holder = new FGContainerSessionHolder(localAddr);
-            serverContext_.put(localAddr, holder);
-        }
-        return holder;
-    }
-    
-    static synchronized FGContainerSession getSession(
-            InetSocketAddress localAddr,
-            String applicationName,
-            InetSocketAddress remoteAddr)
-    {
-        FGContainerSessionHolder sessionHolder = getSessionHolder(localAddr);
-        return sessionHolder.getSession(applicationName, remoteAddr.getAddress());
-    }
 
     static FGLogger getFGLogger()
     {
         return logger_;
     }
 
-    private static void ensureInitialized()
+    // Inner classes
+
+    private static class FGWebSocketServlet extends WebSocketServlet
     {
-        if (serverContext_ == null)
+        private final IFGTemplate template_;
+        private final FGContainerSessionHolder sessionHolder_;
+
+        FGWebSocketServlet(IFGTemplate template)
         {
-            throw new IllegalStateException("Not initialized");
+            template_ = template;
+            sessionHolder_ = new FGContainerSessionHolder(new FGSessionContainerHost());
+        }
+
+        @Override
+        public void configure(WebSocketServletFactory factory)
+        {
+            factory.getPolicy().setIdleTimeout(24 * 60 * 60 * 1000);
+            factory.setCreator(this::createWebSocket);
+        }
+
+        private Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp)
+        {
+            return new FGContainerSessionProvider(template_, sessionHolder_);
         }
     }
 }

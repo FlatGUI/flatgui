@@ -33,7 +33,7 @@ public class HostComponent extends Canvas
 
     private boolean appTriggered_ = false;
 
-    HostComponent(IFGContainer fgContainer)
+    public HostComponent(IFGContainer fgContainer)
     {
         setFocusTraversalKeysEnabled(false);
 

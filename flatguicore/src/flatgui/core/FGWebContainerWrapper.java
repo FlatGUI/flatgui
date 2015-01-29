@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 /**
  * @author Denis Lebedev
  */
-public class FGWebContainer
+public class FGWebContainerWrapper
 {
     public static final byte POSITION_MATRIX_MAP_COMMAND_CODE = 0;
     public static final byte VIEWPORT_MATRIX_MAP_COMMAND_CODE = 1;
@@ -65,16 +65,15 @@ public class FGWebContainer
     private final FGContainerStateTransmitter stateTransmitter_;
 
 
-    private final FGContainer fgContainer_;
+    private final IFGContainer fgContainer_;
     private Consumer<Object> eventConsumer_;
 
-    public FGWebContainer(IFGModule module)
+    public FGWebContainerWrapper(IFGContainer fgContainer)
     {
-        fgContainer_ = new FGContainer(module);
+        fgContainer_ = fgContainer;
         eventConsumer_ = fgContainer_.connect(e -> {}, this);
 
-        // TODO Specifics
-        stateTransmitter_ = new FGContainerStateTransmitter(module);
+        stateTransmitter_ = new FGContainerStateTransmitter(fgContainer_.getFGModule());
     }
 
     //

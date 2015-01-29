@@ -10,8 +10,9 @@
 
 package flatgui.samples.bookpanel;
 
-import flatgui.core.FlatGUI;
 import flatgui.core.websocket.FGAppServer;
+import flatgui.core2.FGTemplate;
+import flatgui.core2.IFGTemplate;
 
 import java.io.*;
 import java.net.URL;
@@ -22,24 +23,21 @@ import java.util.Scanner;
  */
 public class FGBookPanelDemoServer
 {
-    public static final String CONTAINER_NS = "bookpanelmain";
-    public static final String CONTAINER_VAR_NAME = "bookpanel";
-    public static final String APP_NAME = "bookpanel";
-    public static final String CONTAINER_NAME = "bookpanel";
+    private static final String CONTAINER_NS = "bookpanelmain";
+    private static final String CONTAINER_VAR_NAME = "bookpanel";
+    private static final int PORT = 13100;
 
 
     public static void main(String[] args) throws Exception
     {
-        FlatGUI flatGui = new FlatGUI();
-
         URL formUrl = ClassLoader.getSystemResource("flatgui/samples/forms/bookpanelmain.clj");
-        flatGui.loadAppFromString(new Scanner(new File(formUrl.toURI())).useDelimiter("\\Z").next(),
-                APP_NAME,
-                CONTAINER_NAME,
-                CONTAINER_NS,
-                CONTAINER_VAR_NAME);
+        String sourceCode = new Scanner(new File(formUrl.toURI())).useDelimiter("\\Z").next();
 
-        flatGui.startContainerServer(APP_NAME, CONTAINER_NAME, 13100);
+        IFGTemplate bookPanelTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
+
+        FGAppServer server = new FGAppServer(bookPanelTemplate, PORT);
+        server.start();
+        server.join();
     }
 }
 

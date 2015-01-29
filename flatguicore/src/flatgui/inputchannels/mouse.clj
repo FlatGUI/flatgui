@@ -9,7 +9,7 @@
 (ns ^{:doc "Mouse input channel"
       :author "Denys Lebediev"}
   flatgui.inputchannels.mouse
-  (:import [java.awt.event MouseEvent MouseWheelEvent] [flatgui.core FGContainerBase])
+  (:import [java.awt.event MouseEvent MouseWheelEvent])
   (:use flatgui.comlogic flatgui.inputchannels.channelbase flatgui.inputchannels.awtbase clojure.test))
 
 (definputparser is-mouse-event? java.awt.event.MouseEvent true)
@@ -42,9 +42,10 @@
 ; @todo Components should actually process their repaint reasons (like methods above)
 ; @todo and have way to convert pixels to units
 ;
-(defn- container [] (FGContainerBase/getCurrentContainer))
+;(defn- container [] (FGContainerBase/getCurrentContainer))
+;(defn- get-unit-size-px [] (.getGeneralProperty (container) "UnitSizePx"))
 
-(defn- get-unit-size-px [] (.getGeneralProperty (container) "UnitSizePx"))
+(defn get-unit-size-px [] 64.0)
 
 ;;
 ;(definputparser has-mouse? java.awt.event.MouseEvent

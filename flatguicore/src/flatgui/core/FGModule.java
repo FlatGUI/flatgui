@@ -28,45 +28,6 @@ public class FGModule implements IFGModule
         containerName_ = containerName;
     }
 
-//    @Override
-//    public void start(String... source)
-//    {
-//        for (String src : source)
-//        {
-//            File srcFile = new File(src);
-//
-//            String content = null;
-//            try
-//            {
-//                content = new Scanner(srcFile).useDelimiter("\\Z").next();
-//            }
-//            catch (FileNotFoundException e)
-//            {
-//                e.printStackTrace();
-//            }
-//            initializeFromContent(content);
-//        }
-//    }
-//
-//    @Override
-//    public void initializeFromContent(String content)
-//    {
-//        // Ensure RT class is initialized before compiler
-//        System.out.println(clojure.lang.RT.byteCast(1));
-//
-//        try
-//        {
-//            clojure.lang.Compiler.load(new StringReader(content));
-//
-//            registerContainer();
-//        }
-//        catch(Exception ex)
-//        {
-//            System.out.println("Unable to parse source content: " + ex.getMessage());
-//            ex.printStackTrace();
-//        }
-//    }
-
     @Override
     public void evolve(Collection<Object> targetCellIds, Object inputEvent)
     {
@@ -82,10 +43,6 @@ public class FGModule implements IFGModule
                 "flatgui.paint", "paint-all");
 
         List<Object> pList = (List<Object>) paintAll.invoke(container);
-
-//        System.out.println("-DLTEMP- FGModule.getPaintAllSequence paint-all" +
-//                ": " + pList);
-
         return pList;
     }
 
@@ -97,10 +54,6 @@ public class FGModule implements IFGModule
                 "flatgui.paint", "paint-all");
 
         List<Object> pList = (List<Object>) paintAll.invoke(container, clipX, clipY, clipW, clipH);
-
-//        System.out.println("-DLTEMP- FGModule.getPaintAllSequence paint-all" +
-//                ": " + pList);
-
         return pList;
     }
 
@@ -120,10 +73,6 @@ public class FGModule implements IFGModule
                 "flatgui.paint", /*"paint-changed"*/"paint-dirty");
 
         List<Object> pList = (List<Object>) paintChanged.invoke(container, dirtyRects, false);
-
-//        System.out.println("-DLTEMP- FGModule.getPaintChangesSequence paint-changed" +
-//                ": " + pList);
-
         return pList;
     }
 
@@ -158,8 +107,6 @@ public class FGModule implements IFGModule
             Object xRelativeVec = getMouseRelXFromPath.invoke(targetPath);
             Object yRelativeVec = getMouseRelYFromPath.invoke(targetPath);
 
-            //System.out.println("-DLTEMP- FGModule.getMouseTargetInfoAt " + ((Collection)targetPath).size() + " " + targetIds + " - " + xRelativeVec + " - " + yRelativeVec);
-
             return new FGMouseTargetComponentInfo(new FGComponentPath(targetPath, targetIds), xRelativeVec, yRelativeVec);
         }
         else
@@ -173,15 +120,6 @@ public class FGModule implements IFGModule
     {
         return getContainer();
     }
-
-
-//    @Override
-//    public Object getObjectFromContainer(String name)
-//    {
-//        Var var = clojure.lang.RT.var(
-//                namespace_, name);
-//        return var.isBound() ? var.get() : null;
-//    }
 
     //
     // New painting approach optimized for web
@@ -256,12 +194,6 @@ public class FGModule implements IFGModule
 
     private Object getContainer()
     {
-        // @todo container-name
-
-//        Var globalContainerMap = clojure.lang.RT.var(
-//                FG_CORE_NAMESPACE,
-//                "CONTAINERS");
-//        return globalContainerMap.invoke(containerName_);
         Var getContainerFn = clojure.lang.RT.var(
                 FG_CORE_NAMESPACE,
                 GET_CONTAINER_FN_NAME);
@@ -270,8 +202,6 @@ public class FGModule implements IFGModule
 
     private Var getEvolver()
     {
-        // @todo container-name
-
         return clojure.lang.RT.var(
                 FG_CORE_NAMESPACE,
                 "app-evolve-container");

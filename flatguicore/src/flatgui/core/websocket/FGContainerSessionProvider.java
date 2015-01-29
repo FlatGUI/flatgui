@@ -10,7 +10,8 @@
 
 package flatgui.core.websocket;
 
-import flatgui.core.FGWebContainer;
+import flatgui.core.FGWebContainerWrapper;
+import flatgui.core2.IFGTemplate;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 
@@ -24,14 +25,20 @@ import java.util.Collection;
  */
 public class FGContainerSessionProvider implements WebSocketListener
 {
+    private final FGContainerSessionHolder sessionHolder_;
+    // TODO have some template provider instead
+    private final IFGTemplate template_;
+
     private volatile Session session_;
-    private volatile FGWebContainer container_;
+    private volatile FGWebContainerWrapper container_;
     private volatile FGInputEventDecoder parser_;
-    private volatile FGPaintVectorBinaryCoder binaryCoder_;
     private volatile FGContainerSession fgSession_;
 
-    public FGContainerSessionProvider()
+    public FGContainerSessionProvider(IFGTemplate template, FGContainerSessionHolder sessionHolder)
     {
+        template_ = template;
+        sessionHolder_ = sessionHolder;
+
         FGAppServer.getFGLogger().info("WS Listener created " + System.identityHashCode(this));
     }
 
@@ -52,13 +59,10 @@ public class FGContainerSessionProvider implements WebSocketListener
     public void onWebSocketConnect(Session session)
     {
         session_ = session;
-        StringBuilder statusMessage = new StringBuilder("creating session...");
+        StringBuilder statusMessage = new StringBuilder("Creating session...");
         setTextToRemote(statusMessage.toString());
 
-        fgSession_ = FGAppServer.getSession(
-                session.getLocalAddress(),
-                FGAppServer.getDefaultApplicationName(),
-                session.getRemoteAddress());
+        fgSession_ = sessionHolder_.getSession(template_, session_.getRemoteAddress().getAddress());
 
         statusMessage.append("|created session");
         setTextToRemote(statusMessage.toString());
@@ -78,7 +82,6 @@ public class FGContainerSessionProvider implements WebSocketListener
         setTextToRemote(statusMessage.toString());
 
         parser_ = fgSession_.getParser();
-        binaryCoder_ = fgSession_.getBinaryCoder();
 
         statusMessage.append("|retrieving initial state...");
         setTextToRemote(statusMessage.toString());
@@ -128,7 +131,6 @@ public class FGContainerSessionProvider implements WebSocketListener
         container_.feedEvent(e);
 
         // TODO Do not send response if new event is coming?
-
         collectAndSendResponse();
 
         //debugMessageCount_++;
@@ -141,7 +143,7 @@ public class FGContainerSessionProvider implements WebSocketListener
         if (response.size() > 0)
         {
             response.forEach(this::sendBytesToRemote);
-            sendBytesToRemote(ByteBuffer.wrap(new byte[]{FGWebContainer.REPAINT_CACHED_COMMAND_CODE}));
+            sendBytesToRemote(ByteBuffer.wrap(new byte[]{FGWebContainerWrapper.REPAINT_CACHED_COMMAND_CODE}));
 
             //logger_.debug("Finished sending " + response.size() + " responses and repaint cmd for #" + debugMessageCount_);
         }

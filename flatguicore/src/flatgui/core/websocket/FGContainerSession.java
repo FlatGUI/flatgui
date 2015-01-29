@@ -22,29 +22,27 @@ public class FGContainerSession
 {
     private static final long IDLE_MARKER = -1;
 
-    private final String containerName_;
-    private final FGWebContainer container_;
+    private final Object sessionId_;
+    private final FGWebContainerWrapper containerWrapper_;
     private final FGInputEventDecoder parser_;
     private final FGPaintVectorBinaryCoder binaryCoder_;
     private final LongAccumulator lastAccessTime_;
 
-    public FGContainerSession(String applicationName, Object sessionId)
+    public FGContainerSession(IFGContainer container)
     {
-        containerName_ = sessionId.toString();
+        sessionId_ = container.getId();
 
-        IFGModule fgModule = new FGModule(containerName_);
-        container_ = new FGWebContainer(fgModule);
-        FGAppServer.instantiateContainer(applicationName, containerName_);
-        FGContainerBase.registerContainer(containerName_, container_.getContainer());
-        FGContainerBase.initializeContainer(containerName_);
+        containerWrapper_ = new FGWebContainerWrapper(container);
+        containerWrapper_.initialize();
+
         parser_ = new FGInputEventDecoder();
         binaryCoder_ = new FGPaintVectorBinaryCoder();
         lastAccessTime_ = new LongAccumulator((r,t) -> t, 0);
     }
 
-    public FGWebContainer getContainer()
+    public FGWebContainerWrapper getContainer()
     {
-        return container_;
+        return containerWrapper_;
     }
 
     public FGInputEventDecoder getParser()
@@ -89,7 +87,7 @@ public class FGContainerSession
     @Override
     public String toString()
     {
-        return getClass().getSimpleName() + "[id=" + containerName_ + "]";
+        return getClass().getSimpleName() + "[id=" + sessionId_ + "]";
     }
 
     private boolean isMarkedIdle()
