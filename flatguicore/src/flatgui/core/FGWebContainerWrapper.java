@@ -10,16 +10,8 @@
 
 package flatgui.core;
 
-import flatgui.core.awt.FGKeyEventParser;
-import flatgui.core.awt.FGMouseEventParser;
 import flatgui.core.websocket.FGPaintVectorBinaryCoder;
-import flatgui.core.websocket.FGWebInteropUtil;
 
-import java.awt.*;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseWheelEvent;
 import java.awt.geom.AffineTransform;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;

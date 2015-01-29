@@ -7,7 +7,7 @@
  * the terms of this license.
  * You must not remove this notice, or any other, from this software.
  */
-package flatgui.core.websocket;
+package flatgui.core;
 
 import flatgui.core.IFGInteropUtil;
 
@@ -19,13 +19,13 @@ import java.awt.*;
  *         Date: 8/14/13
  *         Time: 11:03 PM
  */
-public class FGWebInteropUtil implements IFGInteropUtil
+public class FGDummyInteropUtil implements IFGInteropUtil
 {
     private final double unitSizePx_;
     private final Font referenceFont_;
     private final FontMetrics referenceFontMetrics_;
 
-    public FGWebInteropUtil(int unitSizePx)
+    public FGDummyInteropUtil(int unitSizePx)
     {
         unitSizePx_ = unitSizePx;
         referenceFont_ = new Font("Tahoma", Font.PLAIN, 12);

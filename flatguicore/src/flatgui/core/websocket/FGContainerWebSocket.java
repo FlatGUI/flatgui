@@ -23,7 +23,7 @@ import java.util.Collection;
 /**
  * @author Denis Lebedev
  */
-public class FGContainerSessionProvider implements WebSocketListener
+public class FGContainerWebSocket implements WebSocketListener
 {
     private final FGContainerSessionHolder sessionHolder_;
     // TODO have some template provider instead
@@ -34,7 +34,7 @@ public class FGContainerSessionProvider implements WebSocketListener
     private volatile FGInputEventDecoder parser_;
     private volatile FGContainerSession fgSession_;
 
-    public FGContainerSessionProvider(IFGTemplate template, FGContainerSessionHolder sessionHolder)
+    public FGContainerWebSocket(IFGTemplate template, FGContainerSessionHolder sessionHolder)
     {
         template_ = template;
         sessionHolder_ = sessionHolder;

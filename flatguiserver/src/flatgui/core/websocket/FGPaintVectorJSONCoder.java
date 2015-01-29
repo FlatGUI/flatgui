@@ -10,7 +10,7 @@
 
 package flatgui.core.websocket;
 
-import flatgui.core.IFGContainer;
+import flatgui.core.FGWebContainer;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -27,7 +27,7 @@ import java.util.Map;
 public class FGPaintVectorJSONCoder
 {
     // TODO get rid of this
-    private static int UNIT_SIZE_PX = IFGContainer.UNIT_SIZE_PX;
+    private static int UNIT_SIZE_PX = FGWebContainer.UNIT_SIZE_PX;
 
     private Map<String, ICommandCoder> cmdNameToCoder_;
 

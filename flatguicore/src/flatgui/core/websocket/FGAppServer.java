@@ -21,10 +21,6 @@ import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketServlet;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
-import java.net.InetSocketAddress;
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * @author Denis Lebedev
  */
@@ -91,7 +87,7 @@ public class FGAppServer
 
         private Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp)
         {
-            return new FGContainerSessionProvider(template_, sessionHolder_);
+            return new FGContainerWebSocket(template_, sessionHolder_);
         }
     }
 }

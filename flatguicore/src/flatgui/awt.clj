@@ -10,13 +10,13 @@
   ;(:import [flatgui.core FGContainerBase])
   (:use flatgui.util.matrix)
   ; TODO temporary
-  (:import (flatgui.core.websocket FGWebInteropUtil)))
+  (:import (flatgui.core FGDummyInteropUtil)))
 
 ; TODO Further refactor
 ;(defn- container [] (FGContainerBase/getCurrentContainer))
 ;(defn awtutil [] (.getAWTUtil (container)))
 (defn- container [] nil)
-(defn awtutil [] (FGWebInteropUtil. 64.0))
+(defn awtutil [] (FGDummyInteropUtil. 64.0))
 
 (defn strw [t] (.getStringWidth (awtutil) t))
 (defn strh [] (.getFontAscent (awtutil)))

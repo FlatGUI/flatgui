@@ -11,7 +11,6 @@ package flatgui.core;
 
 import clojure.lang.Var;
 import flatgui.core.awt.*;
-import flatgui.core.websocket.FGWebInteropUtil;
 import flatgui.core2.IFGTemplate;
 
 import java.awt.event.*;
@@ -102,7 +101,7 @@ public class FGContainer implements IFGContainer
 
         //interopUtil_ = new FGAWTInteropUtil((Component)hostContext, UNIT_SIZE_PX);
         // TODO temporary
-        interopUtil_ = new FGWebInteropUtil(UNIT_SIZE_PX);
+        interopUtil_ = new FGDummyInteropUtil(UNIT_SIZE_PX);
     }
 
     @Deprecated
@@ -156,7 +155,7 @@ public class FGContainer implements IFGContainer
 
         //interopUtil_ = new FGAWTInteropUtil((Component)hostContext, UNIT_SIZE_PX);
         // TODO temporary
-        interopUtil_ = new FGWebInteropUtil(UNIT_SIZE_PX);
+        interopUtil_ = new FGDummyInteropUtil(UNIT_SIZE_PX);
     }
 
     @Override
