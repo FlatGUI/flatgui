@@ -8,26 +8,13 @@
 
 (ns ^{:doc "Check box widget"
       :author "Denys Lebediev"}
-  flatgui.widgets.checkbox (:use
-                               flatgui.awt
-                               flatgui.comlogic
-                               flatgui.base
-                               flatgui.paint
-                               flatgui.theme
-                               flatgui.widgets.component
-                               flatgui.widgets.abstractbutton
-                               flatgui.widgets.label
-                               clojure.test))
+  flatgui.widgets.checkbox
+  (:require [flatgui.base :as fg]
+            [flatgui.widgets.abstractbutton]))
 
-(defwidget "checkbox"
+(fg/defwidget "checkbox"
   { :v-alignment :center
     :h-alignment :left
-   ;:look checkbox-look
     :skin-key [:checkbox]
-    :evolvers {:pressed flatgui.widgets.abstractbutton/check-pressed-evolver}
-    }
-  abstractbutton)
-
-;
-; Tests
-;
+    :evolvers {:pressed flatgui.widgets.abstractbutton/check-pressed-evolver}}
+  flatgui.widgets.abstractbutton/abstractbutton)

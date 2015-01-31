@@ -8,27 +8,26 @@
 
 (ns ^{:doc "Base type for all FlatGUI widgets"
       :author "Denys Lebediev"}
-  flatgui.widgets.component (:use flatgui.awt
-                                  flatgui.skins.skinbase
-                                  flatgui.comlogic
-                                  flatgui.base
-                                  flatgui.paint
-                                  flatgui.theme
-                                  flatgui.focusmanagement
-                                  flatgui.util.matrix
-                                  flatgui.widgets.componentbase
-                                  flatgui.inputchannels.mouse
-                                  clojure.test))
+  flatgui.widgets.component (:use flatgui.comlogic
+                                  flatgui.widgets.componentbase)
+  (:require [flatgui.awt :as awt]
+            [flatgui.base :as fg]
+            [flatgui.paint :as fgp]
+            [flatgui.util.matrix :as m]
+            [flatgui.theme]
+            [flatgui.skins.skinbase]
+            [flatgui.skins.flat]
+            [flatgui.inputchannels.mouse :as mouse]))
 
-;(deflookfn component-look (:background :abs-position-matrix :clip-size)
+;(fgp/deflookfn component-look (:background :abs-position-matrix :clip-size)
 ;  (if (= :main (:id comp-property-map))
 ;    [(do
 ;       ;(if (= :main (:id comp-property-map)) (println " component-look for "
 ;       ;                                               (:id comp-property-map) " dirty-rects = " dirty-rects
 ;       ;                                               " abs pm = " abs-position-matrix
 ;       ;                                               " clip size = " clip-size))
-;       (flatgui.awt/setColor background))
-;     ;(flatgui.awt/fillRect 0 0 (x content-size) (y content-size))
+;       (awt/setColor background))
+;     ;(awt/fillRect 0 0 (x content-size) (y content-size))
 ;     (if (and dirty-rects abs-position-matrix)
 ;       ;Note: here it a single {:x .. :y .. :w .. :h ..} object, not a collection like in previous version. TODO rename parameter dirty-rects->dirty-rect
 ;       (let [ inter (flatgui.util.rectmath/rect&
@@ -38,59 +37,57 @@
 ;                       :w (x clip-size)
 ;                       :h (y clip-size)})]
 ;         (if inter
-;           (flatgui.awt/fillRect
+;           (awt/fillRect
 ;             (- (:x inter) (mx-x abs-position-matrix))
 ;             (- (:y inter) (mx-y abs-position-matrix))
 ;             (:w inter)
 ;             (:h inter))))
-;       ;(flatgui.awt/fillRect 0 0 (x content-size) (y content-size))
+;       ;(awt/fillRect 0 0 (x content-size) (y content-size))
 ;       []
 ;       )]
-;    [(flatgui.awt/setColor background)
-;     (flatgui.awt/fillRect 0 0 (x content-size) (y content-size))]
+;    [(awt/setColor background)
+;     (awt/fillRect 0 0 (x content-size) (y content-size))]
 ;    ))
-(deflookfn component-look (:background :abs-position-matrix :clip-size)
-  (flatgui.awt/setColor background)
-  (flatgui.awt/fillRect 0 0 (x content-size) (y content-size))
-  ;(flatgui.awt/drawRect 0 0 (x content-size) (y content-size))
-  )
+(fgp/deflookfn component-look (:background :abs-position-matrix :clip-size)
+  (awt/setColor background)
+  (awt/fillRect 0 0 (x content-size) (y content-size)))
 
 
 ;; TODO implement proper z-position evovler after focus manager is initialized
-(defevolverfn :z-position
+(fg/defevolverfn :z-position
   (if (get-property component [:this] :popup)
     (Integer/MAX_VALUE)
     0))
 
 ;; True there is no parent (get-property returns nil) or parent is visible (true)
-(defevolverfn :visible
+(fg/defevolverfn :visible
   (not (false? (get-property component [] :visible))))
 
 ;; True there is no parent (get-property returns nil) or parent is enabled (true)
-(defevolverfn :enabled
+(fg/defevolverfn :enabled
   (not (false? (get-property component [] :enabled))))
 
-(defevolverfn :theme
+(fg/defevolverfn :theme
   (let [parent (get-property component [] :theme)]
     (if parent parent old-theme)))
 
-(defevolverfn :skin
+(fg/defevolverfn :skin
   (let [parent (get-property component [] :skin)]
     (if parent parent old-skin)))
 
-(defevolverfn :abs-position-matrix
+(fg/defevolverfn :abs-position-matrix
   (let [ parent-pm (get-property component [] :abs-position-matrix)
          this-pm (get-property component [:this] :position-matrix)]
     (if parent-pm
-      (mx* parent-pm this-pm)
+      (m/mx* parent-pm this-pm)
       this-pm)))
 
-(defevolverfn :mouse-down (mouse-left? component))
+(fg/defevolverfn :mouse-down (mouse/mouse-left? component))
 
-(defevolverfn :has-mouse
+(fg/defevolverfn :has-mouse
   (cond
-    (mouse-entered? component) true
-    (mouse-exited? component) false
+    (mouse/mouse-entered? component) true
+    (mouse/mouse-exited? component) false
     :else old-has-mouse))
 
 (defn- default-properties-to-evolve-provider [container target-cell-ids reason]
@@ -101,12 +98,12 @@
 ;    (:evolving-properties component)
     ))
 
-(defwidget "componentbase"
+(fg/defwidget "componentbase"
   (array-map
     :visible true
     :enabled true
     :skin "flatgui.skins.flat"
-    :theme light
+    :theme flatgui.theme/light
     :clip-size (defpoint 1 1 0)
     :content-size (defpoint 1 1 0)
 
@@ -117,9 +114,9 @@
     :popup false
 
     :z-position 0
-    :position-matrix IDENTITY-MATRIX
-    :viewport-matrix IDENTITY-MATRIX
-    :abs-position-matrix IDENTITY-MATRIX
+    :position-matrix m/IDENTITY-MATRIX
+    :viewport-matrix m/IDENTITY-MATRIX
+    :abs-position-matrix m/IDENTITY-MATRIX
 
     :background :prime-3
     :foreground :prime-6
@@ -130,19 +127,19 @@
     :consumes? (fn [_] true)
     :evolvers {:theme theme-evolver
                :skin skin-evolver
-               :look skin-look-evolver
+               :look flatgui.skins.skinbase/skin-look-evolver
                :abs-position-matrix abs-position-matrix-evolver}))
 
 ;[:main :tiket :ticket-panel :aggr-slider]
 
-(defevolverfn default-content-size-evolver :content-size
+(fg/defevolverfn default-content-size-evolver :content-size
   (let [
 ;         _ (if (= (:path-to-target component) [:main :tiket :ticket-panel :aggr-slider])
 ;            (println " Evolving content size for " (:id component) (get-property component [:this] :clip-size)  " reason: " (get-reason)) )
         ]
     (get-property component [:this] :clip-size)))
 
-(defwidget "component"
+(fg/defwidget "component"
   (array-map
 ;     :visible true
 ;     :enabled true

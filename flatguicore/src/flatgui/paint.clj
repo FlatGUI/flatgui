@@ -13,13 +13,13 @@
   flatgui.paint
   (:import (clojure.lang Keyword)
            (java.util Collection))
-  (:use flatgui.awt
-        flatgui.base
+  (:use flatgui.base
         flatgui.comlogic
         flatgui.util.rectmath
         flatgui.util.matrix
         clojure.test)
-  (:require flatgui.access))
+  (:require flatgui.access
+            flatgui.awt))
 
 (defn get-color-from-component [component color-property]
   "Extracts color property value for component. It may be specified
@@ -114,10 +114,10 @@
                                 [(gen-param-name param) (gen-param-binding param)]))
                            '[w (x content-size)
                              h (y content-size)
-                             w- (-px (masknil w))
-                             h- (-px (masknil h))
-                             w-2 (-px (masknil w) 2)
-                             h-2 (-px (masknil h) 2)]
+                             w- (flatgui.awt/-px (masknil w))
+                             h- (flatgui.awt/-px (masknil h))
+                             w-2 (flatgui.awt/-px (masknil w) 2)
+                             h-2 (flatgui.awt/-px (masknil h) 2)]
                             ))]
     `(defn ~fnname [~'comp-property-map ~'dirty-rects] (flatgui.paint/flatten-vector (let ~let-bindings [~@awt-calls])))))
 
@@ -125,8 +125,8 @@
   `(~fnname ~'comp-property-map ~'dirty-rects))
 
 (deflookfn trouble-look (:x :y :w :h)
-  (setColor (color 255 0 0))
-  (drawRect x y (flatgui.awt/-px w) (flatgui.awt/-px h))
+  (flatgui.awt/setColor (flatgui.awt/color 255 0 0))
+  (flatgui.awt/drawRect x y (flatgui.awt/-px w) (flatgui.awt/-px h))
   (vec (for [s (range 0 (+ h w) 0.1)]
          (let [dw (- s w)
                dh (- s h)
@@ -134,14 +134,7 @@
                y1 (if (> dh 0) (+ y h) (+ y s))
                x2 (if (> dw 0) (+ x w) (+ x s))
                y2 (if (> dw 0) (+ y dw) y)]
-           (drawLine x1 y1 x2 y2)))))
-
-;(defn paint-component-only [cmpnt dirty-rects]
-;  "Paints component, does not pait children"
-;  (if (:visible cmpnt)
-;    (let [ look-fn (:look cmpnt)]
-;      (flatten-vector [ (if (not (nil? look-fn)) (look-fn cmpnt dirty-rects)) (if (:has-trouble cmpnt) (trouble-look cmpnt dirty-rects)) ]))
-;    []))
+           (flatgui.awt/drawLine x1 y1 x2 y2)))))
 
 (defn paint-component-only [cmpnt dirty-rects]
   "Paints component, does not pait children"
@@ -156,22 +149,6 @@
     (flatten-vector ((:look cmpnt) cmpnt dirty-rects))
     ))
 
-
-;(defn paint-component-only [component target-id-path aux dirty-rects]
-;  "Paints component, does not pait children"
-;  (if (:visible cmpnt)
-;    (let [ k (get-access-key target-id-path)
-;           evolved-properties-key (conjv k :changed-properties)
-;           path-changed (get-in aux changed-properties-key)]
-;      (if path-changed
-;        (let [ look-vec (let [ look-fn (:look cmpnt)] (if look-fn (look-fn cmpnt dirty-rects)))]
-;          (assoc component
-;            ;:look-vec look-vec
-;            :paint-component-vec (flatten-vector [ (if look-vec look-vec) (if (:has-trouble cmpnt) (trouble-look cmpnt dirty-rects)) ])))
-;        component))
-;    []))
-
-
 (defn paint-component-with-children [component dirty-rects]
   "Paints component and its children"
   (try
@@ -184,26 +161,26 @@
           ;awt-transform-matrix (affinetransform transform-matrix)
           ;awt-transform-matrix-inverse (invert awt-transform-matrix)
 
-          awt-position-matrix (affinetransform position-matrix)
-          awt-viewport-matrix (affinetransform viewport-matrix)
-          awt-viewport-matrix-inverse (invert awt-viewport-matrix)
-          awt-position-matrix-inverse (invert awt-position-matrix)
+          awt-position-matrix (flatgui.awt/affinetransform position-matrix)
+          awt-viewport-matrix (flatgui.awt/affinetransform viewport-matrix)
+          awt-viewport-matrix-inverse (flatgui.awt/invert awt-viewport-matrix)
+          awt-position-matrix-inverse (flatgui.awt/invert awt-position-matrix)
           ]
         (flatten-vector
           ; TODO WARNING! This is a temporary hack. Otherwise content-pane children do not respect table clip rect (not= (:widget-type component) "tablecell")
-          [(if (not= (:widget-type component) "tablecell")  (pushCurrentClip))
-           (transform awt-position-matrix)
-           (if (not= (:widget-type component) "tablecell") (if (:popup component) (setClip 0 0 clip-w clip-h) (clipRect 0 0 clip-w clip-h)))
-           (transform awt-viewport-matrix)
+          [(if (not= (:widget-type component) "tablecell")  (flatgui.awt/pushCurrentClip))
+           (flatgui.awt/transform awt-position-matrix)
+           (if (not= (:widget-type component) "tablecell") (if (:popup component) (flatgui.awt/setClip 0 0 clip-w clip-h) (flatgui.awt/clipRect 0 0 clip-w clip-h)))
+           (flatgui.awt/transform awt-viewport-matrix)
            (paint-component-only component dirty-rects)
            ;(vec (for [[k v] (:children component)] (paint-component-with-children v dirty-rects)))
            (mapv #(paint-component-with-children % dirty-rects) (sort-by :z-position (for [[_ v] (:children component)] v)))
 
-           (transform awt-viewport-matrix-inverse)
-           (transform awt-position-matrix-inverse)
+           (flatgui.awt/transform awt-viewport-matrix-inverse)
+           (flatgui.awt/transform awt-position-matrix-inverse)
            ;(transform awt-transform-matrix-inverse)
 
-           (if (not= (:widget-type component) "tablecell") (popCurrentClip))
+           (if (not= (:widget-type component) "tablecell") (flatgui.awt/popCurrentClip))
            ]
         ))
     (catch Exception e (do
@@ -286,11 +263,11 @@
 
           ; TODO this is optimization for web: to transmit less commands
           transform-matrix (mx* position-matrix viewport-matrix)
-          awt-transform-matrix (affinetransform transform-matrix)
-          awt-transform-matrix-inverse (invert awt-transform-matrix)
+          awt-transform-matrix (flatgui.awt/affinetransform transform-matrix)
+          awt-transform-matrix-inverse (flatgui.awt/invert awt-transform-matrix)
 
-          awt-position-matrix (affinetransform position-matrix)
-          awt-viewport-matrix (affinetransform viewport-matrix)
+          awt-position-matrix (flatgui.awt/affinetransform position-matrix)
+          awt-viewport-matrix (flatgui.awt/affinetransform viewport-matrix)
           ;awt-viewport-matrix-inverse (invert awt-viewport-matrix)
           ;awt-position-matrix-inverse (invert awt-position-matrix)
 
@@ -309,11 +286,11 @@
       (if paint-this
         (flatten-vector
           ; TODO WARNING! This is a temporary hack. Otherwise content-pane children do not respect table clip rect (not= (:widget-type component) "tablecell")
-          [(if (clip? component)  (pushCurrentClip))
-           (transform awt-position-matrix)
+          [(if (clip? component)  (flatgui.awt/pushCurrentClip))
+           (flatgui.awt/transform awt-position-matrix)
 
-           (if (clip? component) (if (:popup component) (setClip 0 0 clip-w clip-h) (clipRect 0 0 clip-w clip-h)))
-           (if (not= awt-viewport-matrix IDENTITY-MATRIX) (transform awt-viewport-matrix))
+           (if (clip? component) (if (:popup component) (flatgui.awt/setClip 0 0 clip-w clip-h) (flatgui.awt/clipRect 0 0 clip-w clip-h)))
+           (if (not= awt-viewport-matrix IDENTITY-MATRIX) (flatgui.awt/transform awt-viewport-matrix))
 
            (paint-component-only2 component dirty-rects)
            ;(println "Painting component " (:id component) " :needs-repaint = " (:needs-repaint component))
@@ -322,24 +299,24 @@
 
            ;(transform awt-viewport-matrix-inverse)
            ;(transform awt-position-matrix-inverse)
-           (transform awt-transform-matrix-inverse)
+           (flatgui.awt/transform awt-transform-matrix-inverse)
 
-           (if (clip? component) (popCurrentClip))
+           (if (clip? component) (flatgui.awt/popCurrentClip))
            ])
         (if (seq children)
           (let [ children-look (mapv #(paint-dirty-impl % dirty-rects false) (sort-by :z-position (for [[_ v] children] v)))]
             (if (seq children-look)
               (flatten-vector
                 [                                               ;(transform awt-transform-matrix)
-                 (if (clip? component)  (pushCurrentClip))
-                 (transform awt-position-matrix)
-                 (if (clip? component) (if (:popup component) (setClip 0 0 clip-w clip-h) (clipRect 0 0 clip-w clip-h)))
-                 (if (not= awt-viewport-matrix IDENTITY-MATRIX) (transform awt-viewport-matrix))
+                 (if (clip? component)  (flatgui.awt/pushCurrentClip))
+                 (flatgui.awt/transform awt-position-matrix)
+                 (if (clip? component) (if (:popup component) (flatgui.awt/setClip 0 0 clip-w clip-h) (flatgui.awt/clipRect 0 0 clip-w clip-h)))
+                 (if (not= awt-viewport-matrix IDENTITY-MATRIX) (flatgui.awt/transform awt-viewport-matrix))
 
                  children-look
 
-                 (transform awt-transform-matrix-inverse)
-                 (if (clip? component) (popCurrentClip))
+                 (flatgui.awt/transform awt-transform-matrix-inverse)
+                 (if (clip? component) (flatgui.awt/popCurrentClip))
                  ;(transform awt-transform-matrix-inverse)
                  ])
               (do
@@ -384,10 +361,10 @@
       (for [[_ v] (:children container)] (get-component-id-path-to-property-value this-id-path v property f)))))
 
 (defn get-component-id-path-to-position-matrix [container]
-  (get-component-id-path-to-property-value [] container :position-matrix affinetransform))
+  (get-component-id-path-to-property-value [] container :position-matrix flatgui.awt/affinetransform))
 
 (defn get-component-id-path-to-viewport-matrix [container]
-  (get-component-id-path-to-property-value [] container :viewport-matrix affinetransform))
+  (get-component-id-path-to-property-value [] container :viewport-matrix flatgui.awt/affinetransform))
 
 (defn get-component-id-path-to-clip-size [container]
   (get-component-id-path-to-property-value [] container :clip-size (fn [c] [(x c) (y c)])))

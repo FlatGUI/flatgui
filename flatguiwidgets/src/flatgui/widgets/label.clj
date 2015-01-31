@@ -8,12 +8,11 @@
 
 (ns ^{:doc "Label widget"
       :author "Denys Lebediev"}
-  flatgui.widgets.label (:use flatgui.awt
-                              flatgui.comlogic
-                              flatgui.base
-                              flatgui.paint
-                              flatgui.widgets.component
-                              clojure.test))
+  flatgui.widgets.label (:use flatgui.comlogic)
+  (:require [flatgui.awt]
+            [flatgui.base :as fg]
+            [flatgui.paint :as fgp]
+            [flatgui.widgets.component]))
 
 (defn label-look-impl [foreground text h-alignment v-alignment left top w h]
   [(flatgui.awt/setColor foreground)
@@ -27,16 +26,12 @@
                (+ (/ h 2) (flatgui.awt/halfstrh)))]
      (flatgui.awt/drawString text (+ left dx) (+ top dy)))])
 
-(deflookfn label-look (:text :h-alignment :v-alignment)
+(fgp/deflookfn label-look (:text :h-alignment :v-alignment)
   (label-look-impl foreground text h-alignment v-alignment 0 0 w h))
 
-(defwidget "label"
+(fg/defwidget "label"
   { :v-alignment :center
     :h-alignment :center
     :text ""
     :look label-look}
-  component)
-
-;
-; Tests
-;
+  flatgui.widgets.component/component)

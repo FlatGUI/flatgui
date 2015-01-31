@@ -6,53 +6,32 @@
 ; the terms of this license.
 ; You must not remove this notice, or any other, from this software.
 
-(ns ^{:doc "Base type for menu widget"
+(ns ^{:doc "Base types for menu widget"
       :author "Denys Lebediev"}
-  flatgui.widgets.abstractmenu (:use
-                           flatgui.awt
-                           flatgui.comlogic
-                           flatgui.base
-                           flatgui.theme
-                           flatgui.paint
-                           flatgui.widgets.component
-                           flatgui.widgets.table
-                           flatgui.widgets.table.commons
-                           flatgui.widgets.table.contentpane
-                           flatgui.widgets.table.header
-                           flatgui.widgets.table.columnheader
-                           flatgui.widgets.menu.menucell
-                           flatgui.inputchannels.mouse
-                           clojure.test))
+  flatgui.widgets.abstractmenu
+  (:require [flatgui.base :as fg]
+            [flatgui.inputchannels.mouse :as mouse]
+            [flatgui.widgets.component]
+            [flatgui.widgets.table]
+            [flatgui.widgets.table.contentpane]
+            [flatgui.widgets.table.header]
+            [flatgui.widgets.menu.menucell]))
 
-;(deflookfn menu-look (:theme)
-;  (call-look component-look)
-;  (setColor (:dark theme))
-;  (drawRect 0 0 w- h-))
+(fg/defwidget "menucontentpane"
+  {:default-cell-component flatgui.widgets.menu.menucell/menucell
+   :selection-mode :single
+   :mouse-triggers-selection? (fn [component] (mouse/mouse-entered? component))}
+  flatgui.widgets.table.contentpane/tablecontentpane)
 
-(defwidget "menucontentpane"
-  { :default-cell-component menucell
-    :selection-mode :single
-    :mouse-triggers-selection? (fn [component] (mouse-entered? component))
-    }
-  tablecontentpane)
+(fg/defwidget "menuheader"
+  {:visible :false
+   :default-height 0
+   :evolvers { :visible (fn [_] false)}}
+  flatgui.widgets.table.header/tableheader)
 
-(defwidget "menuheader"
-  { :visible :false
-    :default-height 0
-    :evolvers { :visible (fn [_] false)}
-    }
-  tableheader)
-
-(defwidget "abstractmenu"
-  {
-    :popup true
-    ;:look menu-look
-    :evolvers {:z-position flatgui.widgets.component/z-position-evolver }
-    :children (array-map
-                :header (defcomponent menuheader :header {})
-                :content-pane (defcomponent menucontentpane :content-pane {}))}
-  table)
-
-;
-; Tests
-;
+(fg/defwidget "abstractmenu"
+  {:popup true
+   :evolvers {:z-position flatgui.widgets.component/z-position-evolver }
+   :children {:header (fg/defcomponent menuheader :header {})
+              :content-pane (fg/defcomponent menucontentpane :content-pane {})}}
+  flatgui.widgets.table/table)

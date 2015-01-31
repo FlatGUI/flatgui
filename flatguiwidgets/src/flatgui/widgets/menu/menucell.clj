@@ -8,51 +8,34 @@
 
 (ns ^{:doc "Table cell implementation for menus"
       :author "Denys Lebediev"}
-  flatgui.widgets.menu.menucell (:use flatgui.awt
-                                   flatgui.comlogic
-                                   flatgui.base
-                                   flatgui.theme
-                                   flatgui.paint
-                                   flatgui.widgets.table.abstractcell
-                                   flatgui.widgets.table.commons
-                                   flatgui.widgets.componentbase
-                                   flatgui.widgets.component
-                                   flatgui.widgets.label
-                                   flatgui.widgets.abstractbutton
-                                   flatgui.inputchannels.mouse
-                                   flatgui.inputchannels.keyboard
-                                   flatgui.util.matrix
-                                   flatgui.util.circularbuffer
-                                   clojure.test
-                                   clojure.stacktrace))
+  flatgui.widgets.menu.menucell (:use flatgui.comlogic)
+  (:require [flatgui.awt :as awt]
+            [flatgui.paint :as fgp]
+            [flatgui.base :as fg]
+            [flatgui.widgets.abstractbutton]
+            [flatgui.widgets.label]
+            [flatgui.widgets.table.commons :as tcom]))
 
 
-
-(deflookfn menucell-look (:theme :anchor :id)
-  [(flatgui.awt/setColor background)
-
-   ; @todo 1 px is cut temporarily: until borders are introduced
+(fgp/deflookfn menucell-look (:theme :anchor :id)
+  [(awt/setColor background)
+   ;; TODO 1 px is cut temporarily: until borders are introduced
    ;(flatgui.awt/fillRect 0 0 (x content-size) (y content-size))
-   (flatgui.awt/fillRect (px) 0 (-px (x content-size) 2) (-px (y content-size)))
+   (awt/fillRect (awt/px) 0 (awt/-px (x content-size) 2) (awt/-px (y content-size)))
+   (fgp/call-look flatgui.widgets.label/label-look)])
 
-   (call-look label-look)
-   ])
-
-
-(defwidget "menucell"
-  {                                                         ;:anchor-background :active-selection
+(fg/defwidget "menucell"
+  {;TODO move out
    :nonselected-background :prime-3
    :h-alignment :right
-    :look menucell-look
-    :evolvers { :pressed regular-pressed-evolver
-                :text (accessorfn (let [ model-row (get-model-row component)]
-                                    (if (>= model-row 0)
-                                      (let [ value-provider (get-property component [:_] :value-provider)]
-                                          (value-provider
-                                            model-row
-                                            (:screen-col component)))
-                                      (str (:id component) model-row);""
-                                      )))}
-    }
-  abstractbutton, abstractcell)
-
+   :look menucell-look
+   :evolvers {:pressed flatgui.widgets.abstractbutton/regular-pressed-evolver
+              :text (fg/accessorfn (let [model-row (tcom/get-model-row component)]
+                                     (if (>= model-row 0)
+                                       (let [value-provider (get-property component [:_] :value-provider)]
+                                         (value-provider
+                                           model-row
+                                           (:screen-col component)))
+                                      (str (:id component) model-row))))}}
+  flatgui.widgets.abstractbutton/abstractbutton,
+  flatgui.widgets.table.abstractcell/abstractcell)

@@ -8,39 +8,25 @@
 
 (ns ^{:doc "Table cell implementation for menus"
       :author "Denys Lebediev"}
-  flatgui.widgets.combobox.dropdowncell (:use flatgui.awt
-                                            flatgui.comlogic
-                                            flatgui.base
-                                            flatgui.theme
-                                            flatgui.paint
-                                            flatgui.widgets.abstractbutton
-                                            flatgui.widgets.menu.menucell
-                                            flatgui.widgets.table.commons
-                                            flatgui.inputchannels.mouse
-                                            flatgui.inputchannels.keyboard
-                                            clojure.test))
+    flatgui.widgets.combobox.dropdowncell
+  (:use flatgui.comlogic)
+  (:require [flatgui.base :as fg]
+            [flatgui.widgets.abstractbutton]
+            [flatgui.widgets.menu.menucell]
+            [flatgui.widgets.table.commons :as tcom]))
 
 
-;
-; @todo if selection changes because of keyboard - apply value, but do not close dropdown
-;
+;;;
+;;; TODO if selection changes because of keyboard - apply value, but do not close dropdown
+;;;
+(fg/defevolverfn dropdowncell-pressed-evolver :pressed
+  (flatgui.widgets.abstractbutton/regular-pressed-evolver component))
 
-(defevolverfn dropdowncell-pressed-evolver :pressed
-  (regular-pressed-evolver component))
-
-
-(defwidget "dropdowncell"
+(fg/defwidget "dropdowncell"
   {:evolvers {:pressed dropdowncell-pressed-evolver
-
-                :text (accessorfn (let [ model-row (get-model-row component)
+              :text (fg/accessorfn (let [model-row (tcom/get-model-row component)
                                          model (get-property component [:_ :_] :model)]
-                                   (if (>= model-row 0)
-                                     (str (nth (get-property component [:_ :_] :model) model-row))
-                                     ""
-                                     )))
-                }
-    }
-  menucell)
-
-(println "!!!! dropdowncell rollover disabled " (:rollover-notify-disabled dropdowncell))
-
+                                      (if (>= model-row 0)
+                                        (str (nth model model-row))
+                                        "")))}}
+  flatgui.widgets.menu.menucell/menucell)
