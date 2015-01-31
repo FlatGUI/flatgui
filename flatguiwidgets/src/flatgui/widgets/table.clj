@@ -8,33 +8,17 @@
 
 (ns ^{:doc "Table widget"
       :author "Denys Lebediev"}
-  flatgui.widgets.table (:use flatgui.comlogic
-                              flatgui.base
-                              flatgui.theme
-                              flatgui.paint
-                              flatgui.widgets.component
-                              flatgui.widgets.panel
-                              flatgui.widgets.scrollpanel
-                              flatgui.widgets.label
-                              flatgui.widgets.table.commons
-                              flatgui.widgets.table.contentpane
-                              flatgui.inputchannels.mouse
-                              clojure.test))
+  flatgui.widgets.table
+  (:require [flatgui.base :as fg]
+            [flatgui.widgets.panel]
+            [flatgui.widgets.scrollpanel]
+            [flatgui.widgets.table.contentpane]))
 
 
-
-
-;; TODO sorting only by side (which is second column does not work, i.e. it works only for descending mode)
-
-;; TODO deftable macro that would compute :header-ids from columns
-
-(defwidget "table"
-  (array-map
-    :header-ids nil
-    :header-aliases nil
-    :value-provider nil
-    :children (array-map
-                :header panel
-                :content-pane tablecontentpane)
-   )
-  scrollpanel)
+(fg/defwidget "table"
+  {:header-ids nil
+   :header-aliases nil
+   :value-provider nil
+   :children {:header flatgui.widgets.panel/panel
+              :content-pane flatgui.widgets.table.contentpane/tablecontentpane}}
+  flatgui.widgets.scrollpanel/scrollpanel)

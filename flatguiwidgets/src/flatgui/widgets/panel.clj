@@ -8,29 +8,14 @@
 
 (ns ^{:doc "Panel widget"
       :author "Denys Lebediev"}
-  flatgui.widgets.panel (:use flatgui.awt
-                              flatgui.comlogic
-                              flatgui.base
-                              flatgui.theme
-                              flatgui.paint
-                              flatgui.widgets.componentbase
-                              flatgui.widgets.component
-                              clojure.test))
+  flatgui.widgets.panel (:use flatgui.comlogic)
+  (:require [flatgui.base :as fg]
+            [flatgui.paint :as fgp]
+            [flatgui.widgets.component]))
 
-(deflookfn panel-look (:theme)
-    (call-look component-look)
-;     (setColor (:light theme))
-;     (drawLine 0 0 w- 0)
-;     (drawLine 0 h- w- h-)
-;     (drawLine 0 0 0 h-)
-;     (drawLine w- 0 w- h-)
-    )
+(fgp/deflookfn panel-look (:theme)
+  (fgp/call-look flatgui.widgets.component/component-look))
 
-(defwidget "panel"
-  (array-map
-    :look panel-look)
-  component)
-
-;
-; Tests
-;
+(fg/defwidget "panel"
+  {:look panel-look}
+  flatgui.widgets.component/component)

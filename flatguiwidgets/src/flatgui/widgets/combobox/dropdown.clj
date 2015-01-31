@@ -9,105 +9,90 @@
 (ns ^{:doc "Drop down menu for combo box"
       :author "Denys Lebediev"}
   flatgui.widgets.combobox.dropdown
-                       (:use
-                           flatgui.awt
-                           flatgui.comlogic
-                           flatgui.base
-                           flatgui.theme
-                           flatgui.paint
-                           flatgui.widgets.component
-                           flatgui.widgets.abstractbutton
-                           flatgui.widgets.table.columnheader
-                           flatgui.widgets.abstractmenu
-                           flatgui.widgets.combobox.dropdowncell
-                           flatgui.inputchannels.mouse
-                           flatgui.util.matrix
-                           clojure.test))
-
-(def DROPDOWN_MENU_COLUMNS [:text])
-(def DROPDOWN_DEFAULT_ROW_HEIGHT 0.25)
+                       (:use flatgui.comlogic)
+  (:require [flatgui.awt :as awt]
+            [flatgui.paint :as fgp]
+            [flatgui.base :as fg]
+            [flatgui.widgets.component]
+            [flatgui.widgets.table.columnheader]
+            [flatgui.widgets.abstractmenu]
+            [flatgui.widgets.combobox.dropdowncell]
+            [flatgui.util.matrix :as m]))
 
 
-(deflookfn dropdown-content-look (:theme)
-  (call-look component-look)
-  (setColor (:prime-6 theme))
-  (drawRect 0 0 w- h-))
+(def dropdown-menu-columns [:text])
+
+(def dropdown-default-row-height 0.25)
 
 
+(fgp/deflookfn dropdown-content-look (:theme)
+  (fgp/call-look flatgui.widgets.component/component-look)
+  (awt/setColor (:prime-6 theme))
+  (awt/drawRect 0 0 w- h-))
 
-(defevolverfn dropdown-contnent-row-count-evolver :row-count
-  (let [ items (get-property component [:_] :model)]
+(fg/defevolverfn dropdown-contnent-row-count-evolver :row-count
+  (let [items (get-property component [:_] :model)]
     (count items)))
 
-(defevolverfn menu-text-clip-size-evolver :clip-size
-  (let [ header-size (get-property component [] :clip-size)
-         row-h (get-property component [:_ :content-pane] :row-height)]
+(fg/defevolverfn menu-text-clip-size-evolver :clip-size
+  (let [header-size (get-property component [] :clip-size)
+        row-h (get-property component [:_ :content-pane] :row-height)]
     (defpoint (x header-size) row-h)))
 
-(defevolverfn dropdown-position-matrix-evolver :position-matrix
-  (let [ editor-size (get-property component [:editor] :clip-size)]
-    (transtation-matrix 0 (y editor-size))))
+(fg/defevolverfn dropdown-position-matrix-evolver :position-matrix
+  (let [editor-size (get-property component [:editor] :clip-size)]
+    (m/transtation-matrix 0 (y editor-size))))
 
-(defevolverfn dropdown-clip-size-evolver :clip-size
-  (let [ combo-size (get-property component [] :clip-size)
-         row-count (min
+(fg/defevolverfn dropdown-clip-size-evolver :clip-size
+  (let [combo-size (get-property component [] :clip-size)
+        row-count (min
                      (get-property component [:this :content-pane] :row-count)
                      (get-property component [:this :content-pane] :maximum-visible-rows))
-         row-height (get-property component [:this :content-pane] :row-height)]
+        row-height (get-property component [:this :content-pane] :row-height)]
     (defpoint (x combo-size) (* row-count row-height))))
 
-(defevolverfn dropdown-visible-evolver :visible
-  (let [ reason (get-reason)]
+(fg/defevolverfn dropdown-visible-evolver :visible
+  (let [reason (fg/get-reason)]
     (cond
       (and
         (vector? reason)
         (= 3 (count reason))
-        (button-pressed? (get-property component [:this :content-pane (nth reason 2)] :pressed-trigger)))
+        (flatgui.widgets.abstractbutton/button-pressed? (get-property component [:this :content-pane (nth reason 2)] :pressed-trigger)))
       false
       (and
         (= reason [:arrow-button])
-        (button-pressed? (get-property component [:arrow-button] :pressed-trigger)))
+        (flatgui.widgets.abstractbutton/button-pressed? (get-property component [:arrow-button] :pressed-trigger)))
       true
       :else old-visible)))
 
-(defevolverfn dropdown-row-order-evolver :row-order
+(fg/defevolverfn dropdown-row-order-evolver :row-order
               (range 0 (get-property component [:this] :row-count)))
 
-(defwidget "dropdown"
-  { :header-ids DROPDOWN_MENU_COLUMNS
+(fg/defwidget "dropdown"
+  { :header-ids dropdown-menu-columns
     :value-provider (fn [model-row model-col] (str model-row "-" model-col))
     :evolvers { :position-matrix dropdown-position-matrix-evolver
                 :clip-size dropdown-clip-size-evolver
                 :visible dropdown-visible-evolver}
-    :children {
-                :header (defcomponent menuheader :header
-                          {:children {:text (defcomponent columnheader :text {:evolvers {:clip-size menu-text-clip-size-evolver}})}})
-                :content-pane (defcomponent menucontentpane :content-pane
-                                {
+    :children {:header (fg/defcomponent flatgui.widgets.abstractmenu/menuheader :header
+                         {:children {:text (fg/defcomponent flatgui.widgets.table.columnheader/columnheader :text {:evolvers {:clip-size menu-text-clip-size-evolver}})}})
+               :content-pane (fg/defcomponent flatgui.widgets.abstractmenu/menucontentpane :content-pane
+                               {
 
-                                  ;; TODO
-                                  ;; the problem is that is merges ALL map values, so :default-cell-component inherits
-                                  ;; parameters from supertype's :default-cell-component, and this is BAD. Need to turn
-                                  ;; this merging off carefully for ALL params except for special ones like children.
-                                  ;; assoc is used here to work around this problem quickly.
-                                  :default-cell-component (assoc dropdowncell :rollover-notify-disabled false)
+                                ;; TODO
+                                ;; the problem is that is merges ALL map values, so :default-cell-component inherits
+                                ;; parameters from supertype's :default-cell-component, and this is BAD. Need to turn
+                                ;; this merging off carefully for ALL params except for special ones like children.
+                                ;; assoc is used here to work around this problem quickly.
+                                :default-cell-component (assoc flatgui.widgets.combobox.dropdowncell/dropdowncell :rollover-notify-disabled false)
 
-                                  :maximum-visible-rows 10
-                                  :row-height DROPDOWN_DEFAULT_ROW_HEIGHT
-                                  :wheel-rotation-step-y DROPDOWN_DEFAULT_ROW_HEIGHT
-                                  :row-count 0
-                                  :row-order []
-                                  :look dropdown-content-look
-                                  :evolvers {:row-count dropdown-contnent-row-count-evolver
-
-                                             ; TODO Find out why regular evolver reverses row order for dropdowns and then get rid of this one
-                                             :row-order dropdown-row-order-evolver
-                                             }})
-                }}
-  abstractmenu)
-
-(println "!!!! dropdown [][] rollover disabled " (get-in dropdown [:children :content-pane :default-cell-component :rollover-notify-disabled] ))
-
-;
-; Tests
-;
+                                :maximum-visible-rows 10
+                                :row-height dropdown-default-row-height
+                                :wheel-rotation-step-y dropdown-default-row-height
+                                :row-count 0
+                                :row-order []
+                                :look dropdown-content-look
+                                :evolvers {:row-count dropdown-contnent-row-count-evolver
+                                           ; TODO Find out why regular evolver reverses row order for dropdowns and then get rid of this one
+                                           :row-order dropdown-row-order-evolver}})}}
+  flatgui.widgets.abstractmenu/abstractmenu)

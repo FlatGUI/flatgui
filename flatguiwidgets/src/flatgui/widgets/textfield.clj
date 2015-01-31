@@ -8,24 +8,18 @@
 
 (ns ^{:doc "Text Field widget"
       :author "Denys Lebediev"}
-    flatgui.widgets.textfield (:use
-                              flatgui.comlogic
-                              flatgui.base
-                              flatgui.theme
-                              flatgui.paint
-                              flatgui.widgets.component
-                              flatgui.widgets.label
-                              flatgui.inputchannels.awtbase
-                              flatgui.inputchannels.keyboard
-                              clojure.test)
-                              (:require [flatgui.awt :as awt])
+    flatgui.widgets.textfield (:use flatgui.comlogic)
+  (:require [flatgui.awt :as awt]
+            [flatgui.base :as fg]
+            [flatgui.inputchannels.keyboard :as keyboard]
+            [flatgui.inputchannels.awtbase :as inputbase])
   (:import [java.awt.event KeyEvent]))
 
 
 (defn get-hgap [] (awt/halfstrh))
+
 (defn- get-caret-x [text caret-pos]
   (awt/strw (subs text 0 caret-pos)))
-
 
 (defn deccaretpos [c]
   (if (> c 0) (- c 1) 0))
@@ -35,10 +29,10 @@
     (if (< c len) (+ c 1) len)))
 
 (defn evovle-caret-pos [component old-caret-pos old-selection-mark old-text supplied-text]
-  (let [ t old-text
-        key (get-key component)
-        typed (key-typed? component)
-        pressed (key-pressed? component)
+  (let [t old-text
+        key (keyboard/get-key component)
+        typed (keyboard/key-typed? component)
+        pressed (keyboard/key-pressed? component)
         fwd-selection-len (if (> old-caret-pos old-selection-mark)
                             (- old-caret-pos old-selection-mark)
                             0)]
@@ -59,14 +53,14 @@
   (let [ has-selection (not= prevcaretpos old-selection-mark)
         sstart (min prevcaretpos old-selection-mark)
         send (max prevcaretpos old-selection-mark)
-        backspace (= (get-key component) KeyEvent/VK_BACK_SPACE)
-        delete (= (get-key component) KeyEvent/VK_DELETE)]
-    (if (key-typed? component)
+        backspace (= (keyboard/get-key component) KeyEvent/VK_BACK_SPACE)
+        delete (= (keyboard/get-key component) KeyEvent/VK_DELETE)]
+    (if (keyboard/key-typed? component)
       (str
         (subs old-text 0 prevcaretpos)
         supplied-text
         (subs old-text prevcaretpos))
-      (if (key-pressed? component)
+      (if (keyboard/key-pressed? component)
         (cond
           (and (or backspace delete) has-selection) (str (subs old-text 0 sstart) (subs old-text send))
           backspace (if (> prevcaretpos 0)
@@ -80,12 +74,12 @@
 
 (defn evovle-selection-mark [component caret-pos old-selection-mark]
   (cond
-    (key-typed? component) caret-pos
-    (key-pressed? component) (if (with-shift? component) old-selection-mark caret-pos)
+    (keyboard/key-typed? component) caret-pos
+    (keyboard/key-pressed? component) (if (inputbase/with-shift? component) old-selection-mark caret-pos)
     :else old-selection-mark))
 
-(defevolverfn text-model-evolver :model
-              (let [ text-supplier (:text-supplier component)
+(fg/defevolverfn text-model-evolver :model
+              (let [text-supplier (:text-supplier component)
                     supplied-text (text-supplier component)
                     prevcaretpos (:caret-pos old-model)
                     old-selection-mark (:selection-mark old-model)
@@ -95,10 +89,9 @@
                     selection-mark (evovle-selection-mark component caretpos old-selection-mark)]
                 {:text text :caret-pos caretpos :selection-mark selection-mark}))
 
-(defevolverfn :text (:text (get-property component [:this] :model)))
+(fg/defevolverfn :text (:text (get-property component [:this] :model)))
 
-
-(defevolverfn :first-visible-symbol
+(fg/defevolverfn :first-visible-symbol
               (let [ model (get-property component [:this] :model)]
                 (if (>= old-first-visible-symbol (:caret-pos model))
                   (:caret-pos model)
@@ -117,10 +110,10 @@
                                 (inc i))))))
                       old-first-visible-symbol)))))
 
-;
-; @todo listen to timer
-;
-(defevolverfn :caret-visible
+;;;
+;;;TODO listen to timer
+;;;
+(fg/defevolverfn :caret-visible
               (and
                 (:has-focus component)
                 (> (rem (System/currentTimeMillis) 1000) 500)))
@@ -128,36 +121,26 @@
 (defn textfield-dflt-text-suplier [component]
   (if (not
         (#{KeyEvent/VK_BACK_SPACE KeyEvent/VK_DELETE KeyEvent/VK_LEFT KeyEvent/VK_RIGHT KeyEvent/VK_HOME KeyEvent/VK_END}
-          (get-key component)))
-    (get-key-str component)
+          (keyboard/get-key component)))
+    (keyboard/get-key-str component)
     ""))
 
 (defn textfield-num-only-text-suplier [component]
   (let [key (textfield-dflt-text-suplier component)]
     (if (some #(= key %) '("0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "0" ".")) key "")))
 
-(defwidget "textfield"
-           {
-            :v-alignment :center
-            :h-alignment :left
-            :text-supplier textfield-dflt-text-suplier
-            :caret-visible true
-            :model {:text "" :caret-pos 0 :selection-mark 0}
-            :text ""
-            :first-visible-symbol 0
-            ;:look textfield-look
-            :skin-key [:textfield]
-
-            ;; TODO move out
-            :foreground :prime-1
-
-            :evolvers { :model text-model-evolver
-                       :text text-evolver
-                       :first-visible-symbol first-visible-symbol-evolver
-                       }
-            }
-           component)
-
-;
-; Tests
-;
+(fg/defwidget "textfield"
+  {:v-alignment :center
+   :h-alignment :left
+   :text-supplier textfield-dflt-text-suplier
+   :caret-visible true
+   :model {:text "" :caret-pos 0 :selection-mark 0}
+   :text ""
+   :first-visible-symbol 0
+   :skin-key [:textfield]
+   ;; TODO move out
+   :foreground :prime-1
+   :evolvers {:model text-model-evolver
+              :text text-evolver
+              :first-visible-symbol first-visible-symbol-evolver}}
+  flatgui.widgets.component/component)

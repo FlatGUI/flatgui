@@ -8,32 +8,30 @@
 
 (ns ^{:doc "Button widget"
       :author "Denys Lebediev"}
-  flatgui.widgets.button (:use flatgui.base
-                               flatgui.widgets.abstractbutton))
+  flatgui.widgets.button
+  (:require [flatgui.base :as fg]
+            [flatgui.widgets.abstractbutton]))
 
-(defwidget "button"
+(fg/defwidget "button"
            {:skin-key [:button :regular]
-            :evolvers {:pressed regular-pressed-evolver}
+            :evolvers {:pressed flatgui.widgets.abstractbutton/regular-pressed-evolver}
+            ;; TODO move out
+            :foreground :prime-4}
+           flatgui.widgets.abstractbutton/abstractbutton)
 
+(fg/defwidget "checkbutton"
+           {:skin-key [:button :regular]
             ;; TODO move out
             :foreground :prime-4
-            }
-  abstractbutton)
+            :evolvers {:pressed flatgui.widgets.abstractbutton/check-pressed-evolver}}
+           flatgui.widgets.abstractbutton/abstractbutton)
 
-(defwidget "checkbutton"
-           {:skin-key [:button :regular]
-            ;; TODO move out
-            :foreground :prime-4
-            :evolvers {:pressed check-pressed-evolver}
-            }
-           abstractbutton)
-
-(defwidget "rolloverbutton"
+(fg/defwidget "rolloverbutton"
            {:skin-key [:button :rollover]
             ;; TODO move out
             :foreground :prime-4
-            :evolvers {:pressed regular-pressed-evolver
-                       :foreground (accessorfn (if (get-property component [:this] :has-mouse)
-                                                 (:prime-4 (get-property component [:this] :theme))
-                                                 (:prime-6 (get-property component [:this] :theme))))}}
-           abstractbutton)
+            :evolvers {:pressed flatgui.widgets.abstractbutton/regular-pressed-evolver
+                       :foreground (fg/accessorfn (if (get-property component [:this] :has-mouse)
+                                                    (:prime-4 (get-property component [:this] :theme))
+                                                    (:prime-6 (get-property component [:this] :theme))))}}
+           flatgui.widgets.abstractbutton/abstractbutton)

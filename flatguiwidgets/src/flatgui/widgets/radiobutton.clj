@@ -8,21 +8,14 @@
 
 (ns ^{:doc "Radio button widget"
       :author "Denys Lebediev"}
-  flatgui.widgets.radiobutton (:use
-                               flatgui.comlogic
-                               flatgui.base
-                               flatgui.ids
-                               flatgui.paint
-                               flatgui.theme
-                               flatgui.widgets.component
-                               flatgui.widgets.abstractbutton
-                               flatgui.widgets.label
-                               flatgui.inputchannels.mouse
-                               clojure.test))
+  flatgui.widgets.radiobutton
+  (:require [flatgui.base :as fg]
+            [flatgui.inputchannels.mouse :as mouse]
+            [flatgui.widgets.abstractbutton]))
 
 
-(defevolverfn radio-pressed-evolver :pressed
-  (if (and (mouse-pressed? component) (left-mouse-button? component))
+(fg/defevolverfn radio-pressed-evolver :pressed
+  (if (and (mouse/mouse-pressed? component) (mouse/left-mouse-button? component))
     true
     old-pressed))
 
@@ -31,24 +24,19 @@
    The created evolver assumes all radio buttons are added
    to the same container, and it should be assigned to each
    radio button of the group"
-  (let [ let-binding (vec
-                       (list
-                         'all-values (conj (mapcat (fn [e] [[e] (list 'get-property 'component [e] :pressed)]) all-radio-ids) 'hash-map)
-                         'reason (list 'get-reason)))]
-    `(defevolverfn ~fnname :pressed
+  (let [let-binding (vec
+                      (list
+                        'all-values (conj (mapcat (fn [e] [[e] (list 'get-property 'component [e] :pressed)]) all-radio-ids) 'hash-map)
+                        'reason (list 'get-reason)))]
+    `(flatgui.base/defevolverfn ~fnname :pressed
        (let ~let-binding
          (if (contains? ~'all-values ~'reason)
            (if (~'all-values ~'reason) false ~'old-pressed)
            (radio-pressed-evolver ~'component))))))
 
-(defwidget "radiobutton"
-  { :v-alignment :center
-    :h-alignment :left
-   ;:look radiobutton-look
-    :skin-key [:radiobutton]
-    :evolvers {:pressed radio-pressed-evolver}}
-  abstractbutton)
-
-;
-; Tests
-;
+(fg/defwidget "radiobutton"
+  {:v-alignment :center
+   :h-alignment :left
+   :skin-key [:radiobutton]
+   :evolvers {:pressed radio-pressed-evolver}}
+  flatgui.widgets.abstractbutton/abstractbutton)

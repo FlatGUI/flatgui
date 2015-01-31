@@ -8,40 +8,29 @@
 
 (ns ^{:doc "Menu with placeholder for icon or check component on the left of the item"
       :author "Denys Lebediev"}
-  flatgui.widgets.menu (:use
-                           flatgui.comlogic
-                           flatgui.base
-                           flatgui.theme
-                           flatgui.paint
-                           flatgui.widgets.component
-                           flatgui.widgets.table.columnheader
-                           flatgui.widgets.abstractmenu
-                           flatgui.inputchannels.mouse
-                           clojure.test))
+  flatgui.widgets.menu (:use flatgui.comlogic)
+  (:require [flatgui.base :as fg]
+            [flatgui.widgets.abstractmenu]
+            [flatgui.widgets.table.columnheader]))
 
-(def MENU_COLUMNS [:icon :text])
+(def menu-columns [:icon :text])
 
-(defevolverfn menu-icon-clip-size-evolver :clip-size
-  (let [ row-h (get-property component [:_ :content-pane] :row-height)]
+(fg/defevolverfn menu-icon-clip-size-evolver :clip-size
+  (let [row-h (get-property component [:_ :content-pane] :row-height)]
     (defpoint row-h row-h)))
 
-(defevolverfn menu-text-clip-size-evolver :clip-size
-  (let [ header-size (get-property component [] :clip-size)
-         row-h (get-property component [:_ :content-pane] :row-height)
-         icon-size (get-property component [:icon] :clip-size)]
+(fg/defevolverfn menu-text-clip-size-evolver :clip-size
+  (let [header-size (get-property component [] :clip-size)
+        row-h (get-property component [:_ :content-pane] :row-height)
+        icon-size (get-property component [:icon] :clip-size)]
     (defpoint (- (x header-size) (x icon-size)) row-h)))
 
-(defwidget "menu"
-  { :header-ids MENU_COLUMNS
-    :children (array-map
-                :header (defcomponent menuheader
-                          :header { :children { :icon (defcomponent columnheader :icon
-                                                        { :evolvers {:clip-size menu-icon-clip-size-evolver}})
-                                                :text (defcomponent columnheader :text
-                                                        {:evolvers {:clip-size menu-text-clip-size-evolver}})}})
-                )}
-  abstractmenu)
-
-;
-; Tests
-;
+(fg/defwidget "menu"
+  {:header-ids menu-columns
+   :children (array-map
+               :header (fg/defcomponent flatgui.widgets.abstractmenu/menuheader
+                         :header { :children { :icon (fg/defcomponent flatgui.widgets.table.columnheader/columnheader :icon
+                                                       {:evolvers {:clip-size menu-icon-clip-size-evolver}})
+                                               :text (fg/defcomponent flatgui.widgets.table.columnheader/columnheader :text
+                                                       {:evolvers {:clip-size menu-text-clip-size-evolver}})}}))}
+   flatgui.widgets.abstractmenu/abstractmenu)

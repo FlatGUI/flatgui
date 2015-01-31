@@ -9,43 +9,34 @@
 (ns ^{:doc "Scrollbar widget"
       :author "Denys Lebediev"}
   flatgui.widgets.scrollbar
-  (:import [clojure zip$xml_zip])
-  (:use flatgui.awt
-                              flatgui.comlogic
-                              flatgui.base
-                              flatgui.theme
-                              flatgui.paint
-                              flatgui.widgets.componentbase
-                              flatgui.widgets.component
-                              flatgui.widgets.panel
-                              flatgui.widgets.floatingbar
-                              flatgui.util.matrix
-                              clojure.test))
-
-
+  (:use flatgui.comlogic)
+  (:require [flatgui.awt :as awt]
+            [flatgui.base :as fg]
+            [flatgui.widgets.component]
+            [flatgui.widgets.floatingbar]))
 
 
 (defn- orient-fn [orientation]
   (if (= :vertical orientation) y x))
 
-(def MIN-SCROLLER-LEN-DEFAULT 0.375)
+(def default-min-scroller-len 0.375)
 
 (defn smaller-then-content? [orientation size parent-content-size]
   (if (= :vertical orientation)
     (< (y size) (y parent-content-size))
     (< (x size) (x parent-content-size))))
 
-(defevolverfn :last-position-matrix
+(fg/defevolverfn :last-position-matrix
   ; Keeps last position matrix that scroller had before content size
   ; bacame small and therefore scroller position changed to 0.0
-  (let [ orientation (get-property component [] :orientation)
-         parent-content-size (get-property component [] :content-size)
-         size (get-property component [:this] :clip-size)
-         last-size (get-property component [:this] :last-size)
-         prev-size (first last-size)
-         new-size (second last-size)]
+  (let [orientation (get-property component [] :orientation)
+        parent-content-size (get-property component [] :content-size)
+        size (get-property component [:this] :clip-size)
+        last-size (get-property component [:this] :last-size)
+        prev-size (first last-size)
+        new-size (second last-size)]
     (if (smaller-then-content? orientation size parent-content-size)
-      (let [ current (get-property component [:this] :position-matrix)]
+      (let [current (get-property component [:this] :position-matrix)]
         (if
 ;          (or
 ;            (and (= :vertical orientation) (> (mx-y current) 0))
@@ -60,11 +51,11 @@
       old-last-position-matrix)))
 
 ;@todo add protection from same new clip-size valuse like in :last-anchor
-(defevolverfn :last-size
+(fg/defevolverfn :last-size
   [(second old-last-size)
    (get-property component [:this] :clip-size)])
 
-(defevolverfn :clip-size
+(fg/defevolverfn :clip-size
   (let [ scrolled-clip-rect (get-property component [:_ :content-pane] :clip-size)
          scrolled-content-rect (get-property component [:_ :content-pane] :content-size)
          min-scroller-len (:min-scroller-len component)]
@@ -81,7 +72,7 @@
           (defpoint (x bar-rect) scroller-size 0)
           (defpoint scroller-size (y bar-rect) 0))))))
 
-(defevolverfn scroller-position-matrix-evolver :position-matrix
+(fg/defevolverfn scroller-position-matrix-evolver :position-matrix
   ; Restores last position matrix that scroller had before content size
   ; bacame small and therefore scroller position changed to 0.0
   (let [
@@ -101,51 +92,33 @@
           (flatgui.widgets.floatingbar/position-matrix-evolver component)))
       (flatgui.widgets.floatingbar/position-matrix-evolver component))))
 
-(defevolverfn :content-size
+(fg/defevolverfn :content-size
   (get-property component [:this] :clip-size))
 
-(defwidget "scroller"
-  (array-map
-    :min-scroller-len MIN-SCROLLER-LEN-DEFAULT
-    ;:look scroller-look
-    :skin-key [:scrollbar :scroller]
-    :evolvers {
-                ;@todo :position-matrix evolver with additional functionality:
-                ;  - process mouse wheel event
-                :position-matrix scroller-position-matrix-evolver
-                :last-position-matrix last-position-matrix-evolver
-                :last-size last-size-evolver
-                :clip-size clip-size-evolver
-                :content-size content-size-evolver
-                })
-  floatingbar)
+(fg/defwidget "scroller"
+  {:min-scroller-len default-min-scroller-len
+   :skin-key [:scrollbar :scroller]
+   :evolvers {:position-matrix scroller-position-matrix-evolver
+              :last-position-matrix last-position-matrix-evolver
+              :last-size last-size-evolver
+              :clip-size clip-size-evolver
+              :content-size content-size-evolver}}
+  flatgui.widgets.floatingbar/floatingbar)
 
-
-
-(defevolverfn scrollbar-visible-evolver :visible
+(fg/defevolverfn scrollbar-visible-evolver :visible
   (let [ scrolled-clip-rect (get-property component [:content-pane] :clip-size)
          scrolled-content-rect (get-property component [:content-pane] :content-size)]
     (if (= (:orientation component) :vertical)
-      (if (<= (- (y scrolled-content-rect) (y scrolled-clip-rect)) (* 2 (px)))
+      (if (<= (- (y scrolled-content-rect) (y scrolled-clip-rect)) (* 2 (awt/px)))
         false
         (flatgui.widgets.component/visible-evolver component))
-      (if (<= (- (x scrolled-content-rect) (x scrolled-clip-rect)) (* 2 (px)))
+      (if (<= (- (x scrolled-content-rect) (x scrolled-clip-rect)) (* 2 (awt/px)))
         false
         (flatgui.widgets.component/visible-evolver component)))))
 
-(defwidget "scrollbar"
-  (array-map
-    :orientation :vertical
-
-    ;:look scrollbar-look
-    :skin-key [:scrollbar :scrollbar]
-    :evolvers { :visible scrollbar-visible-evolver }
-    :children {
-                :scroller (defcomponent scroller :scroller {})
-                }
-    )
-  component)
-
-;
-; Tests
-;
+(fg/defwidget "scrollbar"
+  {:orientation :vertical
+   :skin-key [:scrollbar :scrollbar]
+   :evolvers {:visible scrollbar-visible-evolver}
+   :children {:scroller (fg/defcomponent scroller :scroller {})}}
+  flatgui.widgets.component/component)
