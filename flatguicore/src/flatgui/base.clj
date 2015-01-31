@@ -258,7 +258,8 @@
           fnname (symbol (str (name property-name) "-evolver"))
           get-fn flatgui.base/get-property-private
           let-binding [(symbol (str "old-" (name property-name))) (list property-name 'component)
-                        'get-property get-fn]]
+                        'get-property `(fn ([~'c ~'path ~'prop] (~get-fn ~'c ~'path ~'prop))
+                                           ([~'path ~'prop] (~get-fn ~'component ~'path ~'prop)))]]
       (do (log-debug " defining evolver " fnname " body-dependencies = " body-dependencies)
           ;(log-debug "  |_ body " body)
         `(do
@@ -271,7 +272,8 @@
     (let [body-dependencies (conj (flatgui.dependency/get-all-dependencies body) 'list)
           get-fn flatgui.base/get-property-private
           let-binding [(symbol (str "old-" (name property-name))) (list property-name 'component)
-                        'get-property get-fn]]
+                        'get-property `(fn ([~'c ~'path ~'prop] (~get-fn ~'c ~'path ~'prop))
+                                           ([~'path ~'prop] (~get-fn ~'component ~'path ~'prop)))]]
       (do (log-debug " defining evolver " fnname " body-dependencies = " body-dependencies)
         `(do
            ; with-meta produces evolver fn meta which is analyzed by flatgui.dependency/get-relative-dependencies [evolver]
