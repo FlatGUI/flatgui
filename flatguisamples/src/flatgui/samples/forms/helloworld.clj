@@ -15,6 +15,7 @@
         flatgui.widgets.checkbox)
   (:require flatgui.skins.flat
             flatgui.appcontainer
+            [flatgui.util.matrix :as m]
             [flatgui.base :as fg]
             [flatgui.comlogic :as fgc]
             [flatgui.awt :as awt]))
@@ -33,7 +34,7 @@
     window
     :hello
     {:clip-size (fgc/defpoint 3 1.5)
-     :position-matrix (flatgui.util.matrix/transtation-matrix 1 1)
+     :position-matrix (m/transtation-matrix 1 1)
      :text "Hello World Example"}
 
     (fg/defcomponent
@@ -41,14 +42,14 @@
       :say-hello
       {:clip-size (fgc/defpoint 1.75 0.25 0)
        :text "Greeting"
-       :position-matrix (flatgui.util.matrix/transtation-matrix 0.125 0.75)})
+       :position-matrix (m/transtation-matrix 0.125 0.75)})
 
     (fg/defcomponent
       label
       :greeting
       {:text nogreeting-text
        :clip-size (fgc/defpoint 2.25 0.25 0)
-       :position-matrix (flatgui.util.matrix/transtation-matrix 1.0 0.75)
+       :position-matrix (m/transtation-matrix 1.0 0.75)
        :evolvers {:text greeting-evolver}})))
 
 ;;;; TODO use defcontainer marco instead

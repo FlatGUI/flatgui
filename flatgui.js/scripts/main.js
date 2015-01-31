@@ -584,6 +584,8 @@ function decodeCommandVector(stream, byteLength)
     }
 }
 
+var messages = document.getElementById("messages");
+
 function displayUserTextMessage(msg, x, y)
 {
     ctx.beginPath();
@@ -593,15 +595,22 @@ function displayUserTextMessage(msg, x, y)
     ctx.closePath();
 }
 
+function displayStatus(msg)
+{
+    messages.innerHTML = "Connection status: " + msg;
+}
+
 /**
  * WebSocket
  */
 
 var webSocket;
+var connectionOpen;
 
 function openSocket()
 {
     displayUserTextMessage("Establishing connection...", 10, 20);
+    displayStatus("establishing...");
 
     if(webSocket !== undefined && webSocket.readyState !== WebSocket.CLOSED)
     {
@@ -613,20 +622,33 @@ function openSocket()
 
     webSocket.binaryType = "arraybuffer";
 
-    webSocket.onopen = function(event){};
+    webSocket.onopen = function(event)
+    {
+        connectionOpen = true;
+        displayUserTextMessage("Open.", 10, 30);
+        displayStatus("open");
+    };
 
     webSocket.onmessage = function(event)
     {
         if (event.data.byteLength)
         {
-            //var time = Date.now();
-            //console.log("Received responce " + time);
+            if (connectionOpen)
+            {
+                //var time = Date.now();
+                //console.log("Received responce " + time);
 
-            var dataBuffer = new Uint8Array(event.data);
-            decodeCommandVector(dataBuffer, event.data.byteLength);
+                var dataBuffer = new Uint8Array(event.data);
+                decodeCommandVector(dataBuffer, event.data.byteLength);
 
-            //time = Date.now();
-            //console.log("Rendered responce " + time + " cmd =" + dataBuffer[0]);
+                //time = Date.now();
+                //console.log("Rendered responce " + time + " cmd =" + dataBuffer[0]);
+            }
+            else
+            {
+                displayUserTextMessage("Connection to remote server is closed. Please reload.", 10, 50);
+                displayStatus("closed");
+            }
         }
         else
         {
@@ -634,7 +656,19 @@ function openSocket()
         }
     };
 
-    webSocket.onclose = function(event){};
+    webSocket.onclose = function(event)
+    {
+        displayUserTextMessage("Connection to remote server is closed. Please reload.", 10, 50);
+        displayStatus("closed");
+        connectionOpen = false;
+    };
+
+    webSocket.onerror = function(event)
+    {
+        displayUserTextMessage("Connection error. Please reload.", 10, 70);
+        displayStatus("error, closed");
+        connectionOpen = false;
+    };
 }
 
 
@@ -647,7 +681,10 @@ function sendEventToServer(evt)
     //var time = Date.now();
     //console.log("Before sending " + time);
 
-    webSocket.send(evt);
+    if (connectionOpen)
+    {
+        webSocket.send(evt);
+    }
 
     //time = Date.now();
     //console.log("After sending " + time);
