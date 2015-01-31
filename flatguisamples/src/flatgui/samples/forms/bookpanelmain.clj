@@ -73,11 +73,11 @@
 (def label-format (DecimalFormat. "###.###"))
 
 (defevolverfn s1text :text
-  (let [ pos (get-property component [:slider1] :position)]
+  (let [ pos (get-property [:slider1] :position)]
     (.format label-format pos)))
 
 (defevolverfn s2text :text
-  (let [ pos (get-property component [:slider2] :position)]
+  (let [ pos (get-property [:slider2] :position)]
     (.format label-format pos)))
 
 ; @todo
@@ -90,15 +90,15 @@
 (defevolverfn s1pos :position
   (if (and
         (#{[:slider2] [:lock-checkbox]} (get-reason))
-        (get-property component [:lock-checkbox] :pressed))
-    (get-property component [:slider2] :position)
+        (get-property [:lock-checkbox] :pressed))
+    (get-property [:slider2] :position)
     (flatgui.widgets.slider/slider-position-evolver component)))
 
 (defevolverfn s2pos :position
   (if (and
         (#{[:slider1] [:lock-checkbox]} (get-reason))
-        (get-property component [:lock-checkbox] :pressed))
-    (get-property component [:slider1] :position)
+        (get-property [:lock-checkbox] :pressed))
+    (get-property [:slider1] :position)
     (flatgui.widgets.slider/slider-position-evolver component)))
 
 ;
@@ -220,12 +220,12 @@
    (inrange (/ (- (value-provider (get-model-row component) index) min-val) (- max-val min-val)) 0.0 1.0)))
 
 (defevolverfn quote-background-evolver :background
-  (let [selection (get-property component [:this] :selection)
-        theme (get-property component [:this] :theme)
-        dark-theme (get-property component [:_ :_ :_ :_ :preferences :dark] :pressed)]
+  (let [selection (get-property [:this] :selection)
+        theme (get-property [:this] :theme)
+        dark-theme (get-property [:_ :_ :_ :_ :preferences :dark] :pressed)]
     (if (nth selection 1)
-      (if dark-theme :prime-1 :prime-2);(get-property component [:this] :selected-background)
-      (let [ref-val (if (< (get-property component [:this] :screen-row) 0) 0 (quote-color-ref component))
+      (if dark-theme :prime-1 :prime-2);(get-property [:this] :selected-background)
+      (let [ref-val (if (< (get-property [:this] :screen-row) 0) 0 (quote-color-ref component))
             ;color-val (int (+ 60 (* ref-val 108)))
             ]
            ;(awt/color color-val color-val 168)
@@ -279,16 +279,16 @@
     (if quote-val
       {:text (str quote-val) :caret-pos (awt/strlen (str quote-val)) :selection-mark 0}
       (case (get-reason)
-        [:qty-toolbar :+1] (if (button-pressed? (get-property component [:qty-toolbar :+1] :pressed-trigger))
+        [:qty-toolbar :+1] (if (button-pressed? (get-property [:qty-toolbar :+1] :pressed-trigger))
                              (recreare-text-model old-model 1)
                              old-model)
-        [:qty-toolbar :+10] (if (button-pressed? (get-property component [:qty-toolbar :+10] :pressed-trigger))
+        [:qty-toolbar :+10] (if (button-pressed? (get-property [:qty-toolbar :+10] :pressed-trigger))
                               (recreare-text-model old-model 10)
                               old-model)
-        [:qty-toolbar :+20] (if (button-pressed? (get-property component [:qty-toolbar :+20] :pressed-trigger))
+        [:qty-toolbar :+20] (if (button-pressed? (get-property [:qty-toolbar :+20] :pressed-trigger))
                               (recreare-text-model old-model 20)
                               old-model)
-        [:qty-toolbar :+100] (if (button-pressed? (get-property component [:qty-toolbar :+100] :pressed-trigger))
+        [:qty-toolbar :+100] (if (button-pressed? (get-property [:qty-toolbar :+100] :pressed-trigger))
                                (recreare-text-model old-model 100)
                                old-model)
         (flatgui.widgets.textfield/text-model-evolver component)))))
@@ -296,7 +296,7 @@
 (defevolverfn px-evolver :model
   (let [quote-val (spinner-quote-val-provider component (get-reason) :bidpx :askpx)]
     (if quote-val
-      (let [num->str (get-property component [:this] :num->str)
+      (let [num->str (get-property [:this] :num->str)
             quote-val-str (num->str component quote-val)]
         {:text quote-val-str :caret-pos (awt/strlen quote-val-str) :selection-mark 0})
       (flatgui.widgets.spinner/spinner-model-evovler component))))
@@ -310,10 +310,10 @@
 (defevolverfn symbol-evolver :model
   (if (and
         (= (get-reason) [:_ :_ :_ :blotter :table :content-pane])
-        (get-property component [:follow-checkbox] :pressed))
-    (let [blotter-value-provider (get-property component [:_ :_ :_ :blotter :table] :value-provider)
-          blotter-header-ids (get-property component [:_ :_ :_ :blotter :table] :header-ids)
-          selection-model (get-property component [:_ :_ :_ :blotter :table :content-pane] :selection-model)
+        (get-property [:follow-checkbox] :pressed))
+    (let [blotter-value-provider (get-property [:_ :_ :_ :blotter :table] :value-provider)
+          blotter-header-ids (get-property [:_ :_ :_ :blotter :table] :header-ids)
+          selection-model (get-property [:_ :_ :_ :blotter :table :content-pane] :selection-model)
           symbol (if selection-model
                    (blotter-value-provider (get-anchor-model-row selection-model) (.indexOf blotter-header-ids :symbol))
                    "")]
@@ -535,34 +535,34 @@
 ;
 
 (defevolverfn blotter-table-cs-evolver :clip-size
-  (let [ win-size (get-property component [] :clip-size)]
+  (let [ win-size (get-property [] :clip-size)]
     (defpoint (- (x win-size) 0.25) (- (y win-size) 0.5))))
 
 (defevolverfn blotter-background-evolver :background
-  (let [dark-theme (get-property component [:_ :_ :_ :preferences :dark] :pressed)
-        selection (get-property component [:this] :selection)]
+  (let [dark-theme (get-property [:_ :_ :_ :preferences :dark] :pressed)
+        selection (get-property [:this] :selection)]
    (if (nth selection 1)
      (if (nth selection 0)
-       (if dark-theme :prime-1 :prime-2)    ;(get-property component [:this] :anchor-background)
-       (if dark-theme :prime-1 :prime-2)    ;(get-property component [:this] :selected-background)
+       (if dark-theme :prime-1 :prime-2)    ;(get-property [:this] :anchor-background)
+       (if dark-theme :prime-1 :prime-2)    ;(get-property [:this] :selected-background)
        )
      (let [ref-val (let [ model-row (get-model-row component)]
                         (if (>= model-row 0)
-                          (let [ value-provider (get-property component [:_] :value-provider)
-                                header-ids (get-property component [:_] :header-ids)]
+                          (let [ value-provider (get-property [:_] :value-provider)
+                                header-ids (get-property [:_] :header-ids)]
                                (value-provider
                                  model-row
                                  (.indexOf header-ids :side)))))
            ;ref-val nil
            ]
-          (if (= :symbol (get-property component [:this] :header-id))
+          (if (= :symbol (get-property [:this] :header-id))
             (if dark-theme (awt/color 51 167 167) (awt/color 225 255 255))
             (condp = ref-val
                    "Buy" (if dark-theme (awt/color 167 113 51) (awt/color 255 241 225))
                    "Cover" (if dark-theme (awt/color 167 113 51) (awt/color 255 241 225))
                    "Sell" (if dark-theme (awt/color 51 113 167) (awt/color 225 241 255))
                    "Short" (if dark-theme (awt/color 51 113 167) (awt/color 225 241 255))
-                   (get-property component [:this] :nonselected-background)))))))
+                   (get-property [:this] :nonselected-background)))))))
 
 
 (def blotter-table
@@ -606,12 +606,12 @@
 ;
 
 (defevolverfn main-theme-evolver :theme
-  (if (get-property component [:this :preferences :dark] :pressed)
+  (if (get-property [:this :preferences :dark] :pressed)
     flatgui.theme/dark
     flatgui.theme/light))
 
 (defevolverfn main-skin-evolver :skin
-  (if (get-property component [:this :preferences :oldschool] :pressed)
+  (if (get-property [:this :preferences :oldschool] :pressed)
     "flatgui.skins.oldschool"
     "flatgui.skins.smooth"))
 

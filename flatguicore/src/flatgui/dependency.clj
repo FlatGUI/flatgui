@@ -24,7 +24,7 @@
       (let [ n (first s)]
         (if (and (symbol? n) (= "get-property" (name n)))
           (let [ full-path (condp = (count s)
-                             3 (if (vector? (nth s 2)) (nth s 2) (throw (IllegalArgumentException. (str "get-property argument 1 should be a vector: " s))))
+                             3 (if (vector? (nth s 1)) (conjv (nth s 1) (nth s 2)) (throw (IllegalArgumentException. (str "get-property argument 0 should be a vector: " s))))
                              4 (if (vector? (nth s 2)) (conjv (nth s 2) (nth s 3)) (throw (IllegalArgumentException. (str "get-property argument 1 should be a vector: " s))))
                              (throw (IllegalArgumentException. (str "There should be 3 or 4 arguments to get-property: " s))))]
             (mapv (fn [e] (if (keyword? e) e :*)) full-path)))))))
