@@ -90,7 +90,7 @@
 
 
 (defwidget "tableheader"
-  { :default-height DFLT_ROW_HEIGHT
+  { :default-height default-row-height
     :position-matrix (transtation-matrix 0 0 0)
     :active-headers nil
     :fit-width false

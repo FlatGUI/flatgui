@@ -8,35 +8,27 @@
 
 (ns ^{:doc "Table utilities "
       :author "Denys Lebediev"}
-  flatgui.widgets.table.commons (:use flatgui.awt
-                                   flatgui.comlogic
-                                   flatgui.base
-                                   flatgui.widgets.componentbase
-                                   flatgui.widgets.component
-                                   flatgui.inputchannels.awtbase
-                                   flatgui.inputchannels.mouse
-                                   flatgui.util.matrix
-                                   flatgui.util.circularbuffer
-                                   clojure.test))
-
-;@todo these should be properties of components with these constants just as default values
-;
-(def VF_APPLYING_ORDER [:filtering :sorting :grouping])
-(def VF_SET (set VF_APPLYING_ORDER))
-(def VF_VISUAL_ORDER [:sorting :filtering :grouping])
-
-;@todo
-(def DFLT_COL_WIDTH 1.25)
-(def DFLT_ROW_HEIGHT 0.375)
+    flatgui.widgets.table.commons
+  (:use flatgui.comlogic)
+  (:require [flatgui.base :as fg]
+            [flatgui.inputchannels.awtbase :as inputbase]
+            [flatgui.inputchannels.mouse :as mouse]))
 
 
-(defaccessorfn get-row-y [contentpane screen-row]
-  (let [ row-height (get-property contentpane [:this] :row-height)]
+;;;TODO these should be properties of components with these constants just as default values
+;;;
+(def vf-apply-order [:filtering :sorting :grouping])
+(def vf-visual-order [:sorting :filtering :grouping])
+(def default-col-width 1.25)
+(def default-row-height 0.375)
+
+(fg/defaccessorfn get-row-y [contentpane screen-row]
+  (let [row-height (get-property contentpane [:this] :row-height)]
     (* screen-row row-height)))
 
-(defaccessorfn get-row-h [contentpane screen-row] (get-property contentpane [:this] :row-height))
+(fg/defaccessorfn get-row-h [contentpane screen-row] (get-property contentpane [:this] :row-height))
 
-(defaccessorfn get-screen-row-at [contentpane y-pos]
+(fg/defaccessorfn get-screen-row-at [contentpane y-pos]
   ; only constant height rows are supported for now
   (let [ visible-row (int (/ y-pos (get-row-h contentpane nil)))
          row-order (get-property contentpane [:this] :row-order)]
@@ -52,13 +44,13 @@
 (defn screen-col-to-model [screen-col]
   screen-col)
 
-(defaccessorfn get-model-row [cell]
+(fg/defaccessorfn get-model-row [cell]
   (screen-row-to-model (get-property cell [] :row-order) (get-property cell [:this] :screen-row)))
 
-(defaccessorfn get-screen-col-at [contentpane x-pos]
-  (let [ column-x-locations (get-property contentpane [:header] :column-x-locations)
-         header-ids (get-property contentpane [] :header-ids)
-         cnt (count header-ids)]
+(fg/defaccessorfn get-screen-col-at [contentpane x-pos]
+  (let [column-x-locations (get-property contentpane [:header] :column-x-locations)
+        header-ids (get-property contentpane [] :header-ids)
+        cnt (count header-ids)]
     (loop [ i 0
             total-w 0]
       (if (<= i cnt)
@@ -80,33 +72,35 @@
 (defn col-visible? [screen-col first-visible-col last-visible-col]
   (and (>= screen-col first-visible-col) (<= screen-col last-visible-col)))
 
-
-(defaccessorfn should-evolve-header [component]
-  (and (not (get-property component [:this] :mouse-down)) (mouse-left? component)))
+(fg/defaccessorfn should-evolve-header [component]
+  (and (not (get-property component [:this] :mouse-down)) (mouse/mouse-left? component)))
 
 (defn clicked-no-shift? [component]
-  (and (should-evolve-header component) (not (with-shift? component))))
+  (and (should-evolve-header component) (not (inputbase/with-shift? component))))
 
 (defn clicked-with-shift? [component]
-  (and (should-evolve-header component) (with-shift? component)))
+  (and (should-evolve-header component) (inputbase/with-shift? component)))
 
 (defn clicked-with-ctrl? [component]
-  (and (should-evolve-header component) (with-ctrl? component)))
+  (and (should-evolve-header component) (inputbase/with-ctrl? component)))
 
-
-(defevolverfn :clicked-no-shift
+(fg/defevolverfn :clicked-no-shift
   (clicked-no-shift? component))
 
-(defevolverfn :clicked-with-shift
+(fg/defevolverfn :clicked-with-shift
   (clicked-with-shift? component))
 
-(defevolverfn :clicked-with-ctrl
+(fg/defevolverfn :clicked-with-ctrl
   (clicked-with-ctrl? component))
 
-
 (defn get-anchor-model-row [selection-model] (nth selection-model 0))
-(defn get-screen-row [selection-model] (nth selection-model 1));@todo rename to get-anchor-screen-row
+
+(defn get-screen-row [selection-model] (nth selection-model 1));TODO rename to get-anchor-screen-row
+
 (defn get-selected-model-rows [selection-model] (nth selection-model 2))
+
 (defn get-selected-screen-rows [selection-model] (nth selection-model 3))
+
 (defn get-anchor-model-col [selection-model] (nth selection-model 4))
+
 (defn get-anchor-screen-col [selection-model] (nth selection-model 5))

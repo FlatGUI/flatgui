@@ -14,5 +14,5 @@
 
 (defn modifiers [event] (.getModifiersEx event))
 
-(definputparser with-shift? java.awt.event.InputEvent (> (bit-and (modifiers repaint-reason) InputEvent/SHIFT_DOWN_MASK) 0))
-(definputparser with-ctrl? java.awt.event.InputEvent (> (bit-and (modifiers repaint-reason) InputEvent/CTRL_DOWN_MASK) 0))
+(definputparser with-shift? InputEvent (> (bit-and (modifiers repaint-reason) InputEvent/SHIFT_DOWN_MASK) 0))
+(definputparser with-ctrl? InputEvent (> (bit-and (modifiers repaint-reason) InputEvent/CTRL_DOWN_MASK) 0))

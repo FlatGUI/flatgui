@@ -8,41 +8,38 @@
 
 (ns ^{:doc "Filtering table colum Vertical Feature"
       :author "Denys Lebediev"}
-  flatgui.widgets.table.vfcfiltering (:use flatgui.base
-                                           flatgui.theme
-                                           flatgui.paint
-                                           flatgui.widgets.componentbase
-                                           flatgui.widgets.table.commons
-                                           flatgui.widgets.table.vfc
-                                           clojure.test))
+    flatgui.widgets.table.vfcfiltering
+  (:require [flatgui.base :as fg]
+            [flatgui.widgets.table.vfc :as vfc]
+            [flatgui.widgets.table.commons :as tcom]))
 
-; V-Feature functionalilty
+;;; V-Feature functionalilty
 
-(defaccessorfn apply-filtering [contentpane prev-header-ids header-id prev-row-order modes]
-  (let [ mode (get-from-header-vfc contentpane header-id :filtering :mode)]
+(fg/defaccessorfn apply-filtering [contentpane prev-header-ids header-id prev-row-order modes]
+  (let [mode (vfc/get-from-header-vfc contentpane header-id :filtering :mode)]
     (if (= :f mode)
-      (let [ value-provider (get-property contentpane [] :value-provider)
-             header-ids (get-property contentpane [] :header-ids)
-             ;@todo do not duplicate these .indexOf calls
-             column-index (.indexOf header-ids header-id)
-             key-fn (fn [row-order-item]
+      (let [value-provider (get-property contentpane [] :value-provider)
+            header-ids (get-property contentpane [] :header-ids)
+            ;;TODO do not duplicate these .indexOf calls
+            column-index (.indexOf header-ids header-id)
+            key-fn (fn [row-order-item]
                       (value-provider row-order-item column-index))
-             selection-model (get-property contentpane [:this] :selection-model)
-             visible-values (map (fn [row] (key-fn row)) (get-selected-model-rows selection-model))]
+            selection-model (get-property contentpane [:this] :selection-model)
+            visible-values (map (fn [row] (key-fn row)) (tcom/get-selected-model-rows selection-model))]
           (filter
             (fn [row-order-item]
               (if (empty? visible-values) true (some #(= %1 (key-fn row-order-item)) visible-values)))
             prev-row-order))
         prev-row-order)))
 
-(defaccessorfn apply-filtering-feature [contentpane prev-row-order modes]
-  (apply-vf-by-degree contentpane :filtering apply-filtering prev-row-order modes))
+(fg/defaccessorfn apply-filtering-feature [contentpane prev-row-order modes]
+  (vfc/apply-vf-by-degree contentpane :filtering apply-filtering prev-row-order modes))
 
-; Params
+;;; Params
 
-(defwidget vfcfiltering
+(fg/defwidget vfcfiltering
   { :apply-feature apply-filtering-feature
     :mode-vec [:none :f]
     :mode :none
-    :look filtering-look}
-  vfc)
+    :look vfc/filtering-look}
+  vfc/vfc)
