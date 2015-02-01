@@ -576,8 +576,8 @@
                                :evolvers { :clip-size blotter-table-cs-evolver
                                            }}
     (deftableheader
-      (defcolumn :symbol [:sorting :filtering :grouping] {:clip-size (defpoint 2 DFLT_ROW_HEIGHT)})
-      (defcolumn :side [:sorting :filtering :grouping] {:clip-size (defpoint 2 DFLT_ROW_HEIGHT)})
+      (defcolumn :symbol [:sorting :filtering :grouping] {:clip-size (defpoint 2 default-row-height)})
+      (defcolumn :side [:sorting :filtering :grouping] {:clip-size (defpoint 2 default-row-height)})
       (defcolumn :id [:sorting])
       (defcolumn :qty [:sorting])
       (defcolumn :price [:sorting])
