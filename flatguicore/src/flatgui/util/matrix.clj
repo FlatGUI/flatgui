@@ -26,6 +26,8 @@
     [0 0 0  1]])
   ([tx ty] (transtation-matrix tx ty 0)))
 
+(def transtation transtation-matrix)
+
 (defn defmxcol [& values]
   "Defines 1-column matrix"
   ;(vec (for [v values] [v]))

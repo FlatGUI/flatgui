@@ -7,18 +7,15 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns helloworld
-  ;; TODO Get rid of :use
-  (:use
-        flatgui.widgets.component
-        flatgui.widgets.label
-        flatgui.widgets.window
-        flatgui.widgets.checkbox)
-  (:require flatgui.skins.flat
-            flatgui.appcontainer
+  (:require [flatgui.app]
+            [flatgui.skins.flat]
             [flatgui.util.matrix :as m]
             [flatgui.base :as fg]
-            [flatgui.comlogic :as fgc]
-            [flatgui.awt :as awt]))
+            [flatgui.awt :as awt]
+            [flatgui.widgets.window :as window]
+            [flatgui.widgets.checkbox :as checkbox]
+            [flatgui.widgets.label :as label]
+            [flatgui.widgets.panel :as panel]))
 
 (def nogreeting-text "Not now")
 
@@ -31,36 +28,33 @@
 
 (def hello-window
   (fg/defcomponent
-    window
+    window/window
     :hello
-    {:clip-size (fgc/defpoint 3 1.5)
-     :position-matrix (m/transtation-matrix 1 1)
+    {:clip-size (m/defpoint 3 1.5)
+     :position-matrix (m/transtation 1 1)
      :text "Hello World Example"}
 
     (fg/defcomponent
-      checkbox
+      checkbox/checkbox
       :say-hello
-      {:clip-size (fgc/defpoint 1.75 0.25 0)
+      {:clip-size (m/defpoint 1.75 0.25 0)
        :text "Greeting"
-       :position-matrix (m/transtation-matrix 0.125 0.75)})
+       :position-matrix (m/transtation 0.125 0.75)})
 
     (fg/defcomponent
-      label
+      label/label
       :greeting
       {:text nogreeting-text
-       :clip-size (fgc/defpoint 2.25 0.25 0)
-       :position-matrix (m/transtation-matrix 1.0 0.75)
+       :clip-size (m/defpoint 2.25 0.25 0)
+       :position-matrix (m/transtation 1.0 0.75)
        :evolvers {:text greeting-evolver}})))
 
-;;;; TODO use defcontainer marco instead
-(def hellopanel
-  (flatgui.widgets.componentbase/initialize
-    (fg/defcomponent
-      component
-      :main
-      {:clip-size (fgc/defpoint 40 23 0)
-       :background (awt/color (float (/ 9 255)) (float (/ 17 255)) (float (/ 26 255)))}
+(def root-panel
+  (fg/defcomponent
+    panel/panel
+    :main
+    {:clip-size (m/defpoint 40 23 0)
+     :background (awt/color (float (/ 9 255)) (float (/ 17 255)) (float (/ 26 255)))}
+    hello-window))
 
-       hello-window)))
-
-(fg/log-debug "Application GUI has been created")
+(def hellopanel (flatgui.app/defroot root-panel))
