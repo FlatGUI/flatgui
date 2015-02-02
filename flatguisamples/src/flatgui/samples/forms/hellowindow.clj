@@ -20,9 +20,9 @@
 (def greeting-text "Hello, world!")
 
 (fg/defevolverfn greeting-evolver :text
-                 (if (get-property [:say-hello] :pressed)
-                   greeting-text
-                   nogreeting-text))
+  (if (get-property [:say-hello] :pressed)
+    greeting-text
+    nogreeting-text))
 
 (def hello-window
   (fg/defcomponent
