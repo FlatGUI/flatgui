@@ -68,9 +68,9 @@
     `(flatgui.base/defcomponent flatgui.widgets.table.columnheader/columnheader ~id {}))
   ([id v-features]
     (let [begindef (list 'flatgui.base/defcomponent 'flatgui.widgets.table.columnheader/columnheader id {})
-          vfdef (map (fn [vf] (list 'flatgui.base/defcomponent (symbol (str "vfc" (name vf))) vf {})) v-features)]
+          vfdef (map (fn [vf] (list 'flatgui.base/defcomponent (symbol (str "flatgui.widgets.table.vfc" (name vf) "/vfc" (name vf))) vf {})) v-features)]
       (concat begindef vfdef)))
   ([id v-features props]
     (let [begindef (list 'flatgui.base/defcomponent 'flatgui.widgets.table.columnheader/columnheader id props)
-          vfdef (map (fn [vf] (list 'flatgui.base/defcomponent (symbol (str "vfc" (name vf))) vf {})) v-features)]
+          vfdef (map (fn [vf] (list 'flatgui.base/defcomponent (symbol (str "flatgui.widgets.table.vfc" (name vf) "/vfc" (name vf))) vf {})) v-features)]
       (concat begindef vfdef))))

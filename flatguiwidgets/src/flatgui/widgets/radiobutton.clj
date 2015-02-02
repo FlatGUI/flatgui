@@ -27,12 +27,12 @@
   (let [let-binding (vec
                       (list
                         'all-values (conj (mapcat (fn [e] [[e] (list 'get-property 'component [e] :pressed)]) all-radio-ids) 'hash-map)
-                        'reason (list 'get-reason)))]
+                        'reason (list 'flatgui.base/get-reason)))]
     `(flatgui.base/defevolverfn ~fnname :pressed
        (let ~let-binding
          (if (contains? ~'all-values ~'reason)
            (if (~'all-values ~'reason) false ~'old-pressed)
-           (radio-pressed-evolver ~'component))))))
+           (flatgui.widgets.radiobutton/radio-pressed-evolver ~'component))))))
 
 (fg/defwidget "radiobutton"
   {:v-alignment :center
