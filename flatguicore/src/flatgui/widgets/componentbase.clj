@@ -9,9 +9,13 @@
 (ns ^{:doc "FlatGUI widget base routines"
       :author "Denys Lebediev"}
   flatgui.widgets.componentbase
-  (:import [clojure.lang Keyword])
-  (:use flatgui.dependency flatgui.base flatgui.ids flatgui.comlogic flatgui.access flatgui.util.matrix clojure.test clojure.stacktrace))
-
+  (:require [flatgui.dependency :as dep]
+            [flatgui.base :as fg]
+            [flatgui.ids :as ids]
+            [flatgui.comlogic :as fgc]
+            [flatgui.util.matrix :as m])
+  ;(:use flatgui.comlogic flatgui.access flatgui.util.matrix)
+  )
 
 
 (defn- get-evolver [component property]
@@ -24,8 +28,6 @@
   (get-in component [:children child-id]))
 
 
-
-
 (declare reinit-if-needed)
 
 (declare initialize)
@@ -36,11 +38,11 @@
   (cond
     (:has-structure-changes container)
     (do
-      (log-info "Performing full reinit")
+      (fg/log-info "Performing full reinit")
       (initialize container))
     (:flex-structure-changes container)
     (do
-      (log-info "Performing flexible structure init ")
+      (fg/log-info "Performing flexible structure init ")
       (println "FLEX: " (:flex-target-id-paths-added container))
       (flex-initialize container))
     :else container))
@@ -56,11 +58,11 @@
 (defn evolve-out-dependents [original-container container original-target-id-path target-id-path issuer-reason reason dependents debug-shift initialization targret-access-key]
   (let [
          ;@todo Experiment1
-         ;targret-access-key (get-access-key target-id-path)
-         targret-visible-access-key (conjv targret-access-key :visible)
+         ;targret-access-key (fgc/get-access-key target-id-path)
+         targret-visible-access-key (fgc/conjv targret-access-key :visible)
 
          properties (if initialization
-                      (let [ target-properties-already-evovled (get-in (:aux-container container) (conjv targret-access-key :evolved-properties))
+                      (let [ target-properties-already-evovled (get-in (:aux-container container) (fgc/conjv targret-access-key :evolved-properties))
                              to-evolve (if target-properties-already-evovled
                                          (vec (remove target-properties-already-evovled (:properties dependents)))
                                          (:properties dependents))]
@@ -90,8 +92,8 @@
          ;
          ;
 ;         dependent-children (if (not (empty? dependent-children1))
-;                              (if (get-in container (conjv targret-access-key :_flexible-childset))
-;                                (let [ target-children (get-in container (conjv targret-access-key :children))]
+;                              (if (get-in container (fgc/conjv targret-access-key :_flexible-childset))
+;                                (let [ target-children (get-in container (fgc/conjv targret-access-key :children))]
 ;                                  (if (not= (count target-children) (count dependent-children1))
 ;                                    (let [r (mapv (fn [[c-id _]] [c-id (last (first dependent-children1))]) target-children)]
 ;                                      (do
@@ -115,14 +117,14 @@
                                                         )
                                 container)
          ;[GOOD DEBUG OUTPUT]_ (if (some #(= :should-evolve-header %1) properties) (println (debug-prefix debug-shift) "<<EXITED<< CAUTION :should-evolve-header is among " properties " issuer now is " issuer-reason))
-         ;(or initialization (get-in ret (conjv (get-access-key child-target-id-path) :visible)))
+         ;(or initialization (get-in ret (fgc/conjv (fgc/get-access-key child-target-id-path) :visible)))
          ]
     (loop [ dci 0
             ret with-evolved-target]
       (if (< dci dc-count)
         (let [ child-info (nth dependent-children dci)
                child-id (first child-info)
-               child-target-id-path (conjv target-id-path child-id)
+               child-target-id-path (fgc/conjv target-id-path child-id)
                child-depenents (last child-info)
                ;todo prepare access keys for children
                 ]
@@ -140,7 +142,7 @@
                 child-depenents
                 debug-shift
                 initialization
-                (get-access-key child-target-id-path)))
+                (fgc/get-access-key child-target-id-path)))
           ))
           ret))))
 
@@ -158,10 +160,10 @@
 (defn- combine-dirty-rect [r pm clip]
   (do ;(println " combine-dirty-rect " r pm clip)
     (if (and pm clip)
-    (let [ pmx (mx-x pm)
-           pmy (mx-y pm)
-           clip-w (x clip)
-           clip-h (y clip)]
+    (let [ pmx (m/mx-x pm)
+           pmy (m/mx-y pm)
+           clip-w (m/x clip)
+           clip-h (m/y clip)]
       (if r
         (let [ x1 (min (:x r) pmx)
                y1 (min (:y r) pmy)
@@ -175,17 +177,17 @@
 ;;; TODO Refactor into a set of smaller functions
 ;;;
 (defn evolve-component [original-container container original-target-id-path target-id-path reason properties-to-evolve debug-shift initialization]
-  (let [ k (get-access-key target-id-path)
+  (let [ k (fgc/get-access-key target-id-path)
          pre-target-component (get-in container k)]
     ; Absence of :path-to-target means that target is a newly created component that has
     ; not passed container initialization yet and hence cannot be evolved yet
     (if (and pre-target-component (:path-to-target pre-target-component))
-      (let [ evolved-properties-key (conjv k :evolved-properties)
-             changed-properties-key (conjv k :changed-properties)
-             latest-changed-properties-key (conjv k :latest-changed-properties)
+      (let [ evolved-properties-key (fgc/conjv k :evolved-properties)
+             changed-properties-key (fgc/conjv k :changed-properties)
+             latest-changed-properties-key (fgc/conjv k :latest-changed-properties)
              aux-container (update-in! (:aux-container container) latest-changed-properties-key (transient #{}))
              evolve-reason-provider (fn [_] (cond
-                                              (vector? reason) (get-relative-path reason target-id-path)
+                                              (vector? reason) (ids/get-relative-path reason target-id-path)
                                               (= original-target-id-path target-id-path) reason))
              target-component (assoc pre-target-component
                                 :target-id-path-index (dec (count target-id-path))
@@ -197,12 +199,12 @@
                 aux aux-container]
           (if (< pi ps-count)
                   (let [ p (nth properties-to-evolve pi)
-                         pk (conjv k p)
+                         pk (fgc/conjv k p)
                          evolver (p (:evolvers tgt))]
                     (if (or initialization evolver)
                       (let [ old-value (p tgt);(if (and initialization (nil? reason)) nil (p tgt))
                              ;evolver (p (:evolvers tgt))
-                             aux-with-p (update-in! aux evolved-properties-key set-conj! p)
+                             aux-with-p (update-in! aux evolved-properties-key fgc/set-conj! p)
                              root-p (assoc ret :aux-container aux-with-p)
                              aux-with-evolved-dependencies (:aux-container root-p)
                              ;@todo maybe use original value from original-container for currently evolved property while up-to-date for other, probably this is more honest
@@ -236,9 +238,9 @@
 
                              new-aux (if has-changes
                                        (update-in!
-                                         (update-in! new-aux-with-consume changed-properties-key set-conj! p)
+                                         (update-in! new-aux-with-consume changed-properties-key fgc/set-conj! p)
                                          latest-changed-properties-key
-                                         set-conj!
+                                         fgc/set-conj!
                                          p)
                                        new-aux-with-consume)
                              new-ret (if has-changes
@@ -254,7 +256,7 @@
                                                          :has-changes (or (:has-changes root-p) has-changes)
                                                          :aux-container new-aux)
                                               fin-ret (if (and (:popup tgt) (= p :visible))
-                                                        (update-in fin-ret1 [:paths-having-visible-popups] (if new-value conj disj) (drop-lastv target-id-path))
+                                                        (update-in fin-ret1 [:paths-having-visible-popups] (if new-value conj disj) (fgc/drop-lastv target-id-path))
                                                         fin-ret1)]
                                          (condp = p
                                            ;TODO 1. take into account viewport-matrix when combining?
@@ -305,8 +307,8 @@
 
 (defn evolve-by-dependencies [original-container container original-target-id-path target-id-path reason properties-to-evolve debug-shift initialization issuer]
     (let [ ;[GOOD DEBUG OUTPUT] _ (if (not= [:text :selection] properties-to-evolve) (println (debug-prefix debug-shift) ">>> entered evolve-by-dependencies function " target-id-path " for properties " properties-to-evolve))
-           k (get-access-key target-id-path)
-           evolved-properties-key (conjv k :evolved-properties)
+           k (fgc/get-access-key target-id-path)
+           evolved-properties-key (fgc/conjv k :evolved-properties)
           ;already-evolved (get-in (:aux-container container) evolved-properties-key)
            ;
            ;@todo If current reason in not a vector (which meands depencency), take only evolvers dependent on current reason
@@ -314,14 +316,14 @@
            remaining-to-evolve (if properties-to-evolve
                                  properties-to-evolve
                                  (if initialization
-                                   (keys (get-in container (conjv k :abs-dependents)))
-                                   (mapv (fn [[k v]] k) (get-in container (conjv k :evolvers))))
+                                   (keys (get-in container (fgc/conjv k :abs-dependents)))
+                                   (mapv (fn [[k v]] k) (get-in container (fgc/conjv k :evolvers))))
                                  )]
       (if (<= (count remaining-to-evolve) 0)
         (do
           ;[GOOD DEBUG OUTPUT](if (not= [:text :selection] properties-to-evolve) (println (debug-prefix debug-shift) "<<< exited(1) evolve-by-dependencies function for properties " properties-to-evolve))
           container)
-        (let [ k (get-access-key target-id-path)
+        (let [ k (fgc/get-access-key target-id-path)
                prev-has-changes (:has-changes container)
                with-evolved-target-fresh (evolve-component original-container (assoc container :has-changes false) original-target-id-path target-id-path reason remaining-to-evolve debug-shift initialization)
                new-has-changes (:has-changes with-evolved-target-fresh)
@@ -332,13 +334,13 @@
 ;                   (println " JUST EVOLVED target-id-path " target-id-path
 ;                     " new-has-changes " new-has-changes
 ;                     " init " initialization
-;                     " props " (:clip-size (get-in new-aux (conjv k :latest-changed-properties)))
+;                     " props " (:clip-size (get-in new-aux (fgc/conjv k :latest-changed-properties)))
 ;                     ))
                ]
               ;@todo Without this initialization check :children for table content pane do not get evolved on initialization. Why?
               (if (or new-has-changes (and initialization has-changes))
                 (let [ all-out-dependents (:out-dependents new-aux)
-                       changed-properties (get-in new-aux (conjv k :latest-changed-properties))
+                       changed-properties (get-in new-aux (fgc/conjv k :latest-changed-properties))
                        properties (if changed-properties (vec (seq (filter changed-properties (for [[k v] all-out-dependents] k)))) [])
                        container-id (:id with-evolved-target)]
                   (loop [ pi (dec (count properties))
@@ -352,7 +354,7 @@
                                ;[GOOD DEBUG OUTPUT]_ (println (debug-prefix debug-shift) "Evolving---- |" target-id-path property "| issuer " issuer " -------- calling evolve-out-dependents dependents: " (container-id out-dependents))
                                ]
                             (evolve-out-dependents original-container ret original-target-id-path [container-id] nil;(str " from |" target-id-path property "|");reason
-                               reason-for-dependent (container-id out-dependents) debug-shift initialization (get-access-key [container-id]))))
+                               reason-for-dependent (container-id out-dependents) debug-shift initialization (fgc/get-access-key [container-id]))))
                       (do
                         ;[GOOD DEBUG OUTPUT](if (not= [:text :selection] properties-to-evolve) (println (debug-prefix debug-shift) "<<< exited(2) evolve-by-dependencies function for properties " properties-to-evolve))
                         ret)
@@ -363,8 +365,8 @@
 
 
 (defn rebuild-look [container target-id-path aux changed-only dirty-rect]
-  (let [ k (get-access-key target-id-path)
-        this-container (if (or (not changed-only) (get-in aux (conjv k :changed-properties)))
+  (let [ k (fgc/get-access-key target-id-path)
+        this-container (if (or (not changed-only) (get-in aux (fgc/conjv k :changed-properties)))
                          (let [ look-fn (:look container)]
                            (if look-fn
                              (assoc container :look-vec (look-fn container dirty-rect))
@@ -372,13 +374,13 @@
                          container)]
     (assoc
       this-container
-      :children (into (array-map) (for [[k v] (:children container)] [k (rebuild-look v (conjv target-id-path k) aux changed-only dirty-rect)])))))
+      :children (into (array-map) (for [[k v] (:children container)] [k (rebuild-look v (fgc/conjv target-id-path k) aux changed-only dirty-rect)])))))
 
 
 ; TODO this was one more attempt to optimize for web
 ;(defn rebuild-look [container target-id-path aux changed-only]
-;  (let [ k (get-access-key target-id-path)
-;        this-container (if (or (not changed-only) (get-in aux (conjv k :changed-properties)))
+;  (let [ k (fgc/get-access-key target-id-path)
+;        this-container (if (or (not changed-only) (get-in aux (fgc/conjv k :changed-properties)))
 ;                         (let [ look-fn (:look container)]
 ;                           (if look-fn
 ;                             (assoc container :look-vec (look-fn container (:dirty-rect container)) :needs-repaint true)
@@ -386,12 +388,12 @@
 ;                         (assoc container :needs-repaint false))]
 ;    (assoc
 ;      this-container
-;      :children (into (array-map) (for [[k v] (:children container)] [k (rebuild-look v (conjv target-id-path k) aux changed-only)])))))
+;      :children (into (array-map) (for [[k v] (:children container)] [k (rebuild-look v (fgc/conjv target-id-path k) aux changed-only)])))))
 ; TODO the function has been optimized for web
 ;
 ;(defn rebuild-look [container target-id-path aux changed-only]
-;  (let [ k (get-access-key target-id-path)
-;         changed-properties (get-in aux (conjv k :changed-properties))
+;  (let [ k (fgc/get-access-key target-id-path)
+;         changed-properties (get-in aux (fgc/conjv k :changed-properties))
 ;         this-container (if (or (not changed-only) changed-properties)
 ;                          (let [ look-fn (:look container)
 ;                                 old-look-vec (:look-vec container)
@@ -411,7 +413,7 @@
 ;                          (assoc container :needs-repaint false))]
 ;    (assoc
 ;      this-container
-;      :children (into (array-map) (for [[k v] (:children container)] [k (rebuild-look v (conjv target-id-path k) aux changed-only)])))))
+;      :children (into (array-map) (for [[k v] (:children container)] [k (rebuild-look v (fgc/conjv target-id-path k) aux changed-only)])))))
 
 
 
@@ -442,7 +444,7 @@
                     "root"))
          pass-input-result (if (or (:consumed (:aux-container result)) (= 0 (count target-id-path)))
                              result
-                             (evolve-container-private result nil (drop-lastv target-id-path) reason))]
+                             (evolve-container-private result nil (fgc/drop-lastv target-id-path) reason))]
     pass-input-result))
 
 (defn evolve-container [container target-id-path reason]
@@ -463,7 +465,7 @@
     (let [ target-path (conj path-to-target (:id component))
            evolved-target (assoc component :path-to-target path-to-target)
            fresh-root-container (if (> (count target-path) 1)
-                                  (assoc-in root-container (get-access-key target-path) evolved-target)
+                                  (assoc-in root-container (fgc/get-access-key target-path) evolved-target)
                                   evolved-target)]
       (assoc
         evolved-target
@@ -494,7 +496,7 @@
                  child-id (first child-pair)
                  child-component (second child-pair)]
             (recur
-              (evolve-all ret (conjv target-id-path child-id) child-component)
+              (evolve-all ret (fgc/conjv target-id-path child-id) child-component)
               (next children)))
           ret))))
   ([root-container] (evolve-all root-container [(:id root-container)] root-container)))
@@ -503,7 +505,7 @@
 
 (defn- account-struc-changes [container]
   (if (:has-structure-changes container)
-    (initialize-internal (initialize-all (setup-dependencies (assoc container :has-structure-changes false))))
+    (initialize-internal (initialize-all (dep/setup-dependencies (assoc container :has-structure-changes false))))
     container))
 
 (defn- account-flex-changes [container]
@@ -524,7 +526,7 @@
          re-res (account-flex-changes res3)]
     (rebuild-look re-res [(:id re-res)] (:aux-container re-res) false (:dirty-rect container))))
 
-(defn initialize [container] (initialize-internal (initialize-all (setup-dependencies container))))
+(defn initialize [container] (initialize-internal (initialize-all (dep/setup-dependencies container))))
 
 (defn- evovle-newly-added [container added-target-id-paths]
   (loop [ ret container
@@ -532,7 +534,7 @@
     (let [ p (first paths)]
       (if p
         (recur
-          (let [ evolver-map (get-in ret (conjv (get-access-key p) :evolvers))
+          (let [ evolver-map (get-in ret (fgc/conjv (fgc/get-access-key p) :evolvers))
                 properties (if evolver-map (map (fn [[k _]] k) evolver-map))]
 
             ;TODO 11/13/2014 today I resolved initialization issues and it looks like properties are not needed here
@@ -545,6 +547,6 @@
 
 (defn flex-initialize [container]
   (dissoc (->
-            (apply-flex-changes container (:flex-structure-changes container))
-            (recompute-out-dependents (:flex-structure-changes container))
+            (dep/apply-flex-changes container (:flex-structure-changes container))
+            (dep/recompute-out-dependents (:flex-structure-changes container))
             (evovle-newly-added (:flex-target-id-paths-added container))) :flex-structure-changes))

@@ -10,16 +10,19 @@
             components and their states by various criterias."
       :author "Denys Lebediev"}
   flatgui.access
-  (:use flatgui.comlogic flatgui.base flatgui.util.matrix clojure.test))
+  ;(:use flatgui.comlogic flatgui.base)
+  (:require [flatgui.base :as fg]
+            [flatgui.util.matrix :as m]
+            [flatgui.comlogic :as fgc]))
 
 
 (defn get-any-component
   ([container pred-data pred-data-modifier pred result-postrocessor]
     (if (pred pred-data container)
       (result-postrocessor pred-data container)
-      (let [ children (get-children container)
-             from-children (map (fn [child] (get-any-component child (pred-data-modifier pred-data container) pred-data-modifier pred result-postrocessor)) children)
-             filtered (filter (fn [c] (not (nil? c))) from-children)]
+      (let [children (fgc/get-children container)
+            from-children (map (fn [child] (get-any-component child (pred-data-modifier pred-data container) pred-data-modifier pred result-postrocessor)) children)
+            filtered (filter (fn [c] (not (nil? c))) from-children)]
         (first filtered))))
   ([container pred]
     "Returns first component found in given container
@@ -47,7 +50,10 @@
   ([container pred-data pred-data-modifier pred result-postrocessor]
     (if (pred pred-data container)
       (conj
-        (mapcat (fn [c] (get-components c (pred-data-modifier pred-data container) pred-data-modifier pred result-postrocessor)) (get-children container))
+        (mapcat (fn [c] (get-components
+                          c
+                          (pred-data-modifier pred-data container) pred-data-modifier pred result-postrocessor))
+                (fgc/get-children container))
         (result-postrocessor pred-data container))
       ))
   ([container pred]
@@ -58,40 +64,40 @@
 
 
 (defn- get-top-left [d c]
-  (mx*
-    (mx* d (:position-matrix c))
-    (defpoint 0 0 0)))
+  (m/mx*
+    (m/mx* d (:position-matrix c))
+    (m/defpoint 0 0 0)))
 
 (defn- get-btm-right [d c]
-  (mx*
-    (mx* d (:position-matrix c))
-    (defpoint (x (:clip-size c)) (y (:clip-size c)) 0)))
+  (m/mx*
+    (m/mx* d (:position-matrix c))
+    (m/defpoint (m/x (:clip-size c)) (m/y (:clip-size c)) 0)))
 
-(defn- position-viewport-translator [d c] (mx* d (mx* (:position-matrix c) (:viewport-matrix c))))
+(defn- position-viewport-translator [d c] (m/mx* d (m/mx* (:position-matrix c) (:viewport-matrix c))))
 
 (defn- mouse-predicate [d c mouse-x mouse-y]
   (let [ c-top-left (get-top-left d c)
          c-btm-right (get-btm-right d c)]
     (and
-      (>= mouse-x (x c-top-left))
-      (>= mouse-y (y c-top-left))
-      (< mouse-x (x c-btm-right))
-      (< mouse-y (y c-btm-right)))))
+      (>= mouse-x (m/x c-top-left))
+      (>= mouse-y (m/y c-top-left))
+      (< mouse-x (m/x c-btm-right))
+      (< mouse-y (m/y c-btm-right)))))
 
 (defn- mouse-postprocessor [d c mouse-x mouse-y]
   (let [ c-top-left (get-top-left d c)
          vm (:viewport-matrix c)
-         viewport-translate-x (mx-get vm 0 3)
-         viewport-translate-y (mx-get vm 1 3)]
+         viewport-translate-x (m/mx-get vm 0 3)
+         viewport-translate-y (m/mx-get vm 1 3)]
     (assoc
       c
-      :mouse-x-relative (- mouse-x (x c-top-left) viewport-translate-x)
-      :mouse-y-relative (- mouse-y (y c-top-left) viewport-translate-y))))
+      :mouse-x-relative (- mouse-x (m/x c-top-left) viewport-translate-x)
+      :mouse-y-relative (- mouse-y (m/y c-top-left) viewport-translate-y))))
 
 (defn get-components-at [container mouse-x mouse-y]
   (get-components
     container
-    IDENTITY-MATRIX
+    m/IDENTITY-MATRIX
     position-viewport-translator
     (fn [d c] (mouse-predicate d c mouse-x mouse-y))
     (fn [d c] (mouse-postprocessor d c mouse-x mouse-y))))
@@ -101,11 +107,13 @@
 ;
 (defn get-path-to-component [container path-to-target pred-data pred-data-modifier pred result-postrocessor paths-having-visible-popups]
   (let [ container-applies (pred pred-data container)
-         target-id-path (conjv path-to-target (:id container))]
+         target-id-path (fgc/conjv path-to-target (:id container))]
     (if (and (or container-applies (and paths-having-visible-popups (paths-having-visible-popups target-id-path))) (:visible container))
-      (let [ paths-from-children-all (map #(get-path-to-component %1 target-id-path (pred-data-modifier pred-data container) pred-data-modifier pred result-postrocessor paths-having-visible-popups) (get-children container))
-             paths-from-children (filter #(and (not (nil? %1)) (not (empty? %1))) paths-from-children-all)
-             path-to-topmost (if (not (empty? paths-from-children))
+      (let [paths-from-children-all (map
+                                      #(get-path-to-component %1 target-id-path (pred-data-modifier pred-data container) pred-data-modifier pred result-postrocessor paths-having-visible-popups)
+                                      (fgc/get-children container))
+            paths-from-children (filter #(and (not (nil? %1)) (not (empty? %1))) paths-from-children-all)
+            path-to-topmost (if (not (empty? paths-from-children))
                                (reduce #(max-key (fn [p] (:z-position (last p))) %1 %2) paths-from-children))]
           (let [ container-postprocessed (result-postrocessor pred-data container)]
             (if path-to-topmost
@@ -116,7 +124,7 @@
   (get-path-to-component
     container
     []
-    IDENTITY-MATRIX
+    m/IDENTITY-MATRIX
     position-viewport-translator
     (fn [d c] (mouse-predicate d c mouse-x mouse-y))
     (fn [d c] (mouse-postprocessor d c mouse-x mouse-y))
@@ -131,19 +139,19 @@
 (defn get-mouse-rel-x-from-pointed-path [path]
   (if (nil? path)
     0.0
-    (masknil (:mouse-x-relative (last path)))))
+    (fgc/masknil (:mouse-x-relative (last path)))))
 
 (defn get-mouse-rel-y-from-pointed-path [path]
   (if (nil? path)
     0.0
-    (masknil (:mouse-y-relative (last path)))))
+    (fgc/masknil (:mouse-y-relative (last path)))))
 
 (defn get-mouse-rel-x-from-path [path]
   (if (nil? path)
     (vec (for [c path] 0.0))
-    (mapv (fn [c] (masknil (:mouse-x-relative c))) path)))
+    (mapv (fn [c] (fgc/masknil (:mouse-x-relative c))) path)))
 
 (defn get-mouse-rel-y-from-path [path]
   (if (nil? path)
     (vec (for [c path] 0.0))
-    (mapv (fn [c] (masknil (:mouse-y-relative c))) path)))
+    (mapv (fn [c] (fgc/masknil (:mouse-y-relative c))) path)))

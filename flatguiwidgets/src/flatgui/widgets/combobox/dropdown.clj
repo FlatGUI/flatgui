@@ -9,7 +9,6 @@
 (ns ^{:doc "Drop down menu for combo box"
       :author "Denys Lebediev"}
   flatgui.widgets.combobox.dropdown
-                       (:use flatgui.comlogic)
   (:require [flatgui.awt :as awt]
             [flatgui.paint :as fgp]
             [flatgui.base :as fg]
@@ -37,11 +36,11 @@
 (fg/defevolverfn menu-text-clip-size-evolver :clip-size
   (let [header-size (get-property component [] :clip-size)
         row-h (get-property component [:_ :content-pane] :row-height)]
-    (defpoint (x header-size) row-h)))
+    (m/defpoint (m/x header-size) row-h)))
 
 (fg/defevolverfn dropdown-position-matrix-evolver :position-matrix
   (let [editor-size (get-property component [:editor] :clip-size)]
-    (m/transtation-matrix 0 (y editor-size))))
+    (m/transtation-matrix 0 (m/y editor-size))))
 
 (fg/defevolverfn dropdown-clip-size-evolver :clip-size
   (let [combo-size (get-property component [] :clip-size)
@@ -49,7 +48,7 @@
                      (get-property component [:this :content-pane] :row-count)
                      (get-property component [:this :content-pane] :maximum-visible-rows))
         row-height (get-property component [:this :content-pane] :row-height)]
-    (defpoint (x combo-size) (* row-count row-height))))
+    (m/defpoint (m/x combo-size) (* row-count row-height))))
 
 (fg/defevolverfn dropdown-visible-evolver :visible
   (let [reason (fg/get-reason)]

@@ -8,11 +8,12 @@
 
 (ns ^{:doc "Text Field widget"
       :author "Denys Lebediev"}
-    flatgui.widgets.textfield (:use flatgui.comlogic)
+  flatgui.widgets.textfield
   (:require [flatgui.awt :as awt]
             [flatgui.base :as fg]
             [flatgui.inputchannels.keyboard :as keyboard]
-            [flatgui.inputchannels.awtbase :as inputbase])
+            [flatgui.inputchannels.awtbase :as inputbase]
+            [flatgui.util.matrix :as m])
   (:import [java.awt.event KeyEvent]))
 
 
@@ -98,7 +99,7 @@
                   (let [ caret-pos (- (:caret-pos model) old-first-visible-symbol)
                         text (:text model)
                         caret-x (get-caret-x (subs text old-first-visible-symbol) caret-pos)
-                        width (- (x (get-property component [:this] :clip-size)) (* 1 (get-hgap)) (awt/px))]
+                        width (- (m/x (get-property component [:this] :clip-size)) (* 1 (get-hgap)) (awt/px))]
                     (if (> caret-x width)
                       (let [ diff (- caret-x width)]
                         (+

@@ -9,7 +9,6 @@
 (ns ^{:doc "Base component for table header cell"
       :author "Denys Lebediev"}
     flatgui.widgets.table.columnheader
-  (:use flatgui.comlogic)
   (:require [flatgui.base :as fg]
             [flatgui.util.matrix :as m]
             [flatgui.widgets.table.commons :as tcom]
@@ -35,9 +34,9 @@
 
 (fg/defevolverfn columnheader-clip-size-evolver :clip-size
   (if (get-property component [] :fit-width)
-    (defpoint
-      (/ (x (get-property component [] :clip-size)) (count (get-property component [:_] :header-ids)))
-      (y old-clip-size))
+    (m/defpoint
+      (/ (m/x (get-property component [] :clip-size)) (count (get-property component [:_] :header-ids)))
+      (m/y old-clip-size))
     old-clip-size))
 
 (fg/defevolverfn columnheader-text-evolver :text
@@ -48,7 +47,7 @@
      (name id))))
 
 (fg/defwidget "columnheader"
-  {:clip-size (defpoint tcom/default-col-width tcom/default-row-height)
+  {:clip-size (m/defpoint tcom/default-col-width tcom/default-row-height)
    :clicked-no-shift false
    :clicked-with-shift false
    :mouse-down false

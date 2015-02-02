@@ -7,32 +7,47 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns ^{:doc "Namespace that contains FlatGUI component logic assumptions in one place.
-            To be included into other FlatGUI implemantaionnamespaces"
+            To be included into other FlatGUI implemantaion namespaces"
       :author "Denys Lebediev"}
+    ;;; TODO either remove this namespace or make client apps not use it
   flatgui.comlogic
   (:import [clojure.lang Keyword])
-  (:require flatgui.awt)
-  ;;; TODO Get rid of :use
-  (:use clojure.test
-        clojure.stacktrace
-        flatgui.util.matrix))
+  (:require [flatgui.util.matrix :as m]
+            [flatgui.awt]
+            )
+  )
 
 (defn masknil [a] (if (nil? a) 0.0 a))
 
 (defn inrange [v rmin rmax]
   (min (max v rmin) rmax))
 
-(defn defpoint
-  ([x y z] (defmxcol x y z 1))
-  ([x y] (defpoint x y 0)))
+;(defn defpoint
+;  ([x y z] (m/defmxcol x y z 1))
+;  ([x y] (m/defpoint x y 0)))
+;
+;(defn x [point] (m/mx-get point 0 0))
+;(defn y [point] (m/mx-get point 1 0))
+;(defn z [point] (m/mx-get point 2 0))
+;
+;(defn point-op [op a b] (m/mx-set (m/mx-op op a b) 3 0 1))
+;
+;(def zero-point (m/defpoint 0 0 0))
 
-(defn x [point] (mx-get point 0 0))
-(defn y [point] (mx-get point 1 0))
-(defn z [point] (mx-get point 2 0))
+;;; TODO following are deprecated
 
-(defn point-op [op a b] (mx-set (mx-op op a b) 3 0 1))
+(def defpoint m/defpoint)
 
-(def zero-point (defpoint 0 0 0))
+(def x m/x)
+
+(def y m/y)
+
+(def z  m/z)
+
+(def point-op m/point-op)
+
+(def zero-point m/zero-point)
+
 
 
 (defn defrect

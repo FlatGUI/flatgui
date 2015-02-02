@@ -9,7 +9,6 @@
 (ns ^{:doc "Table utilities "
       :author "Denys Lebediev"}
     flatgui.widgets.table.commons
-  (:use flatgui.comlogic)
   (:require [flatgui.base :as fg]
             [flatgui.inputchannels.awtbase :as inputbase]
             [flatgui.inputchannels.mouse :as mouse]))

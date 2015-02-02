@@ -8,8 +8,7 @@
 
 (ns ^{:doc "Slider widget"
       :author "Denys Lebediev"}
-    flatgui.widgets.slider
-  (:use flatgui.comlogic)
+  flatgui.widgets.slider
   (:require [flatgui.base :as fg]
             [flatgui.util.matrix :as m]
             [flatgui.inputchannels.mouse :as mouse]
@@ -25,8 +24,8 @@
          base-size (get-property component [] :clip-size)
          bar-width (get-property component [:_] :bar-width)]
     (if (= :horizontal orientation)
-      (defpoint bar-width (y base-size) 0)
-      (defpoint (x base-size) bar-width 0))))
+      (m/defpoint bar-width (m/y base-size) 0)
+      (m/defpoint (m/x base-size) bar-width 0))))
 
 (fg/defevolverfn sliderhandle-position-matrix-evolver :position-matrix
   (cond
@@ -38,8 +37,8 @@
              bar-width (get-property component [:_] :bar-width)
              base-size (get-property component [] :clip-size)]
         (if (= :horizontal orientation)
-          (m/transtation-matrix (* position (- (x base-size) bar-width)) 0 0)
-          (m/transtation-matrix 0 (* position (- (y base-size) bar-width)) 0)))
+          (m/transtation-matrix (* position (- (m/x base-size) bar-width)) 0 0)
+          (m/transtation-matrix 0 (* position (- (m/y base-size) bar-width)) 0)))
     :else
       old-position-matrix))
 
@@ -54,8 +53,8 @@
   (let [ orientation (get-property component [] :orientation)
          slider-size (get-property component [] :clip-size)]
     (if (= :horizontal orientation)
-      (defpoint (x slider-size) (* 0.625 (y slider-size)))
-      (defpoint (* 0.625 (x slider-size)) (y slider-size)))))
+      (m/defpoint (m/x slider-size) (* 0.625 (m/y slider-size)))
+      (m/defpoint (* 0.625 (m/x slider-size)) (m/y slider-size)))))
 
 (fg/defwidget "sliderhandlebase"
   { :focusable false
@@ -87,7 +86,7 @@
           clip-size (get-property component [:this] :clip-size)
           handlepm (get-property component [:this :base :handle] :position-matrix)
           handlecoord (if (= :horizontal orientation) (m/mx-x handlepm) (m/mx-y handlepm))
-          handlespace (- (if (= :horizontal orientation) (x clip-size) (y clip-size)) bar-width)]
+          handlespace (- (if (= :horizontal orientation) (m/x clip-size) (m/y clip-size)) bar-width)]
       (/ handlecoord handlespace))))
 
 (fg/defwidget "slider"

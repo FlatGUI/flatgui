@@ -9,22 +9,22 @@
 (ns ^{:doc "Scrollbar widget"
       :author "Denys Lebediev"}
   flatgui.widgets.scrollbar
-  (:use flatgui.comlogic)
   (:require [flatgui.awt :as awt]
             [flatgui.base :as fg]
             [flatgui.widgets.component]
-            [flatgui.widgets.floatingbar]))
+            [flatgui.widgets.floatingbar]
+            [flatgui.util.matrix :as m]))
 
 
 (defn- orient-fn [orientation]
-  (if (= :vertical orientation) y x))
+  (if (= :vertical orientation) m/y m/x))
 
 (def default-min-scroller-len 0.375)
 
 (defn smaller-then-content? [orientation size parent-content-size]
   (if (= :vertical orientation)
-    (< (y size) (y parent-content-size))
-    (< (x size) (x parent-content-size))))
+    (< (m/y size) (m/y parent-content-size))
+    (< (m/x size) (m/x parent-content-size))))
 
 (fg/defevolverfn :last-position-matrix
   ; Keeps last position matrix that scroller had before content size
@@ -60,7 +60,7 @@
          scrolled-content-rect (get-property component [:_ :content-pane] :content-size)
          min-scroller-len (:min-scroller-len component)]
     (if (or (nil? scrolled-clip-rect) (nil? scrolled-clip-rect))
-      (defpoint min-scroller-len min-scroller-len 0)
+      (m/defpoint min-scroller-len min-scroller-len 0)
       (let [ orientation (get-property component [] :orientation)
              clip-size (max ((orient-fn orientation) scrolled-clip-rect) 0)
              content-size ((orient-fn orientation) scrolled-content-rect)
@@ -69,8 +69,8 @@
              bar-size ((orient-fn orientation) bar-rect)
              scroller-size (max (* bar-size ratio) min-scroller-len)]
         (if (= :vertical orientation)
-          (defpoint (x bar-rect) scroller-size 0)
-          (defpoint scroller-size (y bar-rect) 0))))))
+          (m/defpoint (m/x bar-rect) scroller-size 0)
+          (m/defpoint scroller-size (m/y bar-rect) 0))))))
 
 (fg/defevolverfn scroller-position-matrix-evolver :position-matrix
   ; Restores last position matrix that scroller had before content size
@@ -109,10 +109,10 @@
   (let [ scrolled-clip-rect (get-property component [:content-pane] :clip-size)
          scrolled-content-rect (get-property component [:content-pane] :content-size)]
     (if (= (:orientation component) :vertical)
-      (if (<= (- (y scrolled-content-rect) (y scrolled-clip-rect)) (* 2 (awt/px)))
+      (if (<= (- (m/y scrolled-content-rect) (m/y scrolled-clip-rect)) (* 2 (awt/px)))
         false
         (flatgui.widgets.component/visible-evolver component))
-      (if (<= (- (x scrolled-content-rect) (x scrolled-clip-rect)) (* 2 (awt/px)))
+      (if (<= (- (m/x scrolled-content-rect) (m/x scrolled-clip-rect)) (* 2 (awt/px)))
         false
         (flatgui.widgets.component/visible-evolver component)))))
 

@@ -27,30 +27,30 @@
 ;       ;                                               " abs pm = " abs-position-matrix
 ;       ;                                               " clip size = " clip-size))
 ;       (awt/setColor background))
-;     ;(awt/fillRect 0 0 (x content-size) (y content-size))
+;     ;(awt/fillRect 0 0 (m/x content-size) (m/y content-size))
 ;     (if (and dirty-rects abs-position-matrix)
 ;       ;Note: here it a single {:x .. :y .. :w .. :h ..} object, not a collection like in previous version. TODO rename parameter dirty-rects->dirty-rect
 ;       (let [ inter (flatgui.util.rectmath/rect&
 ;                      dirty-rects
 ;                      {:x (mx-x abs-position-matrix)
 ;                       :y (mx-y abs-position-matrix)
-;                       :w (x clip-size)
-;                       :h (y clip-size)})]
+;                       :w (m/x clip-size)
+;                       :h (m/y clip-size)})]
 ;         (if inter
 ;           (awt/fillRect
 ;             (- (:x inter) (mx-x abs-position-matrix))
 ;             (- (:y inter) (mx-y abs-position-matrix))
 ;             (:w inter)
 ;             (:h inter))))
-;       ;(awt/fillRect 0 0 (x content-size) (y content-size))
+;       ;(awt/fillRect 0 0 (m/x content-size) (m/y content-size))
 ;       []
 ;       )]
 ;    [(awt/setColor background)
-;     (awt/fillRect 0 0 (x content-size) (y content-size))]
+;     (awt/fillRect 0 0 (m/x content-size) (m/y content-size))]
 ;    ))
 (fgp/deflookfn component-look (:background :abs-position-matrix :clip-size)
   (awt/setColor background)
-  (awt/fillRect 0 0 (x content-size) (y content-size)))
+  (awt/fillRect 0 0 (m/x content-size) (m/y content-size)))
 
 
 ;; TODO implement proper z-position evovler after focus manager is initialized
@@ -104,8 +104,8 @@
     :enabled true
     :skin "flatgui.skins.flat"
     :theme flatgui.theme/light
-    :clip-size (defpoint 1 1 0)
-    :content-size (defpoint 1 1 0)
+    :clip-size (m/defpoint 1 1 0)
+    :content-size (m/defpoint 1 1 0)
 
     ; When popup is false, a component is rendered inside the clip area of its parent only.
     ; This is the default mode for all regular components. Some components have to visually
@@ -143,8 +143,8 @@
   (array-map
 ;     :visible true
 ;     :enabled true
-     ;:clip-size (defpoint 1 1 0)
-     ;:content-size (defpoint 1 1 0)
+     ;:clip-size (m/defpoint 1 1 0)
+     ;:content-size (m/defpoint 1 1 0)
 ;     :z-position 0
 ;     :position-matrix IDENTITY-MATRIX
 ;     :viewport-matrix IDENTITY-MATRIX

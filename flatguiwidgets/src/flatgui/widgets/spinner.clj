@@ -15,32 +15,31 @@
             [flatgui.widgets.textfield]
             [flatgui.widgets.abstractbutton]
             [flatgui.widgets.button])
-  (:import [java.text DecimalFormat])
-  (:use flatgui.comlogic))
+  (:import [java.text DecimalFormat]))
 
 
 (defn- btn-w [spinner-h] (* spinner-h 0.75))
 
 (fg/defevolverfn spinner-num-clip-size-evolver :clip-size
   (let [ spinner-size (get-property component [] :clip-size)
-         spinner-w (x spinner-size)
-         spinner-h (y spinner-size)]
-    (defpoint (- spinner-w (btn-w spinner-h)) spinner-h)))
+         spinner-w (m/x spinner-size)
+         spinner-h (m/y spinner-size)]
+    (m/defpoint (- spinner-w (btn-w spinner-h)) spinner-h)))
 
 (fg/defevolverfn spinner-button-clip-size-evolver :clip-size
-  (let [ spinner-h (y (get-property component [] :clip-size))]
-    (defpoint (btn-w spinner-h) (/ spinner-h 2) 0)))
+  (let [ spinner-h (m/y (get-property component [] :clip-size))]
+    (m/defpoint (btn-w spinner-h) (/ spinner-h 2) 0)))
 
 (fg/defevolverfn spinner-up-pm-evolver :position-matrix
   (let [ spinner-size (get-property component [] :clip-size)
-         spinner-w (x spinner-size)
-         spinner-h (y spinner-size)]
+         spinner-w (m/x spinner-size)
+         spinner-h (m/y spinner-size)]
     (m/transtation-matrix (- spinner-w (btn-w spinner-h)) 0)))
 
 (fg/defevolverfn spinner-down-pm-evolver :position-matrix
   (let [ spinner-size (get-property component [] :clip-size)
-         spinner-w (x spinner-size)
-         spinner-h (y spinner-size)]
+         spinner-w (m/x spinner-size)
+         spinner-h (m/y spinner-size)]
     (m/transtation-matrix (- spinner-w (btn-w spinner-h)) (/ spinner-h 2))))
 
 (fg/defaccessorfn adjust-spinner-value [component old-model adj-fn]

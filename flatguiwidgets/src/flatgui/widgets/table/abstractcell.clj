@@ -143,8 +143,8 @@
     :selection nil
     :anchor false
     :position-matrix m/IDENTITY-MATRIX
-    :content-size (defpoint 1 1 0)
-    :clip-size (defpoint 1 1 0)
+    :content-size (m/defpoint 1 1 0)
+    :clip-size (m/defpoint 1 1 0)
     :consumes? cell-consumes?
 ;    :visible-screen-rows {:rows [0 0 0 0]
 ;                          :cols [0 0 0 0]

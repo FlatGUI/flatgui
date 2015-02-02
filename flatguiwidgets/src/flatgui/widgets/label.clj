@@ -8,7 +8,7 @@
 
 (ns ^{:doc "Label widget"
       :author "Denys Lebediev"}
-  flatgui.widgets.label (:use flatgui.comlogic)
+  flatgui.widgets.label
   (:require [flatgui.awt]
             [flatgui.base :as fg]
             [flatgui.paint :as fgp]

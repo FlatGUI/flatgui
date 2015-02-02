@@ -8,7 +8,7 @@
 
 (ns ^{:doc "Panel widget"
       :author "Denys Lebediev"}
-  flatgui.widgets.panel (:use flatgui.comlogic)
+  flatgui.widgets.panel
   (:require [flatgui.base :as fg]
             [flatgui.paint :as fgp]
             [flatgui.widgets.component]))

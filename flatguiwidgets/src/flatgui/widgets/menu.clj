@@ -8,22 +8,23 @@
 
 (ns ^{:doc "Menu with placeholder for icon or check component on the left of the item"
       :author "Denys Lebediev"}
-  flatgui.widgets.menu (:use flatgui.comlogic)
+  flatgui.widgets.menu
   (:require [flatgui.base :as fg]
             [flatgui.widgets.abstractmenu]
-            [flatgui.widgets.table.columnheader]))
+            [flatgui.widgets.table.columnheader]
+            [flatgui.util.matrix :as m]))
 
 (def menu-columns [:icon :text])
 
 (fg/defevolverfn menu-icon-clip-size-evolver :clip-size
   (let [row-h (get-property component [:_ :content-pane] :row-height)]
-    (defpoint row-h row-h)))
+    (m/defpoint row-h row-h)))
 
 (fg/defevolverfn menu-text-clip-size-evolver :clip-size
   (let [header-size (get-property component [] :clip-size)
         row-h (get-property component [:_ :content-pane] :row-height)
         icon-size (get-property component [:icon] :clip-size)]
-    (defpoint (- (x header-size) (x icon-size)) row-h)))
+    (m/defpoint (- (m/x header-size) (m/x icon-size)) row-h)))
 
 (fg/defwidget "menu"
   {:header-ids menu-columns

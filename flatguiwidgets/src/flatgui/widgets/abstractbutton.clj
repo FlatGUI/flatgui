@@ -8,7 +8,7 @@
 
 (ns ^{:doc "Abstract button widget"
       :author "Denys Lebediev"}
-  flatgui.widgets.abstractbutton (:use flatgui.comlogic) ;Needed for x,y which are in macro ; will not be needed when x,y are moved to matrix
+  flatgui.widgets.abstractbutton
   (:require [flatgui.base :as fg]
             [flatgui.paint :as fgp]
             [flatgui.awt :as awt]

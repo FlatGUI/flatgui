@@ -8,7 +8,7 @@
 
 (ns ^{:doc "Table colum Vertical Feature"
       :author "Denys Lebediev"}
-  flatgui.widgets.table.vfc (:use flatgui.comlogic)
+  flatgui.widgets.table.vfc
   (:require [flatgui.awt :as awt]
             [flatgui.base :as fg]
             [flatgui.paint :as fgp]
@@ -164,18 +164,18 @@
 
 (fg/defevolverfn vfc-clip-size-evolver :clip-size
   (let [ colheader-size (get-property component [] :clip-size)
-         colheader-h (y colheader-size )
+         colheader-h (m/y colheader-size )
          vfcw (get-vfc-width colheader-h)]
-    (defpoint vfcw colheader-h)))
+    (m/defpoint vfcw colheader-h)))
 
 (fg/defevolverfn vfc-position-matrix-evolver :position-matrix
   (let [colheader-size (get-property component [] :clip-size)
         vf-visual-order (get-property component [] :vf-visual-order)
         this-index (.indexOf vf-visual-order (:id component))
-        vfcw (get-vfc-width (y colheader-size))]
+        vfcw (get-vfc-width (m/y colheader-size))]
     (condp = (:id component)
-      :filtering (m/transtation-matrix (- (x colheader-size) vfcw) 0)
-      :grouping (m/transtation-matrix (- (/ (x colheader-size) 2) (/ vfcw 2)) 0)
+      :filtering (m/transtation-matrix (- (m/x colheader-size) vfcw) 0)
+      :grouping (m/transtation-matrix (- (/ (m/x colheader-size) 2) (/ vfcw 2)) 0)
       (if (>= this-index 0)
         (m/transtation-matrix (* vfcw this-index) 0)
         old-position-matrix))))
