@@ -64,9 +64,7 @@
           (awt/mix-colors-coeff (:prime-4 theme) (:prime-3 theme) (* 0.5 ref-val))
           (awt/mix-colors-coeff (:prime-3 theme) (:prime-2 theme) ref-val))))))
 
-
-;;; TODO merge following two functions into one
-;;; Value provider for filling ticket fields with the values of clicked quote
+;;; Value provider for filling ticket fields (regular text fields) with the values of clicked quote
 (fg/defaccessorfn quote-val-provider [component reason bid-col-id ask-col-id]
   (case reason
     [:bids :content-pane]
@@ -81,6 +79,7 @@
       (if selection-model (value-provider (tcom/get-anchor-model-row selection-model) (.indexOf header-ids ask-col-id))))
     nil))
 
+;;; Value provider for filling ticket field (spinner) with the values of clicked quote
 (fg/defaccessorfn spinner-quote-val-provider [component reason bid-col-id ask-col-id]
   (case reason
     [:_ :bids :content-pane]
@@ -276,9 +275,8 @@
     (fg/defcomponent spinner/spinner :px-entry
       {:clip-size (m/defpoint 1.375 0.375 0)
        :step 0.01
-       :position-matrix (m/transtation 2.125 3.0)
-       ;; TODO without using :children keyword here?
-       :children {:editor (fg/defcomponent spinner/spinnereditor :editor {:evolvers {:model px-evolver}})}})
+       :position-matrix (m/transtation 2.125 3.0)}
+      (fg/defcomponent spinner/spinnereditor :editor {:evolvers {:model px-evolver}}))
 
     (fg/defcomponent label/label :stgy-label
       {:text "Strategy:"
