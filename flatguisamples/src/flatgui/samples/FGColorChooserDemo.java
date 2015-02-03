@@ -7,9 +7,9 @@
  * the terms of this license.
  * You must not remove this notice, or any other, from this software.
  */
-package flatgui.samples.bookpanel;
 
-import flatgui.controlcenter.view.ControlCenterFrame;
+package flatgui.samples;
+
 import flatgui.core.*;
 import flatgui.core.awt.FGAWTContainerHost;
 
@@ -24,10 +24,10 @@ import java.util.Scanner;
 /**
  * @author Denis Lebedev
  */
-public class FGTBookPanelDemo
+public class FGColorChooserDemo
 {
-    public static final String CONTAINER_NS = "bookpanelmain";
-    public static final String CONTAINER_VAR_NAME = "bookpanel";
+    public static final String CONTAINER_NS = "colorchooser";
+    public static final String CONTAINER_VAR_NAME = "colorpanel";
 
     public static void main(String[] args)
     {
@@ -36,52 +36,39 @@ public class FGTBookPanelDemo
             {
                 Image logoIcon = ImageIO.read(ClassLoader.getSystemResource("flatgui/samples/images/icon_FlatGUI_32x32.png"));
 
-                Frame frame = new Frame("FlatGUI Demo - BookPanel");
-                frame.setSize(1600, 1200);
-                frame.setLocation(0, 0);
+                Frame frame = new Frame("FlatGUI Demo - Color Chooser");
+                frame.setSize(300, 600);
+                frame.setLocation(10, 10);
                 frame.setLayout(new BorderLayout());
                 if (logoIcon != null)
                 {
                     frame.setIconImage(logoIcon);
                 }
-
-//                JFrame controlCenterFrame = new ControlCenterFrame(
-//                        flatGui.getContainerStateProvider(APP_NAME,
-//                            CONTAINER_NAME, null));
-//                controlCenterFrame.setSize(1200, 900);
-//                controlCenterFrame.setLocation(100, 200);
-//                controlCenterFrame.setVisible(true);
-//                controlCenterFrame.setState(Frame.ICONIFIED);
-//                if (logoIcon != null)
-//                {
-//                    controlCenterFrame.setIconImage(logoIcon);
-//                }
-
-                URL formUrl = ClassLoader.getSystemResource("flatgui/samples/forms/bookpanelmain.clj");
+                URL formUrl = ClassLoader.getSystemResource("flatgui/samples/forms/colorchooser.clj");
                 String sourceCode = new Scanner(new File(formUrl.toURI())).useDelimiter("\\Z").next();
 
-                IFGTemplate bookPanelTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
+                IFGTemplate colorChooserTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
 
-                IFGContainer bookPanelInstance = new FGContainer(bookPanelTemplate);
+                IFGContainer colorChooserInstance = new FGContainer(colorChooserTemplate);
 
-                bookPanelInstance.initialize();
+                colorChooserInstance.initialize();
 
                 IFGContainerHost<Component> awtHost = new FGAWTContainerHost();
-                Component awtComponent = awtHost.hostContainer(bookPanelInstance);
+                Component awtComponent = awtHost.hostContainer(colorChooserInstance);
 
                 frame.add(awtComponent, BorderLayout.CENTER);
                 frame.addWindowListener(new WindowAdapter()
                 {
                     public void windowClosing(WindowEvent we)
                     {
-                        bookPanelInstance.unInitialize();
+                        colorChooserInstance.unInitialize();
                         System.exit(0);
                     }
                 });
                 frame.setVisible(true);
                 awtComponent.requestFocusInWindow();
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 ex.printStackTrace();
             }

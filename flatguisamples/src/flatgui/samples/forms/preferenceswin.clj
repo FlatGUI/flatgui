@@ -23,6 +23,7 @@
      :position-matrix (m/transtation 10 7)
      :text "Preferences"}
 
+    ;; TODO uncomment when one more skin is available
     ;(fg/defcomponent label/label :skin-label
     ;  {:text "Skin:"
     ;   :h-alignment :right

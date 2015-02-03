@@ -30,7 +30,7 @@
             [flatgui.widgets.table.columnheader :as tcolh]
             [flatgui.widgets.table.cell :as tcell])
   (:import (java.text DecimalFormat)
-           (flatgui.samples.bookpanel FGDataSimulator)))
+           (flatgui.samples FGDataSimulator)))
 
 (def simulator (FGDataSimulator. 500))
 

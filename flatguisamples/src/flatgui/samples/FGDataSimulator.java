@@ -8,7 +8,7 @@
  * You must not remove this notice, or any other, from this software.
  */
 
-package flatgui.samples.bookpanel;
+package flatgui.samples;
 
 import java.text.DecimalFormat;
 import java.text.Format;

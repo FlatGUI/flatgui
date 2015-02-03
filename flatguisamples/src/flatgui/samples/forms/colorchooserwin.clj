@@ -6,8 +6,95 @@
 ; the terms of this license.
 ; You must not remove this notice, or any other, from this software.
 
-(ns flatgui.samples.forms.colorchooserwin)
+(ns flatgui.samples.forms.colorchooserwin
+  (:require [flatgui.util.matrix :as m]
+            [flatgui.base :as fg]
+            [flatgui.awt :as awt]
+            [flatgui.widgets.panel :as panel]
+            [flatgui.widgets.checkbox :as checkbox]
+            [flatgui.widgets.window :as window]
+            [flatgui.widgets.label :as label]
+            [flatgui.widgets.textfield :as textfield]
+            [flatgui.widgets.spinner :as spinner]
+            [flatgui.widgets.slider :as slider])
+  (:import (java.text DecimalFormat)))
 
+
+(def label-format (DecimalFormat. "###"))
+
+
+(def color-chooser-window
+  (fg/defcomponent window/window :chooser
+    {:clip-size (m/defpoint 3.0 7.5)
+     :position-matrix (m/transtation 1 1)
+     :text "Color Chooser"}
+
+  (fg/defcomponent panel/panel :indicator
+    {:clip-size (m/defpoint 2.5 2.0)
+     :position-matrix (m/transtation 0.25 0.5)
+     :background (awt/color 0 0 0)})
+
+  (fg/defcomponent checkbox/checkbox :gray
+    {:clip-size (m/defpoint 1.5 0.25)
+     :position-matrix (m/transtation 0.25 2.75)
+     :text "Gray"})
+
+  (fg/defcomponent label/label :r-label
+    {:clip-size (m/defpoint 0.25 0.25 0)
+     :position-matrix (m/transtation 0.25 3.125)
+     :text "R"})
+
+  (fg/defcomponent label/label :g-label
+    {:clip-size (m/defpoint 0.25 0.25 0)
+     :position-matrix (m/transtation 1.375 3.125)
+     :text "G"})
+
+  (fg/defcomponent label/label :b-label
+    {:clip-size (m/defpoint 0.25 0.25 0)
+     :position-matrix (m/transtation 2.5 3.125)
+     :text "B"})
+
+  (fg/defcomponent slider/slider :r-slider
+    {:clip-size (m/defpoint 0.5 3.0 0)
+     :orientation :vertical
+     :position-matrix (m/transtation 0.25 3.5)})
+
+  (fg/defcomponent slider/slider :g-slider
+    {:clip-size (m/defpoint 0.5 3.0 0)
+     :orientation :vertical
+     :position-matrix (m/transtation 1.375 3.5)})
+
+  (fg/defcomponent slider/slider :b-slider
+    {:clip-size (m/defpoint 0.5 3.0 0)
+     :orientation :vertical
+     :position-matrix (m/transtation 2.5 3.5)})
+
+  (fg/defcomponent spinner/spinner :r-spinner
+    {:clip-size (m/defpoint 0.75 0.375 0)
+     :position-matrix (m/transtation 0.125 6.75)
+     :step 1}
+    ;(fg/defcomponent spinner/spinnereditor :editor {:evolvers {:model r-spinner-evolver}})
+    )
+
+  (fg/defcomponent spinner/spinner :g-spinner
+    {:clip-size (m/defpoint 0.75 0.375 0)
+     :position-matrix (m/transtation 1.125 6.75)
+     :step 1})
+
+  (fg/defcomponent spinner/spinner :b-spinner
+    {:clip-size (m/defpoint 0.75 0.375 0)
+     :position-matrix (m/transtation 2.125 6.75)
+     :step 1})
+
+    ))
+
+(def root-panel
+  (fg/defcomponent
+    panel/panel
+    :main
+    {:clip-size (m/defpoint 40 23 0)
+     :background (awt/color (float (/ 9 255)) (float (/ 17 255)) (float (/ 26 255)))}
+    color-chooser-window))
 
 ;
 ;;
