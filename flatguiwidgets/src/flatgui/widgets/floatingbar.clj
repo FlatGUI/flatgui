@@ -8,7 +8,7 @@
 
 (ns ^{:doc "Floating bar widget"
       :author "Denys Lebediev"}
-  flatgui.widgets.floatingbar (:use flatgui.comlogic)
+  flatgui.widgets.floatingbar
   (:require [flatgui.base :as fg]
             [flatgui.inputchannels.mouse :as mouse]
             [flatgui.util.matrix :as m]
@@ -31,12 +31,12 @@
 (fg/defevolverfn :position-bound
   (let [ parent-content-size (get-property component [] :content-size)
          size (get-property component [:this] :clip-size)]
-    (point-op - parent-content-size size)))
+    (m/point-op - parent-content-size size)))
 
 (fg/defevolverfn :capture-area
   (let [ content-size (get-property component [:this] :content-size)]
-    ;{:x 0 :y 0 :w (x content-size) :h (y content-size)}
-    (capture-area 0 0 (x content-size) (y content-size))))
+    ;{:x 0 :y 0 :w (m/x content-size) :h (m/y content-size)}
+    (capture-area 0 0 (m/x content-size) (m/y content-size))))
 
 (fg/defevolverfn :mouse-capture
   (let [ capture-area (get-property component [:this] :capture-area)]
@@ -52,8 +52,8 @@
   (let [ mouse-capture (get-property component [:this] :mouse-capture)]
     (if (or (nil? mouse-capture) (not (mouse/is-mouse-event? component)))
       (let [ position-bound (get-property component [:this] :position-bound)
-             x-bound (x position-bound)
-             y-bound (y position-bound)
+             x-bound (m/x position-bound)
+             y-bound (m/y position-bound)
              size (get-property component [:this] :clip-size)]
         (m/mx-set
           (m/mx-set
@@ -61,15 +61,15 @@
             0 3 (keep-range (m/mx-get old-position-matrix 0 3) 0 x-bound))
           1 3 (keep-range (m/mx-get old-position-matrix 1 3) 0 y-bound)))
       (let [ position-bound (get-property component [:this] :position-bound)
-             x-bound (x position-bound)
-             y-bound (y position-bound)
+             x-bound (m/x position-bound)
+             y-bound (m/y position-bound)
              size (get-property component [:this] :clip-size)
              new-pos-mx (m/mx*
                           (:position-matrix mouse-capture)
                           (m/transtation-matrix
-                            ;(if (< (x size) x-bound) (- (get-mouse-x component) (:x mouse-capture)) 0.0)
+                            ;(if (< (m/x size) x-bound) (- (get-mouse-x component) (:x mouse-capture)) 0.0)
                             (- (mouse/get-mouse-x component) (:x mouse-capture))
-                            ;(if (< (y size) y-bound) (- (get-mouse-y component) (:y mouse-capture)) 0.0)
+                            ;(if (< (m/y size) y-bound) (- (get-mouse-y component) (:y mouse-capture)) 0.0)
                             (- (mouse/get-mouse-y component) (:y mouse-capture))))]
         (m/mx-set
           (m/mx-set
@@ -79,7 +79,7 @@
 
 
 (fg/defwidget "floatingbar"
-  {:position-bound (defpoint (Double/MAX_VALUE) (Double/MAX_VALUE) 0)
+  {:position-bound (m/defpoint (Double/MAX_VALUE) (Double/MAX_VALUE) 0)
    :capture-area {:x 0 :y 0 :w 0 :h 0}
    :mouse-capture nil
    :position-matrix m/IDENTITY-MATRIX

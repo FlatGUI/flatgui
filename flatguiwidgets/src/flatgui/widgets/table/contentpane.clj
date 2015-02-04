@@ -37,7 +37,8 @@
             [flatgui.widgets.table.cell]
             [flatgui.widgets.table.vfcsorting]
             [flatgui.widgets.table.vfcfiltering]
-            [flatgui.widgets.table.vfcgrouping])
+            [flatgui.widgets.table.vfcgrouping]
+            [flatgui.comlogic :as fgc])
   (:import [java.awt.event KeyEvent]))
 
 
@@ -79,14 +80,14 @@
 
 (fg/defevolverfn contentpane-position-matrix-evolver :position-matrix
   (let [header-size (get-property component [:header] :clip-size)
-        header-h (y header-size)]
+        header-h (m/y header-size)]
     (m/transtation-matrix 0 header-h)))
 
 (fg/defevolverfn contentpane-clip-size-evolver :clip-size
   (let [clip-size (flatgui.widgets.scrollpanel/scrollpanelcontent-clip-size-evolver component)
         header-size (get-property component [:header] :clip-size)
-        header-h (y header-size)]
-    (defpoint (x clip-size) (- (y clip-size) header-h))))
+        header-h (m/y header-size)]
+    (m/defpoint (m/x clip-size) (- (m/y clip-size) header-h))))
 
 (defn- get-viewport-capacity [clip-h row-height] (+ 2 (int (/ clip-h row-height))))
 
@@ -95,7 +96,7 @@
         row-height (tcom/get-row-h component nil)
         vpm (get-property component [:this] :viewport-matrix)
         top (- (m/mx-y vpm))
-        clip-h (y clip-size)
+        clip-h (m/y clip-size)
         btm (+ top clip-h)
         viewport-capacity (get-viewport-capacity clip-h row-height)
 ;        _ (if (= [:main :blotter :table] (:path-to-target component))
@@ -118,7 +119,7 @@
                              last-row)
         visible-rows [first-row last-row first-fully-visible last-fully-visible]
         left (- (m/mx-x vpm))
-        right (+ left (x clip-size))
+        right (+ left (m/x clip-size))
         header-ids (get-property component [] :header-ids)
         column-x-locations (get-property component [:header] :column-x-locations)
         column-count (count header-ids)
@@ -209,7 +210,7 @@
         current-child-count (fg/get-child-count component)
         current-row-count (/ current-child-count column-count)
         row-height (tcom/get-row-h component nil)
-        clip-h (y (get-property component [:this] :clip-size))
+        clip-h (m/y (get-property component [:this] :clip-size))
         new-row-count (get-viewport-capacity clip-h row-height)
         ;id-fn (fn [e] (get-cell-component-id (:header-id e) (:cbuf-index e)))
         should-clone (and (:_flexible-childset component) (> current-child-count 0))]
@@ -352,7 +353,7 @@
 (fg/defevolverfn contentpane-size-evolver :content-size
   (let [visible-row-count-dec (dec (count (get-property component [:this] :row-order)))
         column-widths (get-property component [:header] :column-widths)]
-    (defpoint
+    (m/defpoint
       (reduce + (map (fn [[_ v]] v) column-widths))
       (+ (tcom/get-row-y component visible-row-count-dec) (tcom/get-row-h component visible-row-count-dec)))))
 
@@ -394,7 +395,7 @@
                                               header-ids (get-property component [] :header-ids)
                                               header-id (nth header-ids model-col)]
                                           (- (header-id column-x-locations))))
-            mxy (if (= NO_VAL yr) old-y (round-to (- (* yr row-height)) row-height))]
+            mxy (if (= NO_VAL yr) old-y (fgc/round-to (- (* yr row-height)) row-height))]
         (m/transtation-matrix mxx mxy))
       (flatgui.widgets.scrollpanel/scrollpanelcontent-viewport-matrix-evolver component))))
 

@@ -9,15 +9,15 @@
 (ns ^{:doc "Toolbar widget. Can be mouse-dragged, so attached
             widgets can be dragged together with it."
       :author "Denys Lebediev"}
-    flatgui.widgets.toolbar
-  (:use flatgui.comlogic)
+  flatgui.widgets.toolbar
   (:require [flatgui.base :as fg]
-            [flatgui.widgets.floatingbar]))
+            [flatgui.widgets.floatingbar]
+            [flatgui.util.matrix :as m]))
 
 
 (fg/defevolverfn toolbar-capture-area-evolver :capture-area
   (let [ content-size (get-property component [:this] :content-size)]
-    {:x 0 :y 0 :w (:header-h component) :h (y content-size)}))
+    {:x 0 :y 0 :w (:header-h component) :h (m/y content-size)}))
 
 (fg/defwidget "toolbar"
   {:header-h 0.140625

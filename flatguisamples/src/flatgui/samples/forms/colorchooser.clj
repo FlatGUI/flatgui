@@ -6,16 +6,9 @@
 ; the terms of this license.
 ; You must not remove this notice, or any other, from this software.
 
-(ns ^{:doc "Panel widget"
-      :author "Denys Lebediev"}
-  flatgui.widgets.panel
-  (:require [flatgui.base :as fg]
-            [flatgui.paint :as fgp]
-            [flatgui.widgets.component]))
+(ns colorchooser
+  (:require [flatgui.app]
+            [flatgui.skins.flat]
+            [flatgui.samples.forms.colorchooserwin :as cc]))
 
-(fgp/deflookfn panel-look (:theme)
-  (fgp/call-look flatgui.widgets.component/component-look))
-
-(fg/defwidget "panel"
-  {:look panel-look}
-  flatgui.widgets.component/component)
+(def colorpanel (flatgui.app/defroot cc/root-panel))

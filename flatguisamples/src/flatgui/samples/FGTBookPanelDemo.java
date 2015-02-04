@@ -7,8 +7,9 @@
  * the terms of this license.
  * You must not remove this notice, or any other, from this software.
  */
-package flatgui.samples.bookpanel;
+package flatgui.samples;
 
+import flatgui.controlcenter.view.ControlCenterFrame;
 import flatgui.core.*;
 import flatgui.core.awt.FGAWTContainerHost;
 
@@ -23,10 +24,10 @@ import java.util.Scanner;
 /**
  * @author Denis Lebedev
  */
-public class FGHelloWorldDemo
+public class FGTBookPanelDemo
 {
-    public static final String CONTAINER_NS = "helloworld";
-    public static final String CONTAINER_VAR_NAME = "hellopanel";
+    public static final String CONTAINER_NS = "bookpanelmain";
+    public static final String CONTAINER_VAR_NAME = "bookpanel";
 
     public static void main(String[] args)
     {
@@ -35,39 +36,52 @@ public class FGHelloWorldDemo
             {
                 Image logoIcon = ImageIO.read(ClassLoader.getSystemResource("flatgui/samples/images/icon_FlatGUI_32x32.png"));
 
-                Frame frame = new Frame("FlatGUI Demo - Hello world");
-                frame.setSize(600, 400);
-                frame.setLocation(10, 10);
+                Frame frame = new Frame("FlatGUI Demo - BookPanel");
+                frame.setSize(1600, 1200);
+                frame.setLocation(0, 0);
                 frame.setLayout(new BorderLayout());
                 if (logoIcon != null)
                 {
                     frame.setIconImage(logoIcon);
                 }
-                URL formUrl = ClassLoader.getSystemResource("flatgui/samples/forms/helloworld.clj");
+
+//                JFrame controlCenterFrame = new ControlCenterFrame(
+//                        flatGui.getContainerStateProvider(APP_NAME,
+//                            CONTAINER_NAME, null));
+//                controlCenterFrame.setSize(1200, 900);
+//                controlCenterFrame.setLocation(100, 200);
+//                controlCenterFrame.setVisible(true);
+//                controlCenterFrame.setState(Frame.ICONIFIED);
+//                if (logoIcon != null)
+//                {
+//                    controlCenterFrame.setIconImage(logoIcon);
+//                }
+
+                URL formUrl = ClassLoader.getSystemResource("flatgui/samples/forms/bookpanelmain.clj");
                 String sourceCode = new Scanner(new File(formUrl.toURI())).useDelimiter("\\Z").next();
 
-                IFGTemplate helloWorldTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
+                IFGTemplate bookPanelTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
 
-                IFGContainer helloWorldInstance = new FGContainer(helloWorldTemplate);
+                IFGContainer bookPanelInstance = new FGContainer(bookPanelTemplate);
 
-                helloWorldInstance.initialize();
+                bookPanelInstance.initialize();
 
                 IFGContainerHost<Component> awtHost = new FGAWTContainerHost();
-                Component awtComponent = awtHost.hostContainer(helloWorldInstance);
+                Component awtComponent = awtHost.hostContainer(bookPanelInstance);
 
                 frame.add(awtComponent, BorderLayout.CENTER);
                 frame.addWindowListener(new WindowAdapter()
                 {
                     public void windowClosing(WindowEvent we)
                     {
-                        helloWorldInstance.unInitialize();
+                        bookPanelInstance.unInitialize();
                         System.exit(0);
                     }
                 });
                 frame.setVisible(true);
                 awtComponent.requestFocusInWindow();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 ex.printStackTrace();
             }

@@ -9,7 +9,6 @@
 (ns ^{:doc "Combo box widget"
       :author "Denys Lebediev"}
   flatgui.widgets.combobox
-  (:use flatgui.comlogic)
   (:require [flatgui.awt :as awt]
             [flatgui.base :as fg]
             [flatgui.widgets.component]
@@ -17,7 +16,8 @@
             [flatgui.widgets.abstractbutton]
             [flatgui.widgets.button]
             [flatgui.widgets.combobox.dropdown]
-            [flatgui.util.matrix :as m]))
+            [flatgui.util.matrix :as m]
+            [flatgui.comlogic :as fgc]))
 
 ;; TODO move to theme namespace
 ;;
@@ -25,25 +25,25 @@
 
 (fg/defevolverfn combo-editor-clip-size-evolver :clip-size
   (let [ combo-size (get-property component [] :clip-size)
-         combo-w (x combo-size)
-         combo-h (y combo-size)]
-    (defpoint (- combo-w (btn-w combo-h)) combo-h)))
+         combo-w (m/x combo-size)
+         combo-h (m/y combo-size)]
+    (m/defpoint (- combo-w (btn-w combo-h)) combo-h)))
 
 (fg/defevolverfn combo-button-clip-size-evolver :clip-size
-  (let [ combo-h (y (get-property component [] :clip-size))]
-    (defpoint (btn-w combo-h) combo-h 0)))
+  (let [ combo-h (m/y (get-property component [] :clip-size))]
+    (m/defpoint (btn-w combo-h) combo-h 0)))
 
 (fg/defevolverfn combo-button-pm-evolver :position-matrix
   (let [ combo-size (get-property component [] :clip-size)
-         combo-w (x combo-size)
-         combo-h (y combo-size)]
+         combo-w (m/x combo-size)
+         combo-h (m/y combo-size)]
     (m/transtation-matrix (- combo-w (btn-w combo-h)) 0)))
 
 (defn- dropdown-item? [reason]
   (and
     (vector? reason)
     (= 3 (count reason))
-    (= (drop-lastv reason) [:dropdown :content-pane])))
+    (= (fgc/drop-lastv reason) [:dropdown :content-pane])))
 
 (fg/defaccessorfn get-clicked-item [component]
   (let [reason (fg/get-reason)]

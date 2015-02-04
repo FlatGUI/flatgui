@@ -9,56 +9,38 @@
 (ns ^{:doc "Table widget"
       :author "Denys Lebediev"}
   flatgui.widgets.table.header
-                        (:use flatgui.awt
-                              flatgui.comlogic
-                              flatgui.base
-                              flatgui.theme
-                              flatgui.paint
-                              flatgui.widgets.table.commons
-                              flatgui.widgets.componentbase
-                              flatgui.widgets.component
-                              flatgui.widgets.panel
-                              flatgui.widgets.scrollpanel
-                              flatgui.widgets.label
-                              flatgui.widgets.table.cell
-                              flatgui.util.matrix
-                              flatgui.util.circularbuffer
-                              flatgui.inputchannels.mouse
-                              clojure.test))
-
-
+  (:require [flatgui.base :as fg]
+            [flatgui.util.matrix :as m]
+            [flatgui.paint :as fgp]
+            [flatgui.awt :as awt]
+            [flatgui.comlogic :as fgc]
+            [flatgui.widgets.panel]
+            [flatgui.widgets.table.commons :as tcom]))
 
 ;; TODO move to theme namespace
 ;;
-(deflookfn header-look (:theme :mouse-down)
-  (setColor (:prime-4 theme))
-  (fillRect 0 0 w h)
-           ;(call-look panel-look)
-  ;(setColor (:light theme))
-  ;(drawLine 0 0 0 h-)
-  )
+(fgp/deflookfn header-look (:theme :mouse-down)
+  (awt/setColor (:prime-4 theme))
+  (awt/fillRect 0 0 w h))
 
-
-
-
-(defevolverfn header-clip-size-evolver :clip-size
+(fg/defevolverfn header-clip-size-evolver :clip-size
   (let [ content-clip-size (get-property component [:content-pane] :clip-size)
          header-h (:default-height component)]
-    (defpoint (x content-clip-size) header-h)))
+    (m/defpoint (m/x content-clip-size) header-h)))
 
-(defevolverfn header-content-size-evolver :content-size
+(fg/defevolverfn header-content-size-evolver :content-size
   (let [ content-content-size (get-property component [:content-pane] :content-size)
          header-h (:default-height component)]
-    (defpoint (x content-content-size) header-h)))
+    (m/defpoint (m/x content-content-size) header-h)))
 
-(defaccessorfn find-clicked-no-shift-header-id [component header-ids]
+(fg/defaccessorfn find-clicked-no-shift-header-id [component header-ids]
   (first (filter (fn [h-id]
                    (or
                      (true? (get-property component [:this h-id] :clicked-no-shift))
                      ; :sorting is a special case: click to it is equal to click to column header
                      (true? (get-property component [:this h-id :sorting] :clicked-no-shift))))
            header-ids)))
-(defaccessorfn find-clicked-with-shift-header-id [component header-ids]
+(fg/defaccessorfn find-clicked-with-shift-header-id [component header-ids]
   (first (filter (fn [h-id]
                    (or
                      (true? (get-property component [:this h-id] :clicked-with-shift))
@@ -67,7 +49,7 @@
            header-ids)))
 
 
-(defevolverfn :active-headers
+(fg/defevolverfn :active-headers
   (let [ header-ids (get-property component [] :header-ids)
          no-shift (find-clicked-no-shift-header-id component header-ids)
          with-shift (find-clicked-with-shift-header-id component header-ids)
@@ -78,20 +60,20 @@
       no-shift (vector no-shift)
       (nil? with-shift) old-active-headers
       (some #(= clicked-header-id %1) old-active-headers) old-active-headers
-      :else (conjv old-active-headers clicked-header-id))))
+      :else (fgc/conjv old-active-headers clicked-header-id))))
 
-(defevolverfn :column-x-locations
+(fg/defevolverfn :column-x-locations
   (let [ header-ids (get-property component [] :header-ids)]
-    (into (hash-map) (for [h-id header-ids] [h-id (mx-get (get-property component [:header h-id] :position-matrix) 0 3)]))))
+    (into (hash-map) (for [h-id header-ids] [h-id (m/mx-get (get-property component [:header h-id] :position-matrix) 0 3)]))))
 
-(defevolverfn :column-widths
+(fg/defevolverfn :column-widths
   (let [ header-ids (get-property component [] :header-ids)]
-    (into (hash-map) (for [h-id header-ids] [h-id (x (get-property component [:header h-id] :clip-size))]))))
+    (into (hash-map) (for [h-id header-ids] [h-id (m/x (get-property component [:header h-id] :clip-size))]))))
 
 
-(defwidget "tableheader"
-  { :default-height default-row-height
-    :position-matrix (transtation-matrix 0 0 0)
+(fg/defwidget "tableheader"
+  { :default-height tcom/default-row-height
+    :position-matrix (m/transtation-matrix 0 0 0)
     :active-headers nil
     :fit-width false
 
@@ -101,21 +83,21 @@
                 :content-size header-content-size-evolver
                 :clip-size header-clip-size-evolver
                 ;@todo do not duplicate this code with scrollpane.clj
-                :viewport-matrix (accessorfn
-                                   (let [h-scrollbar-w (x (get-property component [:h-scrollbar] :clip-size))
-                                         h-scroller-x (mx-get (get-property component [:h-scrollbar :scroller] :position-matrix) 0 3)
-                                         h-scroller-w (x (get-property component [:h-scrollbar :scroller] :clip-size))
+                :viewport-matrix (fg/accessorfn
+                                   (let [h-scrollbar-w (m/x (get-property component [:h-scrollbar] :clip-size))
+                                         h-scroller-x (m/mx-get (get-property component [:h-scrollbar :scroller] :position-matrix) 0 3)
+                                         h-scroller-w (m/x (get-property component [:h-scrollbar :scroller] :clip-size))
                                          h-scroll-pos (if (== h-scrollbar-w h-scroller-w) 0 (/ h-scroller-x (- h-scrollbar-w h-scroller-w)))
-                                         extra-size (point-op - (:content-size component) (:clip-size component))]
-                                     (mx-set IDENTITY-MATRIX 0 3 (- (* h-scroll-pos (x extra-size))))))
+                                         extra-size (m/point-op - (:content-size component) (:clip-size component))]
+                                     (m/mx-set m/IDENTITY-MATRIX 0 3 (- (* h-scroll-pos (m/x extra-size))))))
                 :active-headers active-headers-evolver
 
                 :column-x-locations column-x-locations-evolver
                 :column-widths column-widths-evolver
                 }}
-  panel)
+  flatgui.widgets.panel/panel)
 
-(defmacro deftableheader [& columns] `(defcomponent tableheader :header {} ~@columns))
+(defmacro deftableheader [& columns] `(flatgui.base/defcomponent tableheader :header {} ~@columns))
 
-; TODO get rid of this
-(defmacro deftablefit [& columns] `(defcomponent tableheader :header {:fit-width true} ~@columns))
+;;; TODO get rid of this
+(defmacro deftablefit [& columns] `(flatgui.base/defcomponent tableheader :header {:fit-width true} ~@columns))

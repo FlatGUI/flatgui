@@ -14,40 +14,45 @@
             [flatgui.widgets.component]
             [flatgui.widgets.textfield]
             [flatgui.widgets.abstractbutton]
-            [flatgui.widgets.button])
-  (:import [java.text DecimalFormat])
-  (:use flatgui.comlogic))
+            [flatgui.widgets.button]
+            [flatgui.comlogic :as fgc])
+  (:import [java.text DecimalFormat]))
 
 
 (defn- btn-w [spinner-h] (* spinner-h 0.75))
 
 (fg/defevolverfn spinner-num-clip-size-evolver :clip-size
   (let [ spinner-size (get-property component [] :clip-size)
-         spinner-w (x spinner-size)
-         spinner-h (y spinner-size)]
-    (defpoint (- spinner-w (btn-w spinner-h)) spinner-h)))
+         spinner-w (m/x spinner-size)
+         spinner-h (m/y spinner-size)]
+    (m/defpoint (- spinner-w (btn-w spinner-h)) spinner-h)))
 
 (fg/defevolverfn spinner-button-clip-size-evolver :clip-size
-  (let [ spinner-h (y (get-property component [] :clip-size))]
-    (defpoint (btn-w spinner-h) (/ spinner-h 2) 0)))
+  (let [ spinner-h (m/y (get-property component [] :clip-size))]
+    (m/defpoint (btn-w spinner-h) (/ spinner-h 2) 0)))
 
 (fg/defevolverfn spinner-up-pm-evolver :position-matrix
   (let [ spinner-size (get-property component [] :clip-size)
-         spinner-w (x spinner-size)
-         spinner-h (y spinner-size)]
+         spinner-w (m/x spinner-size)
+         spinner-h (m/y spinner-size)]
     (m/transtation-matrix (- spinner-w (btn-w spinner-h)) 0)))
 
 (fg/defevolverfn spinner-down-pm-evolver :position-matrix
   (let [ spinner-size (get-property component [] :clip-size)
-         spinner-w (x spinner-size)
-         spinner-h (y spinner-size)]
+         spinner-w (m/x spinner-size)
+         spinner-h (m/y spinner-size)]
     (m/transtation-matrix (- spinner-w (btn-w spinner-h)) (/ spinner-h 2))))
 
 (fg/defaccessorfn adjust-spinner-value [component old-model adj-fn]
   (let [ old-text (:text old-model)
          str->num (:str->num component)
          num->str (:num->str component)
-         num (if (.isEmpty old-text) 0.0 (adj-fn (str->num component old-text) (get-property component [] :step)))
+         min (get-property component [] :min)
+         max (get-property component [] :max)
+         num-raw (if (.isEmpty old-text) 0.0 (adj-fn (str->num component old-text) (get-property component [] :step)))
+         num (if (and min max)
+               (fgc/inrange num-raw min max)
+               num-raw)
          strnum (num->str component num)
          len (.length strnum)]
     {:text strnum :caret-pos len :selection-mark len}))
@@ -60,12 +65,17 @@
     [:down] (if (flatgui.widgets.abstractbutton/button-pressed? (get-property component [:down] :pressed-trigger))
               (adjust-spinner-value component old-model -)
               old-model)
-    (flatgui.widgets.textfield/text-model-evolver component)))
+    (adjust-spinner-value ;adjust-spinner-value is called to keep user input in min/max range (if defined)
+      component
+      (flatgui.widgets.textfield/text-model-evolver component)
+      (fn [val _] val))))
 
 (fg/defwidget "spinnereditor"
   {:num-format (DecimalFormat. "###############.#######")
    :str->num (fn [_ s] (Double/valueOf s))
    :num->str (fn [component n] (let [ f (:num-format component)] (.format f n)))
+   :min nil
+   :max nil
    :text-supplier flatgui.widgets.textfield/textfield-num-only-text-suplier
    :skin-key [:spinner :editor]
    :evolvers {:clip-size spinner-num-clip-size-evolver

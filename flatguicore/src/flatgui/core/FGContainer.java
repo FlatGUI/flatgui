@@ -227,7 +227,17 @@ public class FGContainer implements IFGContainer
         }
 
         Map<String, Object> generalProperties = new HashMap<>();
-        Map<Object, Collection<Object>> reasonMap = reasonParser_.getTargetCellIds(repaintReason, module_, generalProperties);
+        Map<Object, Collection<Object>> reasonMap;
+        try
+        {
+            reasonMap = reasonParser_.getTargetCellIds(repaintReason, module_, generalProperties);
+        }
+        catch(Exception ex)
+        {
+            ex.printStackTrace();
+            reasonMap = Collections.emptyMap();
+        }
+
         if (generalProperties != null)
         {
             containerProperties_.putAll(generalProperties);

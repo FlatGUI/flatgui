@@ -6,16 +6,11 @@
 ; the terms of this license.
 ; You must not remove this notice, or any other, from this software.
 
-(ns ^{:doc "Panel widget"
-      :author "Denys Lebediev"}
-  flatgui.widgets.panel
-  (:require [flatgui.base :as fg]
-            [flatgui.paint :as fgp]
-            [flatgui.widgets.component]))
+(ns flatgui.app
+  ;; Following namespaces are necessary for all applications
+  ;; even though they are not used by client code explicitly
+  (:require [flatgui.appcontainer]
+            [flatgui.access]
+            [flatgui.widgets.componentbase]))
 
-(fgp/deflookfn panel-look (:theme)
-  (fgp/call-look flatgui.widgets.component/component-look))
-
-(fg/defwidget "panel"
-  {:look panel-look}
-  flatgui.widgets.component/component)
+(def defroot flatgui.widgets.componentbase/initialize)

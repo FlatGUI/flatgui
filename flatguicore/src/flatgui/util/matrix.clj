@@ -26,6 +26,8 @@
     [0 0 0  1]])
   ([tx ty] (transtation-matrix tx ty 0)))
 
+(def transtation transtation-matrix)
+
 (defn defmxcol [& values]
   "Defines 1-column matrix"
   ;(vec (for [v values] [v]))
@@ -118,6 +120,19 @@
   "Returns same matrix with element at position r,c set to value v"
   (persistent! (assoc! (transient m) r (persistent! (assoc! (transient (nth m r)) c v)))))
 
+(defn defpoint
+  ([x y z] (defmxcol x y z 1))
+  ([x y] (defpoint x y 0)))
+
+(defn x [point] (mx-get point 0 0))
+
+(defn y [point] (mx-get point 1 0))
+
+(defn z [point] (mx-get point 2 0))
+
+(defn point-op [op a b] (mx-set (mx-op op a b) 3 0 1))
+
+(def zero-point (defpoint 0 0 0))
 
 ; Tests
 

@@ -9,7 +9,7 @@
 (ns ^{:doc "Window widget. Can be mouse-dragged, so attached
             widgets can be dragged together with it."
       :author "Denys Lebediev"}
-  flatgui.widgets.window (:use flatgui.comlogic)
+  flatgui.widgets.window
   (:require [flatgui.awt :as awt]
             [flatgui.base :as fg]
             [flatgui.paint :as fgp]
@@ -28,16 +28,16 @@
 
 (fg/defevolverfn window-capture-area-evolver :capture-area
   (let [ content-size (get-property component [:this] :content-size)]
-    {:x 0 :y 0 :w (x content-size) :h (:header-h component)}))
+    {:x 0 :y 0 :w (m/x content-size) :h (:header-h component)}))
 
 (fg/defevolverfn :mouse-capture-edges
   ;; get-property in not used here intentionally, this evolver should not be invoked on :position-matrix or :clip-size change
   (let [pm (:position-matrix component)
         cs (:clip-size component)
-        capture-area-left (flatgui.widgets.floatingbar/capture-area 0 0 0.125 (y cs))
-        capture-area-right (flatgui.widgets.floatingbar/capture-area (- (x cs) 0.125) 0 0.125 (y cs))
-        capture-area-top nil ;@todo this wil not conflict with window's capture area when there will be borders (capture-area 0 0 (x cs) 0.125)
-        capture-area-bottom (flatgui.widgets.floatingbar/capture-area 0 (- (y cs) 0.125) (x cs) 0.125)]
+        capture-area-left (flatgui.widgets.floatingbar/capture-area 0 0 0.125 (m/y cs))
+        capture-area-right (flatgui.widgets.floatingbar/capture-area (- (m/x cs) 0.125) 0 0.125 (m/y cs))
+        capture-area-top nil ;@todo this wil not conflict with window's capture area when there will be borders (capture-area 0 0 (m/x cs) 0.125)
+        capture-area-bottom (flatgui.widgets.floatingbar/capture-area 0 (- (m/y cs) 0.125) (m/x cs) 0.125)]
     (if (mouse/mouse-left? component)
       (if (nil? old-mouse-capture-edges)
         (let [mabsx (mouse/get-mouse-x component)
@@ -60,20 +60,20 @@
 
           ;; TODO temporarily disabled, because table does not behave well when _decreasing_ vertical size
           ;;
-          ;:bottom (defpoint
-          ;          (x old-clip-size)
+          ;:bottom (m/defpoint
+          ;          (m/x old-clip-size)
           ;          (do ;(println " (get-mouse-y component) " (float (get-mouse-y component)) " (:y mce) " (float (:y mce)))
-          ;            (+ (y (:clip-size mce)) (- (get-mouse-y component) (:y mce)))))
-          :bottom (defpoint
-                    (x old-clip-size)
+          ;            (+ (m/y (:clip-size mce)) (- (get-mouse-y component) (:y mce)))))
+          :bottom (m/defpoint
+                    (m/x old-clip-size)
                     (do ;(println " (get-mouse-y component) " (float (get-mouse-y component)) " (:y mce) " (float (:y mce)))
-                      (+ (y (:clip-size mce)) (max 0 (- (mouse/get-mouse-y component) (:y mce))))))
-          :left (defpoint
-                  (- (x (:clip-size mce)) (- (mouse/get-mouse-x component) (:x mce)))
-                  (y old-clip-size))
-          :right (defpoint
-                  (+ (x (:clip-size mce)) (- (mouse/get-mouse-x component) (:x mce)))
-                  (y old-clip-size))
+                      (+ (m/y (:clip-size mce)) (max 0 (- (mouse/get-mouse-y component) (:y mce))))))
+          :left (m/defpoint
+                  (- (m/x (:clip-size mce)) (- (mouse/get-mouse-x component) (:x mce)))
+                  (m/y old-clip-size))
+          :right (m/defpoint
+                  (+ (m/x (:clip-size mce)) (- (mouse/get-mouse-x component) (:x mce)))
+                  (m/y old-clip-size))
           old-clip-size)
         old-clip-size))
   old-clip-size))

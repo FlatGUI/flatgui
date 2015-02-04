@@ -8,8 +8,7 @@
 
 (ns ^{:doc "Table cell implementation for menus"
       :author "Denys Lebediev"}
-    flatgui.widgets.combobox.dropdowncell
-  (:use flatgui.comlogic)
+  flatgui.widgets.combobox.dropdowncell
   (:require [flatgui.base :as fg]
             [flatgui.widgets.abstractbutton]
             [flatgui.widgets.menu.menucell]

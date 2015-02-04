@@ -8,8 +8,7 @@
 
 (ns ^{:doc "Regular table cell implementation. Supports row grouping"
       :author "Denys Lebediev"}
-    flatgui.widgets.table.cell
-  (:use flatgui.comlogic)
+  flatgui.widgets.table.cell
   (:require [flatgui.paint :as fgp]
             [flatgui.awt :as awt]
             [flatgui.base :as fg]
