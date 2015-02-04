@@ -32,7 +32,7 @@
   (flatgui.app/defroot
     (fg/defcomponent w/component :main
       {:clip-size (m/defpoint 25 19 0)
-       :background (awt/color (float (/ 0 255)) (float (/ 38 255)) (float (/ 70 255)))
+       :background (awt/color 0 38 70)
        :evolvers {:theme main-theme-evolver
                   ;:skin main-skin-evolver
                   }}

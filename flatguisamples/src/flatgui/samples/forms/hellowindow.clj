@@ -52,5 +52,5 @@
     panel/panel
     :main
     {:clip-size (m/defpoint 40 23 0)
-     :background (awt/color (float (/ 9 255)) (float (/ 17 255)) (float (/ 26 255)))}
+     :background (awt/color 9 17 26)}
     hello-window))
