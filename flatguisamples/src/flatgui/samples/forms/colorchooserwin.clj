@@ -14,14 +14,89 @@
             [flatgui.widgets.checkbox :as checkbox]
             [flatgui.widgets.window :as window]
             [flatgui.widgets.label :as label]
-            [flatgui.widgets.textfield :as textfield]
             [flatgui.widgets.spinner :as spinner]
-            [flatgui.widgets.slider :as slider])
-  (:import (java.text DecimalFormat)))
+            [flatgui.widgets.slider :as slider]))
 
 
-(def label-format (DecimalFormat. "###"))
+;;;
+;;; Spinner evolvers are overriden to receive values from sliders when needed
+;;;
 
+(fg/defevolverfn r-spinner-evolver :model
+  (if (= (fg/get-reason) [:_ :r-slider])
+    (let [num->str (get-property [:this] :num->str)
+          slider-val-str (num->str component (int (* 255.0 (- 1.0 (get-property [:_ :r-slider] :position)))))]
+      {:text slider-val-str :caret-pos 0 :selection-mark 0})
+    (spinner/spinner-model-evovler component)))
+
+(fg/defevolverfn g-spinner-evolver :model
+  (if (= (fg/get-reason) [:_ :g-slider])
+    (let [num->str (get-property [:this] :num->str)
+          slider-val-str (num->str component (int (* 255.0 (- 1.0 (get-property [:_ :g-slider] :position)))))]
+      {:text slider-val-str :caret-pos 0 :selection-mark 0})
+    (spinner/spinner-model-evovler component)))
+
+(fg/defevolverfn b-spinner-evolver :model
+ (if (= (fg/get-reason) [:_ :b-slider])
+   (let [num->str (get-property [:this] :num->str)
+         slider-val-str (num->str component (int (* 255.0 (- 1.0 (get-property [:_ :b-slider] :position)))))]
+     {:text slider-val-str :caret-pos 0 :selection-mark 0})
+   (spinner/spinner-model-evovler component)))
+
+;;;
+;;; Slider position evolvers are overriden here to "lock"
+;;; sliders when 'Gray' check box is checked; and also
+;;; to receive manually typed values from spinners
+;;;
+
+(defn- str->num [s]
+  (if (> (.length s) 0) (Double/valueOf s) 0))
+
+;;; NOTE: rounding is used in slider evolver because otherwise double math inaccuracy
+;;; produces false change which triggers re-entrant evolving, which in turn makes
+;;; slider/spinner value fall back to previous value when in certain positions.
+;;; Presicion of 1000 is used there according to the 1/255 value.
+(defn- round [n p] (/ (- (* n p) (mod n p)) p))
+
+(fg/defevolverfn r-slider-evolver :position
+  (if (and
+        (#{[:g-slider] [:b-slider] [:gray]} (fg/get-reason))
+        (get-property [:gray] :pressed))
+    (get-property [:g-slider] :position)
+    (if (= [:r-spinner :editor] (fg/get-reason))
+      (let [spinner-text (:text (get-property [:r-spinner :editor] :model))
+            spinner-val (str->num spinner-text)]
+        (round (- 1.0 (/ spinner-val 255.0)) 1000))
+      (flatgui.widgets.slider/slider-position-evolver component))))
+
+(fg/defevolverfn g-slider-evolver :position
+  (if (and
+        (#{[:b-slider] [:r-slider] [:gray]} (fg/get-reason))
+        (get-property [:gray] :pressed))
+    (get-property [:b-slider] :position)
+    (if (= [:g-spinner :editor] (fg/get-reason))
+      (let [spinner-text (:text (get-property [:g-spinner :editor] :model))
+            spinner-val (str->num spinner-text)]
+        (round (- 1.0 (/ spinner-val 255.0)) 1000))
+      (flatgui.widgets.slider/slider-position-evolver component))))
+
+(fg/defevolverfn b-slider-evolver :position
+  (if (and
+        (#{[:r-slider] [:g-slider] [:gray]} (fg/get-reason))
+        (get-property [:gray] :pressed))
+    (get-property [:r-slider] :position)
+    (if (= [:b-spinner :editor] (fg/get-reason))
+      (let [spinner-text (:text (get-property [:b-spinner :editor] :model))
+            spinner-val (str->num spinner-text)]
+        (round (- 1.0 (/ spinner-val 255.0)) 1000))
+      (flatgui.widgets.slider/slider-position-evolver component))))
+
+;; Takes r g b values from spinners for the color for indicator
+(fg/defevolverfn indicator-color-evolver :background
+  (let [r (str->num (:text (get-property [:r-spinner :editor] :model)))
+        g (str->num (:text (get-property [:g-spinner :editor] :model)))
+        b (str->num (:text (get-property [:b-spinner :editor] :model)))]
+    (awt/color (int r) (int g) (int b))))
 
 (def color-chooser-window
   (fg/defcomponent window/window :chooser
@@ -32,7 +107,8 @@
   (fg/defcomponent panel/panel :indicator
     {:clip-size (m/defpoint 2.5 2.0)
      :position-matrix (m/transtation 0.25 0.5)
-     :background (awt/color 0 0 0)})
+     :background (awt/color 0 0 0)
+     :evolvers {:background indicator-color-evolver}})
 
   (fg/defcomponent checkbox/checkbox :gray
     {:clip-size (m/defpoint 1.5 0.25)
@@ -57,128 +133,49 @@
   (fg/defcomponent slider/slider :r-slider
     {:clip-size (m/defpoint 0.5 3.0 0)
      :orientation :vertical
-     :position-matrix (m/transtation 0.25 3.5)})
+     :position-matrix (m/transtation 0.25 3.5)
+     :evolvers {:position r-slider-evolver}})
 
   (fg/defcomponent slider/slider :g-slider
     {:clip-size (m/defpoint 0.5 3.0 0)
      :orientation :vertical
-     :position-matrix (m/transtation 1.375 3.5)})
+     :position-matrix (m/transtation 1.375 3.5)
+     :evolvers {:position g-slider-evolver}})
 
   (fg/defcomponent slider/slider :b-slider
     {:clip-size (m/defpoint 0.5 3.0 0)
      :orientation :vertical
-     :position-matrix (m/transtation 2.5 3.5)})
+     :position-matrix (m/transtation 2.5 3.5)
+     :evolvers {:position b-slider-evolver}})
 
   (fg/defcomponent spinner/spinner :r-spinner
     {:clip-size (m/defpoint 0.75 0.375 0)
      :position-matrix (m/transtation 0.125 6.75)
+     :min 0
+     :max 255
      :step 1}
-    ;(fg/defcomponent spinner/spinnereditor :editor {:evolvers {:model r-spinner-evolver}})
-    )
+    (fg/defcomponent spinner/spinnereditor :editor {:evolvers {:model r-spinner-evolver}}))
 
   (fg/defcomponent spinner/spinner :g-spinner
     {:clip-size (m/defpoint 0.75 0.375 0)
      :position-matrix (m/transtation 1.125 6.75)
-     :step 1})
+     :min 0
+     :max 255
+     :step 1}
+    (fg/defcomponent spinner/spinnereditor :editor {:evolvers {:model g-spinner-evolver}}))
 
   (fg/defcomponent spinner/spinner :b-spinner
     {:clip-size (m/defpoint 0.75 0.375 0)
      :position-matrix (m/transtation 2.125 6.75)
-     :step 1})
-
-    ))
+     :min 0
+     :max 255
+     :step 1}
+    (fg/defcomponent spinner/spinnereditor :editor {:evolvers {:model b-spinner-evolver}}))))
 
 (def root-panel
   (fg/defcomponent
     panel/panel
     :main
     {:clip-size (m/defpoint 40 23 0)
-     :background (awt/color (float (/ 9 255)) (float (/ 17 255)) (float (/ 26 255)))}
+     :background (awt/color 9 17 26)}
     color-chooser-window))
-
-;
-;;
-;; Evolvers for Debug Window
-;;
-;
-;
-;(fg/defevolverfn s1text :text
-;                 (let [ pos (get-property [:slider1] :position)]
-;                   (.format label-format pos)))
-;
-;(fg/defevolverfn s2text :text
-;                 (let [ pos (get-property [:slider2] :position)]
-;                   (.format label-format pos)))
-;
-;; @todo
-;; super-evovler marco that would take evolver from parent type.
-;; Will have to keep the list of parent types in component.
-;; Throw exception if more than one found.
-;; One more way to call this macro - specifying exactly which type
-;; to take evovler from
-;
-;(fg/defevolverfn s1pos :position
-;                 (if (and
-;                       (#{[:slider2] [:lock-checkbox]} (fg/get-reason))
-;                       (get-property [:lock-checkbox] :pressed))
-;                   (get-property [:slider2] :position)
-;                   (flatgui.widgets.slider/slider-position-evolver component)))
-;
-;(fg/defevolverfn s2pos :position
-;                 (if (and
-;                       (#{[:slider1] [:lock-checkbox]} (fg/get-reason))
-;                       (get-property [:lock-checkbox] :pressed))
-;                   (get-property [:slider1] :position)
-;                   (flatgui.widgets.slider/slider-position-evolver component)))
-;
-;;
-;; Debug Window
-;;
-;
-;(def debug-window (fg/defcomponent w/window :debug {:clip-size (m/defpoint 3.5 5.5)
-;                                                    :position-matrix (m/transtation-matrix 10 7)
-;                                                    :text "Debug Panel"}
-;
-;                                   (fg/defcomponent w/label :s1-text
-;                                                    { :text "Slider 1:"
-;                                                     :clip-size (m/defpoint 1.0 0.5 0)
-;                                                     :position-matrix (m/transtation-matrix 0.25 0.5)})
-;
-;                                   (fg/defcomponent w/label :s2-text
-;                                                    { :text "Slider 2:"
-;                                                     :clip-size (m/defpoint 1.0 0.5 0)
-;                                                     :position-matrix (m/transtation-matrix 0.25 1.0)})
-;
-;                                   (fg/defcomponent w/label :s1-label
-;                                                    { :clip-size (m/defpoint 3 0.5 0)
-;                                                     :h-alignment :left
-;                                                     :position-matrix (m/transtation-matrix 1.28125 0.5)
-;                                                     :evolvers {:text s1text}})
-;
-;                                   (fg/defcomponent w/label :s2-label
-;                                                    { :clip-size (m/defpoint 3 0.5 0)
-;                                                     :h-alignment :left
-;                                                     :position-matrix (m/transtation-matrix 1.28125 1.0)
-;                                                     :evolvers {:text s2text}})
-;
-;
-;                                   (fg/defcomponent w/checkbox :lock-checkbox { :clip-size (m/defpoint 1.5 0.25 0)
-;                                                                               :text "Lock sliders"
-;                                                                               :position-matrix (m/transtation-matrix 0.25 1.75)})
-;
-;                                   (fg/defcomponent w/slider :slider1 { :clip-size (m/defpoint 0.5 3.0 0)
-;                                                                       :orientation :vertical
-;                                                                       :position-matrix (m/transtation-matrix 0.25 2.25)
-;                                                                       :evolvers {:position s1pos}})
-;
-;                                   (fg/defcomponent w/slider :slider2 { :clip-size (m/defpoint 0.5 3.0 0)
-;                                                                       :orientation :vertical
-;                                                                       :position-matrix (m/transtation-matrix 1.0 2.25)
-;                                                                       :evolvers {:position s2pos}})
-;
-;                                   (fg/defcomponent w/spinner :spn { :clip-size (m/defpoint 1.375 0.375 0)
-;                                                                    :position-matrix (m/transtation-matrix 1.625 2.25)})
-;
-;                                   ;  (fg/defcomponent w/menu :ctx { :clip-size (m/defpoint 4 6 0)
-;                                   ;                            :position-matrix (m/transtation-matrix 3.625 2.75)})
-;                                   ))

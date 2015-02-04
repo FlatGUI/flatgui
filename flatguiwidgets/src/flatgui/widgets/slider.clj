@@ -89,6 +89,10 @@
           handlespace (- (if (= :horizontal orientation) (m/x clip-size) (m/y clip-size)) bar-width)]
       (/ handlecoord handlespace))))
 
+;;
+;; TODO Invert position for vertical slider
+;;
+
 (fg/defwidget "slider"
   {:focusable true
    :orientation :horizontal
