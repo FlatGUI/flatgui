@@ -7,12 +7,12 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns bookpanelmain
-  (:require [flatgui.widgets.api :as w]
-            [flatgui.skins.flat]
+  (:require [flatgui.skins.flat]
             [flatgui.app]
             [flatgui.base :as fg]
             [flatgui.awt :as awt]
             [flatgui.util.matrix :as m]
+            [flatgui.widgets.panel :as panel]
             [flatgui.samples.forms.preferenceswin :as preferences]
             [flatgui.samples.forms.orderticketwin :as ticket]
             [flatgui.samples.forms.blotterwin :as blotterwin]))
@@ -30,7 +30,7 @@
 
 (def bookpanel
   (flatgui.app/defroot
-    (fg/defcomponent w/component :main
+    (fg/defcomponent panel/panel :main
       {:clip-size (m/defpoint 25 19 0)
        :background (awt/color 0 38 70)
        :evolvers {:theme main-theme-evolver

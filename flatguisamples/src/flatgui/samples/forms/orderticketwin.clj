@@ -56,7 +56,7 @@
 (fg/defevolverfn quote-background-evolver :background
   (let [selection (get-property [:this] :selection)
         theme (get-property [:this] :theme)
-        dark-theme (get-property [:_ :_ :_ :_ :preferences :dark] :pressed)]
+        dark-theme (= theme flatgui.theme/dark)]
     (if (nth selection 1)
       (if dark-theme :prime-1 :prime-2)
       (let [ref-val (if (< (get-property [:this] :screen-row) 0) 0 (quote-color-ref component))]
@@ -236,7 +236,7 @@
                                   :evolvers {:background quote-background-evolver}})})))
 
 (def orderticket-window
-  (fg/defcomponent window/window :tiket
+  (fg/defcomponent window/window :ticket
     {:clip-size (m/defpoint 7.25 7 0)
      :position-matrix (m/transtation 0 0)
      :text "Order Ticket"}
