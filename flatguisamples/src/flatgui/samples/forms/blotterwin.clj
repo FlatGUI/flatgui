@@ -47,7 +47,7 @@
 ;;; This evolver for blotter table provides coloring per Side and also
 ;;; keeps special selection color for selected rows
 (fg/defevolverfn blotter-background-evolver :background
-  (let [dark-theme (get-property [:_ :_ :_ :preferences :dark] :pressed)
+  (let [dark-theme (= (get-property component [:this] :theme) flatgui.theme/dark)
         selection (get-property [:this] :selection)]
     (if (nth selection 1) ;TODO more self-documenting approach for selection model
       (if (nth selection 0)
