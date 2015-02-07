@@ -759,6 +759,11 @@ function isComponentReadyForMouseRollover(i)
 
 function sendMouseMoveEventToServer(evt)
 {
+    if (evt.preventDefault)
+    {
+        evt.preventDefault();
+    }
+
     var rect = canvas.getBoundingClientRect();
     var x = evt.clientX - rect.left;
     var y = evt.clientY - rect.top;
@@ -826,6 +831,19 @@ canvas.addEventListener("mouseup", sendMouseUpEventToServer, false);
 canvas.addEventListener("click", sendMouseClickEventToServer, false);
 canvas.addEventListener("mousemove", sendMouseMoveEventToServer, false);
 
+canvas.ondragstart = function(e)
+{
+    if (e && e.preventDefault) { e.preventDefault(); }
+    if (e && e.stopPropagation) { e.stopPropagation(); }
+    return false;
+}
+
+canvas.onselectstart = function(e)
+{
+    if (e && e.preventDefault) { e.preventDefault(); }
+    if (e && e.stopPropagation) { e.stopPropagation(); }
+    return false;
+}
 
 function getEncodedKeyEvent(evt, id)
 {
