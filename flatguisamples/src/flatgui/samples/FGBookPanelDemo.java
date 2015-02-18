@@ -17,14 +17,13 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.File;
-import java.net.URL;
+import java.io.InputStream;
 import java.util.Scanner;
 
 /**
  * @author Denis Lebedev
  */
-public class FGTBookPanelDemo
+public class FGBookPanelDemo
 {
     public static final String CONTAINER_NS = "bookpanelmain";
     public static final String CONTAINER_VAR_NAME = "bookpanel";
@@ -57,8 +56,8 @@ public class FGTBookPanelDemo
 //                    controlCenterFrame.setIconImage(logoIcon);
 //                }
 
-                URL formUrl = ClassLoader.getSystemResource("flatgui/samples/forms/bookpanelmain.clj");
-                String sourceCode = new Scanner(new File(formUrl.toURI())).useDelimiter("\\Z").next();
+                InputStream is = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/bookpanelmain.clj");
+                String sourceCode = new Scanner(is).useDelimiter("\\Z").next();
 
                 IFGTemplate bookPanelTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
 
@@ -80,6 +79,8 @@ public class FGTBookPanelDemo
                 });
                 frame.setVisible(true);
                 awtComponent.requestFocusInWindow();
+
+                awtComponent.repaint();
             }
             catch (Exception ex)
             {

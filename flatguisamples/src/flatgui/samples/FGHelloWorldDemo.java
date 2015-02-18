@@ -16,8 +16,7 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.File;
-import java.net.URL;
+import java.io.InputStream;
 import java.util.Scanner;
 
 /**
@@ -43,8 +42,9 @@ public class FGHelloWorldDemo
                 {
                     frame.setIconImage(logoIcon);
                 }
-                URL formUrl = ClassLoader.getSystemResource("flatgui/samples/forms/helloworld.clj");
-                String sourceCode = new Scanner(new File(formUrl.toURI())).useDelimiter("\\Z").next();
+
+                InputStream is = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/helloworld.clj");
+                String sourceCode = new Scanner(is).useDelimiter("\\Z").next();
 
                 IFGTemplate helloWorldTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
 
@@ -66,6 +66,8 @@ public class FGHelloWorldDemo
                 });
                 frame.setVisible(true);
                 awtComponent.requestFocusInWindow();
+
+                awtComponent.repaint();
             }
             catch(Exception ex)
             {
