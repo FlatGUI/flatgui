@@ -11,8 +11,6 @@
 package flatgui.core.websocket;
 
 import flatgui.core.IFGContainer;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
@@ -37,8 +35,6 @@ public class FGPaintVectorBinaryCoder
 
     private Map<String, ICommandCoder> cmdNameToCoder_;
 
-    private Map<String, BiFunction<List, Integer, String>> cmdNameToLogger_;
-
     public FGPaintVectorBinaryCoder()
     {
         cmdNameToCoder_ = new HashMap<>();
@@ -56,59 +52,6 @@ public class FGPaintVectorBinaryCoder
         registerCoder("setClip", new SetClipCoder());
         registerCoder("pushCurrentClip", new PushCurrentClipCoder());
         registerCoder("popCurrentClip", new PopCurrentClipCoder());
-
-        cmdNameToLogger_ = new HashMap<>();
-
-        BiFunction<List, Integer, String> rectLogger =
-                (l, n) -> {
-                    try {
-                        return l.get(0) + " " + new JSONObject().put("x", getCoord(l, 1)).put("y", getCoord(l, 2)).put("w", getCoord(l, 3)).put("h", getCoord(l, 3)).put("len", n);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                        return "Exception " + e.getMessage();
-                    }
-                };
-
-        BiFunction<List, Integer, String> transformLogger = (l, n) -> {
-            try {
-                return l.get(0) + " " + new JSONObject().put("x", 0).put("y", 0).put("w", ((AffineTransform) l.get(1)).getTranslateX()).put("h", ((AffineTransform) l.get(1)).getTranslateY()).put("len", n);
-            } catch (JSONException e) {
-                e.printStackTrace();
-                return "Exception " + e.getMessage();
-            }
-        };
-
-        BiFunction<List, Integer, String> setColorLogger = (l, n) -> {
-            try {
-                return l.get(0) + " " + new JSONObject().put("r", ((Color) l.get(1)).getRed()).put("g", ((Color) l.get(1)).getGreen()).put("b", ((Color) l.get(1)).getBlue()).put("len", n);
-            } catch (JSONException e) {
-                e.printStackTrace();
-                return "Exception " + e.getMessage();
-            }
-        };
-
-        BiFunction<List, Integer, String> drawStringLogger = (l, n) -> {
-            try {
-                return l.get(0) + " " + new JSONObject().put("x", getCoord(l, 2)).put("y", getCoord(l, 3)).put("s", l.get(1)).put("len", n);
-            } catch (JSONException e) {
-                e.printStackTrace();
-                return "Exception " + e.getMessage();
-            }
-        };
-
-        cmdNameToLogger_.put("setColor", setColorLogger);
-        cmdNameToLogger_.put("drawRect", rectLogger);
-        cmdNameToLogger_.put("fillRect", rectLogger);
-        //cmdNameToLogger_.put("drawRoundRect", );
-        cmdNameToLogger_.put("drawOval", rectLogger);
-        cmdNameToLogger_.put("fillOval", rectLogger);
-        cmdNameToLogger_.put("drawString", drawStringLogger);
-        cmdNameToLogger_.put("drawLine", rectLogger);
-        cmdNameToLogger_.put("transform", transformLogger);
-        cmdNameToLogger_.put("clipRect", rectLogger);
-        cmdNameToLogger_.put("setClip", rectLogger);
-        cmdNameToLogger_.put("pushCurrentClip", (l, n) -> (String)l.get(0));
-        cmdNameToLogger_.put("popCurrentClip", (l, n) -> (String)l.get(0));
     }
 
     public ByteBuffer codeCommandVector(List<Object> commandVector)
