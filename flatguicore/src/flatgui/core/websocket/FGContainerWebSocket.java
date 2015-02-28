@@ -110,9 +110,6 @@ public class FGContainerWebSocket implements WebSocketListener
     public void onWebSocketText(String message)
     {
         //logger_.debug("Received message #" + debugMessageCount_ + ": " + message);
-        fgSession_.markAccesed();
-        InputEvent e = parser_.getInputEvent(message);
-        processInputEvent(e);
     }
 
     private void processInputEvent(InputEvent e)

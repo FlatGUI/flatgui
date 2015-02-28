@@ -10,9 +10,6 @@
 
 package flatgui.core.websocket;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -27,40 +24,17 @@ public class FGInputEventDecoder
 {
     public static final Component dummySourceComponent_ = new Container();
 
-    private Collection<IParser<JSONObject, ? extends InputEvent>> jsonParsers_;
     private Collection<IParser<BinaryInput, ? extends InputEvent>> binaryParsers_;
 
     public FGInputEventDecoder()
     {
-        jsonParsers_ = new ArrayList<>();
         binaryParsers_ = new ArrayList<>();
-        addJSONParser(new MouseJSONParser());
-        addJSONParser(new KeyJSONParser());
         addBinaryParser(new MouseBinaryParser());
-    }
-
-    public final void addJSONParser(IParser<JSONObject, ? extends InputEvent> parser)
-    {
-        jsonParsers_.add(parser);
     }
 
     public final void addBinaryParser(IParser<BinaryInput, ? extends InputEvent> parser)
     {
         binaryParsers_.add(parser);
-    }
-
-    public <E extends InputEvent> E getInputEvent(String jsonString)
-    {
-        try
-        {
-            JSONObject jsonObj = new JSONObject(jsonString);
-            return getInputEvent(jsonObj, jsonParsers_);
-        }
-        catch (JSONException e)
-        {
-            e.printStackTrace();
-        }
-        return null;
     }
 
     public <E extends InputEvent> E getInputEvent(BinaryInput binaryData)
@@ -124,64 +98,31 @@ public class FGInputEventDecoder
         public E getInputEvent(S jsonObj) throws Exception;
     }
 
-    public static abstract class AbstractJSONParser<E extends InputEvent> implements IParser<JSONObject, E>
-    {
-        public static final String ID = "id";
 
-        public E getInputEvent(JSONObject jsonObj) throws JSONException
-        {
-            int id = jsonObj.getInt(ID);
-            return parseImpl(jsonObj, id);
-        }
-
-        protected abstract E parseImpl(JSONObject jsonObj, int id) throws JSONException;
-    }
-
-    public static class MouseJSONParser extends AbstractJSONParser<MouseEvent>
-    {
-        public static final String X = "x";
-        public static final String Y = "y";
-
-        @Override
-        protected MouseEvent parseImpl(JSONObject jsonObj, int id) throws JSONException
-        {
-            if (id >= MouseEvent.MOUSE_FIRST && id <= MouseEvent.MOUSE_LAST)
-            {
-                int x = jsonObj.getInt(X);
-                int y = jsonObj.getInt(Y);
-                return getMouseEvent(id, x, y);
-            }
-            else
-            {
-                return null;
-            }
-        }
-    }
-
-    public static class KeyJSONParser extends AbstractJSONParser<KeyEvent>
-    {
-        public static final String C = "c";
-        public static final String S = "s";
-
-        @Override
-        protected KeyEvent parseImpl(JSONObject jsonObj, int id) throws JSONException
-        {
-            if (id >= KeyEvent.KEY_FIRST && id <= KeyEvent.KEY_LAST)
-            {
-                int code = jsonObj.getInt(C);
-                char c = (char)jsonObj.getInt(S);
-
-                KeyEvent e = new KeyEvent(dummySourceComponent_, id, 0, 0,
-                        id == KeyEvent.KEY_TYPED ? KeyEvent.VK_UNDEFINED : code,
-                        c);
-                return e;
-            }
-            else
-            {
-                return null;
-            }
-        }
-    }
+//    public static class KeyJSONParser extends AbstractJSONParser<KeyEvent>
+//    {
+//        public static final String C = "c";
+//        public static final String S = "s";
+//
+//        @Override
+//        protected KeyEvent parseImpl(JSONObject jsonObj, int id) throws JSONException
+//        {
+//            if (id >= KeyEvent.KEY_FIRST && id <= KeyEvent.KEY_LAST)
+//            {
+//                int code = jsonObj.getInt(C);
+//                char c = (char)jsonObj.getInt(S);
+//
+//                KeyEvent e = new KeyEvent(dummySourceComponent_, id, 0, 0,
+//                        id == KeyEvent.KEY_TYPED ? KeyEvent.VK_UNDEFINED : code,
+//                        c);
+//                return e;
+//            }
+//            else
+//            {
+//                return null;
+//            }
+//        }
+//    }
 
     public static abstract class AbstractBinaryParser<E extends InputEvent> implements IParser<BinaryInput, E>
     {

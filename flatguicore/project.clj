@@ -17,7 +17,6 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.6.0"]
-                 [org.json/json "20141113"] ; TODO Get rid of JSON dependency
                  [org.eclipse.jetty/jetty-server ~jetty-version]
                  [org.eclipse.jetty/jetty-servlet ~jetty-version]
                  [org.eclipse.jetty.websocket/websocket-servlet ~jetty-version]
