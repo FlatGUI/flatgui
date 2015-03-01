@@ -37,7 +37,7 @@
   (let [ combo-size (get-property component [] :clip-size)
          combo-w (m/x combo-size)
          combo-h (m/y combo-size)]
-    (m/transtation-matrix (- combo-w (btn-w combo-h)) 0)))
+    (m/translation-matrix (- combo-w (btn-w combo-h)) 0)))
 
 (defn- dropdown-item? [reason]
   (and

@@ -20,7 +20,7 @@
 (def preferences-window
   (fg/defcomponent window/window :preferences
     {:clip-size (m/defpoint 3.75 1.375)
-     :position-matrix (m/transtation 10 7)
+     :position-matrix (m/translation 10 7)
      :text "Preferences"}
 
     ;; TODO uncomment when one more skin is available
@@ -28,36 +28,36 @@
     ;  {:text "Skin:"
     ;   :h-alignment :right
     ;   :clip-size (m/defpoint 0.75 0.25)
-    ;   :position-matrix (m/transtation 0.125 0.875)})
+    ;   :position-matrix (m/translation 0.125 0.875)})
     ;
     ;(fg/defcomponent radiobutton/radiobutton :oldschool
     ;  {:text "Oldschool"
     ;   :pressed true
     ;   :clip-size (m/defpoint 1.25 0.25)
-    ;   :position-matrix (m/transtation 1.0 0.875)
+    ;   :position-matrix (m/translation 1.0 0.875)
     ;   :evolvers {:pressed skin-group}})
     ;
     ;(fg/defcomponent radiobutton/radiobutton :smooth
     ;  {:text "Smooth"
     ;   :clip-size (m/defpoint 1.0 0.25)
-    ;   :position-matrix (m/transtation 2.375 0.875)
+    ;   :position-matrix (m/translation 2.375 0.875)
     ;   :evolvers {:pressed skin-group}})
 
     (fg/defcomponent label/label :theme-label
       {:text "Theme:"
        :h-alignment :right
        :clip-size (m/defpoint 0.75 0.25)
-       :position-matrix (m/transtation 0.125 0.5)})
+       :position-matrix (m/translation 0.125 0.5)})
 
     (fg/defcomponent radiobutton/radiobutton :dark
       {:text "Dark"
        :pressed true
        :clip-size (m/defpoint 1.25 0.25)
-       :position-matrix (m/transtation 1.0 0.5)
+       :position-matrix (m/translation 1.0 0.5)
        :evolvers {:pressed theme-group}})
 
     (fg/defcomponent radiobutton/radiobutton :light
       {:text "Light"
        :clip-size (m/defpoint 1.0 0.25)
-       :position-matrix (m/transtation 1.875 0.5)
+       :position-matrix (m/translation 1.875 0.5)
        :evolvers {:pressed theme-group}})))

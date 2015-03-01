@@ -29,7 +29,7 @@
     window/window
     :hello
     {:clip-size (m/defpoint 3 1.5)
-     :position-matrix (m/transtation 1 1)
+     :position-matrix (m/translation 1 1)
      :text "Hello World Example"}
 
     (fg/defcomponent
@@ -37,14 +37,14 @@
       :say-hello
       {:clip-size (m/defpoint 1.75 0.25 0)
        :text "Greeting"
-       :position-matrix (m/transtation 0.125 0.75)})
+       :position-matrix (m/translation 0.125 0.75)})
 
     (fg/defcomponent
       label/label
       :greeting
       {:text nogreeting-text
        :clip-size (m/defpoint 2.25 0.25 0)
-       :position-matrix (m/transtation 1.0 0.75)
+       :position-matrix (m/translation 1.0 0.75)
        :evolvers {:text greeting-evolver}})))
 
 (def root-panel

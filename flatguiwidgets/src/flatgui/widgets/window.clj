@@ -85,7 +85,7 @@
         (condp = (:edge mce)
           :left (m/mx*
                   (:position-matrix mce)
-                  (m/transtation-matrix (- (mouse/get-mouse-x component) (:x mce)) 0))
+                  (m/translation-matrix (- (mouse/get-mouse-x component) (:x mce)) 0))
           old-position-matrix)
         (flatgui.widgets.floatingbar/position-matrix-evolver component)))
     (flatgui.widgets.floatingbar/position-matrix-evolver component)))

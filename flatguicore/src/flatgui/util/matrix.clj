@@ -17,16 +17,16 @@
                       [0 0 1 0]
                       [0 0 0 1]])
 
-(defn transtation-matrix
+(defn translation-matrix
   "Constructs translation matrix"
   ([tx ty tz]
    [[1 0 0 tx]
     [0 1 0 ty]
     [0 0 1 tz]
     [0 0 0  1]])
-  ([tx ty] (transtation-matrix tx ty 0)))
+  ([tx ty] (translation-matrix tx ty 0)))
 
-(def transtation transtation-matrix)
+(def translation translation-matrix)
 
 (defn defmxcol [& values]
   "Defines 1-column matrix"

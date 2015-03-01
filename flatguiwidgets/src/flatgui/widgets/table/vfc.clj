@@ -174,10 +174,10 @@
         this-index (.indexOf vf-visual-order (:id component))
         vfcw (get-vfc-width (m/y colheader-size))]
     (condp = (:id component)
-      :filtering (m/transtation-matrix (- (m/x colheader-size) vfcw) 0)
-      :grouping (m/transtation-matrix (- (/ (m/x colheader-size) 2) (/ vfcw 2)) 0)
+      :filtering (m/translation-matrix (- (m/x colheader-size) vfcw) 0)
+      :grouping (m/translation-matrix (- (/ (m/x colheader-size) 2) (/ vfcw 2)) 0)
       (if (>= this-index 0)
-        (m/transtation-matrix (* vfcw this-index) 0)
+        (m/translation-matrix (* vfcw this-index) 0)
         old-position-matrix))))
 
 ;;;TODO for some reason it does not evolve mode if I comment out :has-mouse and :mouse-down and extend abstractbutton

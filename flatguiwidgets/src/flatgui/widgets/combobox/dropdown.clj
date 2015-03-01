@@ -40,7 +40,7 @@
 
 (fg/defevolverfn dropdown-position-matrix-evolver :position-matrix
   (let [editor-size (get-property component [:editor] :clip-size)]
-    (m/transtation-matrix 0 (m/y editor-size))))
+    (m/translation-matrix 0 (m/y editor-size))))
 
 (fg/defevolverfn dropdown-clip-size-evolver :clip-size
   (let [combo-size (get-property component [] :clip-size)

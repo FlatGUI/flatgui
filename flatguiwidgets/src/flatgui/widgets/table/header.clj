@@ -73,7 +73,7 @@
 
 (fg/defwidget "tableheader"
   { :default-height tcom/default-row-height
-    :position-matrix (m/transtation-matrix 0 0 0)
+    :position-matrix (m/translation-matrix 0 0 0)
     :active-headers nil
     :fit-width false
 
