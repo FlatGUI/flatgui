@@ -81,7 +81,7 @@
 (fg/defevolverfn contentpane-position-matrix-evolver :position-matrix
   (let [header-size (get-property component [:header] :clip-size)
         header-h (m/y header-size)]
-    (m/transtation-matrix 0 header-h)))
+    (m/translation-matrix 0 header-h)))
 
 (fg/defevolverfn contentpane-clip-size-evolver :clip-size
   (let [clip-size (flatgui.widgets.scrollpanel/scrollpanelcontent-clip-size-evolver component)
@@ -396,7 +396,7 @@
                                               header-id (nth header-ids model-col)]
                                           (- (header-id column-x-locations))))
             mxy (if (= NO_VAL yr) old-y (fgc/round-to (- (* yr row-height)) row-height))]
-        (m/transtation-matrix mxx mxy))
+        (m/translation-matrix mxx mxy))
       (flatgui.widgets.scrollpanel/scrollpanelcontent-viewport-matrix-evolver component))))
 
 (fg/defevolverfn :column-grouping-state

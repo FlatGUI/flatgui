@@ -35,13 +35,13 @@
   (let [ spinner-size (get-property component [] :clip-size)
          spinner-w (m/x spinner-size)
          spinner-h (m/y spinner-size)]
-    (m/transtation-matrix (- spinner-w (btn-w spinner-h)) 0)))
+    (m/translation-matrix (- spinner-w (btn-w spinner-h)) 0)))
 
 (fg/defevolverfn spinner-down-pm-evolver :position-matrix
   (let [ spinner-size (get-property component [] :clip-size)
          spinner-w (m/x spinner-size)
          spinner-h (m/y spinner-size)]
-    (m/transtation-matrix (- spinner-w (btn-w spinner-h)) (/ spinner-h 2))))
+    (m/translation-matrix (- spinner-w (btn-w spinner-h)) (/ spinner-h 2))))
 
 (fg/defaccessorfn adjust-spinner-value [component old-model adj-fn]
   (let [ old-text (:text old-model)

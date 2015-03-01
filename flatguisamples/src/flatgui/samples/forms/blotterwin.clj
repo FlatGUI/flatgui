@@ -82,7 +82,7 @@
 (def blotter-table
   (fg/defcomponent table/table :table
     {:clip-size (m/defpoint 7.75 5.5 0)
-     :position-matrix (m/transtation 0.125 0.375)
+     :position-matrix (m/translation 0.125 0.375)
      :header-ids header-ids
      :header-aliases header-aliases
      :value-provider (fn [model-row model-col]
@@ -110,6 +110,6 @@
 (def tradeblotter-window
   (fg/defcomponent window/window :blotter
     {:clip-size (m/defpoint 8 6 0)
-     :position-matrix (m/transtation 7.5 0)
+     :position-matrix (m/translation 7.5 0)
      :text "Trade Blotter"}
     blotter-table))

@@ -156,51 +156,51 @@
 
 (def general-toolbar
   (fg/defcomponent toolbar/toolbar :general-toolbar
-    {:position-matrix (m/transtation 0 0)
+    {:position-matrix (m/translation 0 0)
     :clip-size (m/defpoint 4.5 0.375)}
     (fg/defcomponent label/label :symbol-label
       {:text "Symbol:"
        :h-alignment :right
        :clip-size (m/defpoint 0.75 0.375)
-       :position-matrix (m/transtation 0.125 0)})
+       :position-matrix (m/translation 0.125 0)})
     (fg/defcomponent textfield/textfield :symbol-entry
       {:clip-size (m/defpoint 0.75 0.3125)
-       :position-matrix (m/transtation 0.875 0.03125)
+       :position-matrix (m/translation 0.875 0.03125)
        :evolvers {:model symbol-evolver}})
     (fg/defcomponent checkbox/checkbox :follow-checkbox
       {:clip-size (m/defpoint 1.5 0.25 0)
        :text "Follow blotter"
-       :position-matrix (m/transtation 1.75 0.0625)})
+       :position-matrix (m/translation 1.75 0.0625)})
     (fg/defcomponent button/checkbutton :link-button
-      {:position-matrix (m/transtation 3.375 0.03125)
+      {:position-matrix (m/translation 3.375 0.03125)
        :clip-size (m/defpoint 0.75 0.3125)
        :text "Link"})))
 
 (def qty-toolbar
   (fg/defcomponent toolbar/toolbar :qty-toolbar
-    {:position-matrix (m/transtation 4.5 0)
+    {:position-matrix (m/translation 4.5 0)
      :clip-size (m/defpoint 2.75 0.375)}
     (fg/defcomponent button/rolloverbutton :+1
-      {:position-matrix (m/transtation 0.125 0.03125)
+      {:position-matrix (m/translation 0.125 0.03125)
        :clip-size (m/defpoint 0.5625 0.3125)
        :text "+1"})
     (fg/defcomponent button/rolloverbutton :+10
-      {:position-matrix (m/transtation (+ 0.125 (* 1 0.5625)) 0.03125)
+      {:position-matrix (m/translation (+ 0.125 (* 1 0.5625)) 0.03125)
        :clip-size (m/defpoint 0.5625 0.3125)
        :text "+10"})
     (fg/defcomponent button/rolloverbutton :+20
-      {:position-matrix (m/transtation (+ 0.125 (* 2 0.5625)) 0.03125)
+      {:position-matrix (m/translation (+ 0.125 (* 2 0.5625)) 0.03125)
        :clip-size (m/defpoint 0.5625 0.3125)
        :text "+20"})
     (fg/defcomponent button/rolloverbutton :+100
-      {:position-matrix (m/transtation (+ 0.125 (* 3 0.5625)) 0.03125)
+      {:position-matrix (m/translation (+ 0.125 (* 3 0.5625)) 0.03125)
        :clip-size (m/defpoint 0.5625 0.3125)
        :text "+100"})))
 
 (def bids-table
   (fg/defcomponent table/table :bids
     {:clip-size (m/defpoint 3.5 2.5)
-     :position-matrix (m/transtation 0.125 0.375)
+     :position-matrix (m/translation 0.125 0.375)
      :header-ids bid-columns
      :header-aliases {:bidsource "BidSrc" :bidsize "BidSize" :bidpx "BidPx"}
      :value-provider (fn [model-row model-col] (let [ col-id (name (nth bid-columns model-col))] (.getValue simulator model-row col-id)))}
@@ -219,7 +219,7 @@
 (def asks-table
   (fg/defcomponent table/table :asks
     {:clip-size (m/defpoint 3.5 2.5)
-     :position-matrix (m/transtation 3.625 0.375)
+     :position-matrix (m/translation 3.625 0.375)
      :header-ids ask-columns
      :header-aliases {:asksource "AskSrc" :asksize "AskSize" :askpx "AskPx"}
      :value-provider (fn [model-row model-col] (let [ col-id (name (nth ask-columns model-col))] (.getValue simulator model-row col-id)))}
@@ -238,12 +238,12 @@
 (def orderticket-window
   (fg/defcomponent window/window :ticket
     {:clip-size (m/defpoint 7.25 7 0)
-     :position-matrix (m/transtation 0 0)
+     :position-matrix (m/translation 0 0)
      :text "Order Ticket"}
 
     (fg/defcomponent panel/panel :ticket-panel
       {:clip-size (m/defpoint 7.25 6.625 0)
-       :position-matrix (m/transtation 0 0.375)
+       :position-matrix (m/translation 0 0.375)
        :look (fn [c r] [])}
 
     general-toolbar
@@ -258,107 +258,107 @@
       {:text "Qty:"
        :h-alignment :right
        :clip-size (m/defpoint 0.5 0.375 0)
-       :position-matrix (m/transtation 0.125 3.0)})
+       :position-matrix (m/translation 0.125 3.0)})
 
     (fg/defcomponent textfield/textfield :qty-entry
       {:text-supplier textfield/textfield-num-only-text-suplier
        :clip-size (m/defpoint 1.0 0.375 0)
-       :position-matrix (m/transtation 0.625 3.0)
+       :position-matrix (m/translation 0.625 3.0)
        :evolvers {:model qty-evolver}})
 
     (fg/defcomponent label/label :px-label
       {:text "Px:"
        :h-alignment :right
        :clip-size (m/defpoint 0.5 0.375 0)
-       :position-matrix (m/transtation 1.625 3.0)})
+       :position-matrix (m/translation 1.625 3.0)})
 
     (fg/defcomponent spinner/spinner :px-entry
       {:clip-size (m/defpoint 1.375 0.375 0)
        :step 0.01
-       :position-matrix (m/transtation 2.125 3.0)}
+       :position-matrix (m/translation 2.125 3.0)}
       (fg/defcomponent spinner/spinnereditor :editor {:evolvers {:model px-evolver}}))
 
     (fg/defcomponent label/label :stgy-label
       {:text "Strategy:"
        :h-alignment :right
        :clip-size (m/defpoint 1.375 0.375 0)
-       :position-matrix (m/transtation 3.125 3.0)})
+       :position-matrix (m/translation 3.125 3.0)})
 
     (fg/defcomponent combobox/combobox :stgy-entry
       {:model ["WVAP" "TWAP" "With Volume" "Dynamic" "Custom"]
        :clip-size (m/defpoint 1.375 0.375 0)
-       :position-matrix (m/transtation 4.5 3.0)})
+       :position-matrix (m/translation 4.5 3.0)})
 
     (fg/defcomponent textfield/textfield :exch-entry
       {:clip-size (m/defpoint 1.0 0.375 0)
-       :position-matrix (m/transtation 6.0 3.0)
+       :position-matrix (m/translation 6.0 3.0)
        :evolvers {:model exch-evolver}})
 
     (fg/defcomponent label/label :aggr-label
       {:text "Aggressiveness:"
        :clip-size (m/defpoint 1.5 0.375 0)
-       :position-matrix (m/transtation 0.125 3.5)})
+       :position-matrix (m/translation 0.125 3.5)})
 
     (fg/defcomponent slider/slider :aggr-slider
       {:clip-size (m/defpoint 3.0 0.5 0)
-       :position-matrix (m/transtation 1.75 3.5)})
+       :position-matrix (m/translation 1.75 3.5)})
 
     (fg/defcomponent label/label :type-label
       {:text "OrdType:"
        :clip-size (m/defpoint 1.0 0.375 0)
-       :position-matrix (m/transtation 0.125 4.25)})
+       :position-matrix (m/translation 0.125 4.25)})
 
     (fg/defcomponent radiobutton/radiobutton :market
       {:text "Market:"
        :clip-size (m/defpoint 1.25 0.25 0)
-       :position-matrix (m/transtation 1.125 4.25)
+       :position-matrix (m/translation 1.125 4.25)
        :evolvers {:pressed ordtype-group-evolver}})
 
     (fg/defcomponent radiobutton/radiobutton :limit
       {:text "Limit:"
        :clip-size (m/defpoint 1.25 0.25 0)
-       :position-matrix (m/transtation 1.125 4.5625)
+       :position-matrix (m/translation 1.125 4.5625)
        :evolvers {:pressed ordtype-group-evolver}})
 
     (fg/defcomponent radiobutton/radiobutton :stop
       {:text "Stop:"
        :clip-size (m/defpoint 1.25 0.25 0)
-       :position-matrix (m/transtation 1.125 4.875)
+       :position-matrix (m/translation 1.125 4.875)
        :evolvers {:pressed ordtype-group-evolver}})
 
     (fg/defcomponent radiobutton/radiobutton :stoplmt
       {:text "Stop lmt:"
        :clip-size (m/defpoint 1.25 0.25 0)
-       :position-matrix (m/transtation 1.125 5.1875)
+       :position-matrix (m/translation 1.125 5.1875)
        :evolvers {:pressed ordtype-group-evolver}})
 
     (fg/defcomponent label/label :tif-label
       {:text "TimeInForce:"
        :h-alignment :right
        :clip-size (m/defpoint 1.375 0.375 0)
-       :position-matrix (m/transtation 2.375 4.25)})
+       :position-matrix (m/translation 2.375 4.25)})
 
     (fg/defcomponent combobox/combobox :tif-entry
       {:model ["Day", "GTC", "OPG", "IOC", "FOK", "GTX", "GTD"]
        :clip-size (m/defpoint 1.375 0.375 0)
-       :position-matrix (m/transtation 3.75 4.25)})
+       :position-matrix (m/translation 3.75 4.25)})
 
     (fg/defcomponent label/label :text-label
       {:text "Text:"
        :h-alignment :right
        :clip-size (m/defpoint 0.75 0.375 0)
-       :position-matrix (m/transtation 5.125 4.25)})
+       :position-matrix (m/translation 5.125 4.25)})
 
     (fg/defcomponent textfield/textfield :text-entry
       {:clip-size (m/defpoint 1.0 0.375 0)
-       :position-matrix (m/transtation 5.875 4.25)})
+       :position-matrix (m/translation 5.875 4.25)})
 
     (fg/defcomponent button/button :buy
-      {:position-matrix (m/transtation 0.125 6.125)
+      {:position-matrix (m/translation 0.125 6.125)
        :clip-size (m/defpoint 1.0 0.375)
        :text "Buy"})
 
     (fg/defcomponent button/button :sell
-      {:position-matrix (m/transtation 6.125 6.125)
+      {:position-matrix (m/translation 6.125 6.125)
        :clip-size (m/defpoint 1.0 0.375)
        :text "Sell"}))))

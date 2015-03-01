@@ -33,49 +33,49 @@
 (def header-panel
   (fg/defcomponent panel/panel :header-panel
     {:clip-size (m/defpoint 16 0.5)
-     :position-matrix (m/transtation 0 0)
+     :position-matrix (m/translation 0 0)
      :background :prime-3}
 
     (fg/defcomponent label/label :theme-label
       {:text "Theme:"
        :h-alignment :right
        :clip-size (m/defpoint 0.75 0.25)
-       :position-matrix (m/transtation 0.125 0.125)})
+       :position-matrix (m/translation 0.125 0.125)})
 
     (fg/defcomponent radiobutton/radiobutton :dark
       {:text "Dark"
        :pressed true
        :clip-size (m/defpoint 1.25 0.25)
-       :position-matrix (m/transtation 1.0 0.125)
+       :position-matrix (m/translation 1.0 0.125)
        :evolvers {:pressed theme-group}})
 
     (fg/defcomponent radiobutton/radiobutton :light
       {:text "Light"
        :clip-size (m/defpoint 1.0 0.25)
-       :position-matrix (m/transtation 1.875 0.125)
+       :position-matrix (m/translation 1.875 0.125)
        :evolvers {:pressed theme-group}})
 
     (fg/defcomponent label/label :app-label
       {:text "Show demo application:"
        :h-alignment :right
        :clip-size (m/defpoint 2.5 0.25)
-       :position-matrix (m/transtation 2.875 0.125)})
+       :position-matrix (m/translation 2.875 0.125)})
 
     (fg/defcomponent checkbox/checkbox :hello-world
       {:text "Hello World"
        :pressed true
        :clip-size (m/defpoint 1.5 0.25)
-       :position-matrix (m/transtation 5.5 0.125)})
+       :position-matrix (m/translation 5.5 0.125)})
 
     (fg/defcomponent checkbox/checkbox :color-chooser
       {:text "Color Chooser"
        :clip-size (m/defpoint 1.625 0.25)
-       :position-matrix (m/transtation 7.125 0.125)})
+       :position-matrix (m/translation 7.125 0.125)})
 
     (fg/defcomponent checkbox/checkbox :book
       {:text "Book"
        :clip-size (m/defpoint 1.0 0.25)
-       :position-matrix (m/transtation 9.0 0.125)})))
+       :position-matrix (m/translation 9.0 0.125)})))
 
 (fg/defevolverfn helloworld-visible-evolver :visible
   (get-property [:_ :header-panel :hello-world] :pressed))
@@ -89,7 +89,7 @@
 (def app-panel
   (fg/defcomponent panel/panel :app-panel
     {:clip-size (m/defpoint 16 11.25)
-     :position-matrix (m/transtation 0 0.75)
+     :position-matrix (m/translation 0 0.75)
      :background (awt/color 0 38 70)}
 
     (fg/defcomponent ticket/orderticket-window :ticket
@@ -102,7 +102,7 @@
       {:evolvers {:visible helloworld-visible-evolver}})
 
     (fg/defcomponent cc/color-chooser-window :chooser
-      {:position-matrix (m/transtation 5 1)
+      {:position-matrix (m/translation 5 1)
        :evolvers {:visible colorchooser-visible-evolver}})))
 
 (def raw-compoundpanel

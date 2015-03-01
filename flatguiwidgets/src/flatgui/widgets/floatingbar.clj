@@ -66,7 +66,7 @@
              size (get-property component [:this] :clip-size)
              new-pos-mx (m/mx*
                           (:position-matrix mouse-capture)
-                          (m/transtation-matrix
+                          (m/translation-matrix
                             ;(if (< (m/x size) x-bound) (- (get-mouse-x component) (:x mouse-capture)) 0.0)
                             (- (mouse/get-mouse-x component) (:x mouse-capture))
                             ;(if (< (m/y size) y-bound) (- (get-mouse-y component) (:y mouse-capture)) 0.0)

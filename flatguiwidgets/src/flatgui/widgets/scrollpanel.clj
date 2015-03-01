@@ -43,7 +43,7 @@
             h-scroll-pos (if (== h-scrollbar-w h-scroller-w) 0 (/ h-scroller-x (- h-scrollbar-w h-scroller-w)))
             extra-size (m/point-op - (get-property component [:this] :content-size) (get-property component [:this] :clip-size))
             mxy (fgc/round-to (- (* v-scroll-pos (m/y extra-size))) (flatgui.awt/px))]
-        ;@todo use transtation-matrix function here instead of mx-set
+        ;@todo use translation-matrix function here instead of mx-set
         (m/mx-set
           (m/mx-set m/IDENTITY-MATRIX 0 3 (- (* h-scroll-pos (m/x extra-size))))
           1 3
@@ -58,7 +58,7 @@
 
 
 (fg/defwidget "scrollpanelcontent"
-  {:position-matrix (m/transtation-matrix (flatgui.awt/px) (flatgui.awt/px) 0)
+  {:position-matrix (m/translation-matrix (flatgui.awt/px) (flatgui.awt/px) 0)
    :content-size (m/defpoint 14 12 0)
    :wheel-rotation-step-y 1
    :evolvers {:clip-size scrollpanelcontent-clip-size-evolver

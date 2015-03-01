@@ -37,8 +37,8 @@
              bar-width (get-property component [:_] :bar-width)
              base-size (get-property component [] :clip-size)]
         (if (= :horizontal orientation)
-          (m/transtation-matrix (* position (- (m/x base-size) bar-width)) 0 0)
-          (m/transtation-matrix 0 (* position (- (m/y base-size) bar-width)) 0)))
+          (m/translation-matrix (* position (- (m/x base-size) bar-width)) 0 0)
+          (m/translation-matrix 0 (* position (- (m/y base-size) bar-width)) 0)))
     :else
       old-position-matrix))
 
@@ -60,7 +60,7 @@
   { :focusable false
     :side-gap 0
     :orientation :horizontal
-    :sliderhandle-position (m/transtation-matrix 0 0)
+    :sliderhandle-position (m/translation-matrix 0 0)
     :skin-key [:slider :base]
     :evolvers {:orientation (fg/accessorfn (get-property component [] :orientation))
                :clip-size sliderhandlebase-clip-size-evolver
