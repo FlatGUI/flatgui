@@ -11,6 +11,7 @@
 package flatgui.core.awt;
 
 import flatgui.core.FGContainer;
+import flatgui.core.FGHostStateEvent;
 import flatgui.core.IFGContainer;
 import flatgui.core.awt.FGDefaultPrimitivePainter;
 import flatgui.core.awt.IFGPrimitivePainter;
@@ -56,6 +57,7 @@ public class HostComponent extends Canvas
         addMouseMotionListener(new ContainerMouseMotionListener(eventConsumer));
         addMouseWheelListener(new ContainerMouseWheelListener(eventConsumer));
         addKeyListener(new ContainerKeyListener(eventConsumer));
+        addComponentListener(new ContainerComponentListener(eventConsumer));
     }
 
     @Override
@@ -215,5 +217,25 @@ public class HostComponent extends Canvas
         @Override
         public void keyReleased(KeyEvent e)
         {eventImpl(e);}
+    }
+
+    private static class ContainerComponentListener extends ContainerListener implements ComponentListener
+    {
+        ContainerComponentListener(Consumer<Object> eventConsumer)
+        {super(eventConsumer);}
+        @Override
+        public void componentResized(ComponentEvent e)
+        {eventImpl(parseResizeEvent(e));}
+        @Override
+        public void componentMoved(ComponentEvent e) {}
+        @Override
+        public void componentShown(ComponentEvent e) {}
+        @Override
+        public void componentHidden(ComponentEvent e) {}
+
+        private static FGHostStateEvent parseResizeEvent(ComponentEvent e)
+        {
+            return FGHostStateEvent.createHostSizeEvent(e.getComponent().getSize());
+        }
     }
 }

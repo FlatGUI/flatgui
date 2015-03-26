@@ -9,6 +9,7 @@
  */
 package flatgui.core;
 
+import clojure.lang.Keyword;
 import clojure.lang.Var;
 
 import java.awt.event.*;
@@ -51,7 +52,10 @@ public class FGContainer implements IFGContainer
     {
         Var containerVar = clojure.lang.RT.var(template.getContainerNamespace(), template.getContainerVarName());
         Var registerFn = clojure.lang.RT.var(FGModule.FG_CORE_NAMESPACE, REGISTER_FN_NAME);
-        registerFn.invoke(containerId, containerVar.get());
+        Object container = containerVar.get();
+        registerFn.invoke(containerId, container);
+
+        Keyword containerIdInternal = (Keyword) ((Map)container).get(Keyword.intern("id"));
 
         containerId_ = containerId;
         module_ = new FGModule(containerId);
@@ -67,16 +71,27 @@ public class FGContainer implements IFGContainer
             }
 
             @Override
-            public Map<String, Object> getTargetedPropertyValues(FGContainer.FGTimerEvent fgTimerEvent) {
-                return new HashMap<>();
-            }
+            public Map<String, Object> getTargetedPropertyValues(FGContainer.FGTimerEvent fgTimerEvent) {return Collections.emptyMap();}
 
             @Override
             public Map<FGContainer.FGTimerEvent, Collection<Object>> getTargetCellIds(FGContainer.FGTimerEvent fgTimerEvent, IFGModule fgModule, Map<String, Object> generalPropertyMap) {
                 return Collections.emptyMap();
             }
         });
+        reasonParser_.registerReasonClassParser(FGHostStateEvent.class, new IFGInputEventParser<FGHostStateEvent>() {
+            @Override
+            public Map<String, Object> initialize(IFGModule fgModule) {return null;}
 
+            @Override
+            public Map<String, Object> getTargetedPropertyValues(FGHostStateEvent fgHostStateEvent) {return Collections.emptyMap();}
+
+            @Override
+            public Map<FGHostStateEvent, Collection<Object>> getTargetCellIds(FGHostStateEvent fgHostStateEvent, IFGModule fgModule, Map<String, Object> generalPropertyMap) {
+                Map<FGHostStateEvent, Collection<Object>> map = new HashMap<>();
+                map.put(fgHostStateEvent, Arrays.asList(containerIdInternal));
+                return map;
+            }
+        });
 
         containerProperties_ = new HashMap<>();
         containerProperties_.put(GENERAL_PROPERTY_UNIT_SIZE, UNIT_SIZE_PX);
