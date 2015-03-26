@@ -9,6 +9,7 @@
  */
 package flatgui.samples;
 
+import clojure.lang.Keyword;
 import flatgui.core.*;
 import flatgui.core.awt.FGAWTContainerHost;
 
@@ -17,7 +18,8 @@ import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.InputStream;
-import java.util.Scanner;
+import java.util.*;
+import java.util.List;
 
 /**
  * @author Denis Lebedev
@@ -52,6 +54,8 @@ public class FGHelloWorldDemo
 
                 helloWorldInstance.initialize();
 
+                helloWorldInstance.addEvolveConsumer(new DemoConsumer());
+
                 IFGContainerHost<Component> awtHost = new FGAWTContainerHost();
                 Component awtComponent = awtHost.hostContainer(helloWorldInstance);
 
@@ -74,5 +78,45 @@ public class FGHelloWorldDemo
                 ex.printStackTrace();
             }
         });
+    }
+
+    private static class DemoConsumer implements IFGEvolveConsumer
+    {
+        private final Collection<List<Keyword>> paths_;
+
+        DemoConsumer()
+        {
+            List<Keyword> path = Arrays.asList(
+                    Keyword.intern("main"),
+                    Keyword.intern("hello"),
+                    Keyword.intern("greeting"));
+            paths_ = Collections.unmodifiableList(Arrays.asList(path));
+        }
+
+
+        @Override
+        public Collection<List<Keyword>> getTargetPaths()
+        {
+            return paths_;
+        }
+
+        @Override
+        public void acceptEvolveResult(Object sessionId, Object containerObject)
+        {
+            try
+            {
+                Map<Object, Object> mainChildren = (Map<Object, Object>) ((Map<Object, Object>) containerObject).get(Keyword.intern("children"));
+                Map<Object, Object> helloWindow = (Map<Object, Object>) mainChildren.get(Keyword.intern("hello"));
+                Map<Object, Object> helloChildren = (Map<Object, Object>) helloWindow.get(Keyword.intern("children"));
+                Map<Object, Object> greetingLabel = (Map<Object, Object>) helloChildren.get(Keyword.intern("greeting"));
+                String labelText = (String) greetingLabel.get(Keyword.intern("text"));
+
+                System.out.println("Label text is " + labelText);
+            }
+            catch (Exception ex)
+            {
+                ex.printStackTrace();
+            }
+        }
     }
 }
