@@ -32,6 +32,8 @@ public interface IFGContainer
 
     public void unInitialize();
 
+    public void addEvolveConsumer(IFGEvolveConsumer consumer);
+
     public IFGModule getFGModule();
 
     public Consumer<Object> connect(ActionListener eventFedCallback, Object hostContext);

@@ -40,6 +40,8 @@ public class FGContainer implements IFGContainer
 
     private ActionListener eventFedCallback_;
 
+    private List<IFGEvolveConsumer> evolveConsumers_;
+
     public FGContainer(IFGTemplate template)
     {
         this(template, template.getContainerVarName());
@@ -100,60 +102,8 @@ public class FGContainer implements IFGContainer
         //interopUtil_ = new FGAWTInteropUtil((Component)hostContext, UNIT_SIZE_PX);
         // TODO temporary
         interopUtil_ = new FGDummyInteropUtil(UNIT_SIZE_PX);
-    }
 
-    @Deprecated
-    public FGContainer(String name)
-    {
-        containerId_ = name;
-        module_ = new FGModule(name);
-
-        reasonParser_ = new FGInputEventParser();
-        reasonParser_.registerReasonClassParser(MouseEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
-        reasonParser_.registerReasonClassParser(MouseWheelEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
-        reasonParser_.registerReasonClassParser(KeyEvent.class, new FGKeyEventParser());
-        reasonParser_.registerReasonClassParser(FGContainer.FGTimerEvent.class, new IFGInputEventParser<FGTimerEvent>() {
-            @Override
-            public Map<String, Object> initialize(IFGModule fgModule) {
-                return null;
-            }
-
-            @Override
-            public Map<String, Object> getTargetedPropertyValues(FGContainer.FGTimerEvent fgTimerEvent) {
-                return new HashMap<>();
-            }
-
-            @Override
-            public Map<FGContainer.FGTimerEvent, Collection<Object>> getTargetCellIds(FGContainer.FGTimerEvent fgTimerEvent, IFGModule fgModule, Map<String, Object> generalPropertyMap) {
-                return Collections.emptyMap();
-            }
-        });
-
-
-        containerProperties_ = new HashMap<>();
-        containerProperties_.put(GENERAL_PROPERTY_UNIT_SIZE, UNIT_SIZE_PX);
-
-        targetedProperties_ = new HashMap<>();
-
-//        Timer repaintTimer = new Timer("FlatGUI Blink Helper Timer", true);
-//        repaintTimer.schedule(new TimerTask()
-//        {
-//            @Override
-//            public void run()
-//            {
-//                //EventQueue.invokeLater(() -> cycle(new FGTimerEvent()));
-//            }
-//        }, 250, 250);
-
-        Map<String, Object> initialGeneralProperties = reasonParser_.initialize(module_);
-        if (initialGeneralProperties != null)
-        {
-            containerProperties_.putAll(initialGeneralProperties);
-        }
-
-        //interopUtil_ = new FGAWTInteropUtil((Component)hostContext, UNIT_SIZE_PX);
-        // TODO temporary
-        interopUtil_ = new FGDummyInteropUtil(UNIT_SIZE_PX);
+        evolveConsumers_ = new ArrayList<>();
     }
 
     @Override
@@ -172,6 +122,12 @@ public class FGContainer implements IFGContainer
     public void unInitialize()
     {
         evolverExecutorService_.shutdown();
+    }
+
+    @Override
+    public void addEvolveConsumer(IFGEvolveConsumer consumer)
+    {
+        evolveConsumers_.add(consumer);
     }
 
     @Override
@@ -208,7 +164,7 @@ public class FGContainer implements IFGContainer
 
     ///
 
-    private void cycle(Object repaintReason)
+    private Map<Object, Collection<Object>> cycle(Object repaintReason)
     {
         if (repaintReason == null)
         {
@@ -251,11 +207,20 @@ public class FGContainer implements IFGContainer
                 module_.evolve(targetCellIds_, reason);
             }
         }
+        return reasonMap;
     }
 
     public synchronized void feedEvent(Object repaintReason)
     {
-        evolverExecutorService_.submit(() -> cycle(repaintReason));
+        evolverExecutorService_.submit(() -> {
+            Map<Object, Collection<Object>> reasonMap = cycle(repaintReason);
+            for (Collection<Object> idPath : reasonMap.values())
+            {
+                evolveConsumers_.stream()
+                        .filter(consumer -> consumer.getTargetPaths().contains(idPath))
+                        .forEach(consumer -> consumer.acceptEvolveResult(null, module_.getContainerObject()));
+            }
+        });
 
         //hostComponent_.repaint();
         eventFedCallback_.actionPerformed(null);
