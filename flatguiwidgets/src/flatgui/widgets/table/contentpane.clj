@@ -53,31 +53,6 @@
 (defn- get-cell-component-id [header-id cbuf-index]
   (keyword (str (name header-id) "-" cbuf-index)))
 
-;;; TODO ability to have a cell type per column
-;;;
-(defn- get-cell-component [component header-id]
-  (:default-cell-component component))
-
-(fg/defaccessorfn create-cell-component [component id header-id cbuf-index clone]
-  (let [header-ids (get-property component [] :header-ids)
-        column-index (.indexOf header-ids header-id)
-        row-height (tcom/get-row-h component nil)]
-    (if clone
-      ;; TODO take into account possiblity of having a cell type per column
-      (assoc
-        (flatgui.dependency/clone-component (nth (first (:children component)) 1) id)
-        :header-id header-id
-        :cbuf-index cbuf-index
-        :row-height row-height
-        :screen-col column-index)
-      (fg/defcomponent
-        (get-cell-component component header-id)
-        id
-        {:header-id header-id
-         :cbuf-index cbuf-index
-         :row-height row-height
-         :screen-col column-index}))))
-
 (fg/defevolverfn contentpane-position-matrix-evolver :position-matrix
   (let [header-size (get-property component [:header] :clip-size)
         header-h (m/y header-size)]
@@ -148,6 +123,35 @@
      :cbuf (cb/move-cbuf (:cbuf old-visible-screen-rows) first-row last-row)
      :y-locations (mapv #(tcom/get-row-y component %1) (range (nth visible-rows 0) (inc (nth visible-rows 1))))}))
 
+
+;;; ;;;;;;;;;;; TODO this should go into some generic widget-feature: a widget with flex child set ;;;;;;;;;;;;;;;;;;;;;;
+
+;;; TODO ability to have a cell type per column
+;;;
+(defn- get-cell-component [component header-id]
+  (:default-cell-component component))
+
+(fg/defaccessorfn create-cell-component [component id header-id cbuf-index clone]
+                  (let [header-ids (get-property component [] :header-ids)
+                        column-index (.indexOf header-ids header-id)
+                        row-height (tcom/get-row-h component nil)]
+                    (if clone
+                      ;; TODO take into account possiblity of having a cell type per column
+                      (assoc
+                        (flatgui.dependency/clone-component (nth (first (:children component)) 1) id)
+                        :header-id header-id
+                        :cbuf-index cbuf-index
+                        :row-height row-height
+                        :screen-col column-index)
+                      (fg/defcomponent
+                        (get-cell-component component header-id)
+                        id
+                        {:header-id header-id
+                         :cbuf-index cbuf-index
+                         :row-height row-height
+                         :screen-col column-index}))))
+
+;;; Returns the list of :id,:header-id,cbuf-index maps (a map per each future component)
 (defn- fill-child-info-for-rows [from to header-ids]
   (mapcat (fn [h] (for [c (range from to)] {:id (get-cell-component-id h c) :header-id h :cbuf-index c})) header-ids))
 
@@ -232,6 +236,9 @@
         (apply dissoc old-children (map (fn [e] (:id e)) to-remove)))
       :else
       old-children)))
+
+;;;; End of TODO
+
 
 (fg/defevolverfn :row-order
   ;; This is temporary. Need to know which evolvers to invoke on which input event.

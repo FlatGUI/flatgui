@@ -225,6 +225,12 @@ public class FGContainer implements IFGContainer
         return reasonMap;
     }
 
+    private void cycleTargeted(Collection<Object> targetIdPath, Object repaintReason)
+    {
+        module_.evolve(targetIdPath, repaintReason);
+    }
+
+    @Override
     public synchronized void feedEvent(Object repaintReason)
     {
         evolverExecutorService_.submit(() -> {
@@ -237,7 +243,19 @@ public class FGContainer implements IFGContainer
             }
         });
 
-        //hostComponent_.repaint();
+        eventFedCallback_.actionPerformed(null);
+    }
+
+    @Override
+    public void feedTargetedEvent(Collection<Object> targetCellIdPath, Object repaintReason)
+    {
+        evolverExecutorService_.submit(() -> {
+            cycleTargeted(targetCellIdPath, repaintReason);
+            evolveConsumers_.stream()
+                    .filter(consumer -> consumer.getTargetPaths().contains(targetCellIdPath))
+                    .forEach(consumer -> consumer.acceptEvolveResult(null, module_.getContainerObject()));
+        });
+
         eventFedCallback_.actionPerformed(null);
     }
 
