@@ -34,10 +34,10 @@ public class FGWebContainerWrapper
     public static final byte LOOK_VECTOR_MAP_COMMAND_CODE = 3;
     public static final byte CHILD_COUNT_MAP_COMMAND_CODE = 4;
     public static final byte BOOLEAN_STATE_FLAGS_COMMAND_CODE = 5;
+    public static final byte IMAGE_URL_MAP_COMMAND_CODE = 6;
 
-    public static final byte PAINT_ALL_LIST_COMMAND_CODE = 6;
-
-    public static final byte REPAINT_CACHED_COMMAND_CODE = 7;
+    public static final byte PAINT_ALL_LIST_COMMAND_CODE = 64;
+    public static final byte REPAINT_CACHED_COMMAND_CODE = 65;
 
 
     private static Set<String> RECT_COMMANDS;
@@ -569,6 +569,40 @@ public class FGWebContainerWrapper
         }
     }
 
+    static abstract class StringTransmitter extends MapTransmitter<String>
+    {
+        public StringTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
+        {
+            super(keyCache, sourceMapSupplier);
+        }
+
+        @Override
+        protected int writeValue(ByteArrayOutputStream stream, int n, String value)
+        {
+            int strLen = value.length();
+            stream.write((byte)(strLen & 0xFF));
+            stream.write((byte)((strLen >> 8) & 0xFF));
+            byte[] srtBytes = value.getBytes();
+            stream.write(srtBytes, 0, srtBytes.length);
+            return strLen + 2;
+        }
+    }
+
+    static class ImageUrlTransmitter extends StringTransmitter
+    {
+        public ImageUrlTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
+        {
+            super(keyCache, sourceMapSupplier);
+        }
+
+        @Override
+        public byte getCommandCode()
+        {
+            return IMAGE_URL_MAP_COMMAND_CODE;
+        }
+    }
+
+
     static abstract class ListTransmitter<V> extends AbstractTransmitter<List<Object>>
     {
         private Supplier<List<Object>> sourceListSupplier_;
@@ -690,6 +724,7 @@ public class FGWebContainerWrapper
             addDataTransmitter(new ChildCountMapTransmitter(keyCache_, () -> fgModule.getComponentIdPathToChildCount()));
             addDataTransmitter(new BooleanFlagsMapTransmitter(keyCache_, () -> fgModule.getComponentIdPathToBooleanStateFlags()));
             addDataTransmitter(new PaintAllTransmitter(keyCache_, () -> fgModule.getPaintAllSequence2()));
+            addDataTransmitter(new ImageUrlTransmitter(keyCache_, () -> fgModule.getComponentIdPathToImageUrl()));
 
             resetDataCache();
         }

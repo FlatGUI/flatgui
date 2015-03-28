@@ -321,9 +321,10 @@ var CLIP_SIZE_MAP_COMMAND_CODE = 2;
 var LOOK_VECTOR_MAP_COMMAND_CODE = 3;
 var CHILD_COUNT_MAP_COMMAND_CODE = 4;
 var BOOLEAN_STATE_FLAGS_COMMAND_CODE = 5;
+var IMAGE_URL_MAP_COMMAND_CODE = 6;
 
-var PAINT_ALL_LIST_COMMAND_CODE = 6;
-var REPAINT_CACHED_COMMAND_CODE = 7;
+var PAINT_ALL_LIST_COMMAND_CODE = 64;
+var REPAINT_CACHED_COMMAND_CODE = 65;
 
 // TODO track removed components
 
@@ -333,6 +334,7 @@ var clipSizes = [];
 var lookVectors = [];
 var childCounts = [];
 var booleanStateFlags = [];
+var imageUrls = [];
 var paintAllSequence;
 
 var absPositions = [];
@@ -453,6 +455,17 @@ function paintComponent(stream, c)
                     {
                         decodeLookVector(lookVector, lookVector.length);
                     }
+
+                    // TODO temporary
+                    var imageUrl = imageUrls[index];
+                    if (imageUrl)
+                    {
+                        var img = new Image;
+                        img.onload = function(){
+                            ctx.drawImage(img,0,0);
+                        };
+                        img.src = imageUrl;
+                    }
                 }
                 else
                 {
@@ -567,6 +580,23 @@ function decodeCommandVector(stream, byteLength)
                 c+=2;
                 booleanStateFlags[index] = stream[c];
                 c++;
+            }
+            break;
+        case IMAGE_URL_MAP_COMMAND_CODE:
+            while (c < byteLength)
+            {
+                var index = readShort(stream, c);
+                c+=2;
+                var imageUrlSize = readShort(stream, c);
+                c+=2;
+
+                var imageUrl = [];
+                for (i=0; i<imageUrlSize; i++)
+                {
+                    imageUrl[i] = stream[c+i];
+                }
+                c += imageUrlSize;
+                imageUrls[index] = imageUrl;
             }
             break;
         case PAINT_ALL_LIST_COMMAND_CODE:
