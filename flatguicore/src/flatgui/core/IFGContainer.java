@@ -10,6 +10,7 @@
 package flatgui.core;
 
 import java.awt.event.ActionListener;
+import java.util.Collection;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
@@ -39,6 +40,10 @@ public interface IFGContainer
     public Consumer<Object> connect(ActionListener eventFedCallback, Object hostContext);
 
     public <T> Future<T> submitTask(Callable<T> callable);
+
+    public void feedEvent(Object repaintReason);
+
+    public void feedTargetedEvent(Collection<Object> targetCellIdPath, Object repaintReason);
 
     // TODO following methods do not belong to here
 
