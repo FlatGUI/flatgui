@@ -378,6 +378,8 @@
 (defn get-component-id-path-to-flags [container]
   (get-component-id-path-to-property-value [] container [:rollover-notify-disabled :popup :visible] (fn [v] (if v 1 0))))
 
+(defn get-component-id-path-to-image-url [container]
+      (get-component-id-path-to-property-value [] container :image-url identity))
 
 (defn- ready-for-paint? [container]
   (and

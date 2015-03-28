@@ -54,6 +54,8 @@ public interface IFGModule
 
     public Map<Object, Object> getComponentIdPathToBooleanStateFlags();
 
+    public Map<Object, Object> getComponentIdPathToImageUrl();
+
     public List<Object> getPaintAllSequence2();
 
     public List<Object> getPaintChangedSequence2();

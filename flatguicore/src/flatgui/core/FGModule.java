@@ -177,6 +177,14 @@ class FGModule implements IFGModule
     }
 
     @Override
+    public Map<Object, Object> getComponentIdPathToImageUrl()
+    {
+        Object container = getContainer();
+        Var fn = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-image-url");
+        return (Map<Object, Object>) fn.invoke(container);
+    }
+
+    @Override
     public List<Object> getPaintAllSequence2()
     {
         Object container = getContainer();
