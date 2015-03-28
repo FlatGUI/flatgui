@@ -20,6 +20,8 @@ import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketServlet;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
+import java.util.function.Consumer;
+
 /**
  * @author Denis Lebedev
  */
@@ -35,13 +37,18 @@ public class FGAppServer
 
     public FGAppServer(IFGTemplate template, int port) throws Exception
     {
+        this(template, port, null);
+    }
+
+    public FGAppServer(IFGTemplate template, int port, Consumer<IFGContainer> containerConsumer) throws Exception
+    {
         template_ = template;
         server_ = new Server(port);
 
         ServletHandler handler = new ServletHandler();
         server_.setHandler(handler);
 
-        ServletHolder h = new ServletHolder(new FGWebSocketServlet(template_));
+        ServletHolder h = new ServletHolder(new FGWebSocketServlet(template_, containerConsumer));
 
         //handler.addServletWithMapping(FGWebSocketServlet.class, "/*");
         handler.addServletWithMapping(h, "/*");
@@ -70,11 +77,13 @@ public class FGAppServer
     {
         private final IFGTemplate template_;
         private final FGContainerSessionHolder sessionHolder_;
+        private final Consumer<IFGContainer> containerConsumer_;
 
-        FGWebSocketServlet(IFGTemplate template)
+        FGWebSocketServlet(IFGTemplate template, Consumer<IFGContainer> containerConsumer)
         {
             template_ = template;
             sessionHolder_ = new FGContainerSessionHolder(new FGSessionContainerHost());
+            containerConsumer_ = containerConsumer;
         }
 
         @Override
@@ -86,7 +95,7 @@ public class FGAppServer
 
         private Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp)
         {
-            return new FGContainerWebSocket(template_, sessionHolder_);
+            return new FGContainerWebSocket(template_, sessionHolder_, containerConsumer_);
         }
     }
 }

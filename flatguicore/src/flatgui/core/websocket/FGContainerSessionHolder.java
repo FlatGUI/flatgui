@@ -70,13 +70,13 @@ class FGContainerSessionHolder
         return s;
     }
 
-    //private static long counter_ = 0;
+    private static long counter_ = 0;
     private static Object getSessionId(IFGTemplate template, InetAddress remoteAddress)
     {
         String name = template.getContainerNamespace() + "_" +
                 template.getContainerVarName() + "_" +
-                remoteAddress.getHostAddress().toString();// + String.valueOf(counter_);
-        //counter_++;
+                remoteAddress.getHostAddress().toString() + String.valueOf(counter_);
+        counter_++;
         for (int i=0; i<SPECIAL_CHARS.length(); i++)
         {
             name = name.replace(SPECIAL_CHARS.charAt(i), '_');

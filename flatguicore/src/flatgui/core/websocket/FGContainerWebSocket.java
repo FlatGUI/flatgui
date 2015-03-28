@@ -11,6 +11,7 @@
 package flatgui.core.websocket;
 
 import flatgui.core.FGWebContainerWrapper;
+import flatgui.core.IFGContainer;
 import flatgui.core.IFGTemplate;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
@@ -19,6 +20,7 @@ import java.awt.event.InputEvent;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
+import java.util.function.Consumer;
 
 /**
  * @author Denis Lebedev
@@ -28,6 +30,7 @@ public class FGContainerWebSocket implements WebSocketListener
     private final FGContainerSessionHolder sessionHolder_;
     // TODO have some template provider instead
     private final IFGTemplate template_;
+    private final Consumer<IFGContainer> containerConsumer_;
 
     private volatile Session session_;
     private volatile FGWebContainerWrapper container_;
@@ -36,8 +39,14 @@ public class FGContainerWebSocket implements WebSocketListener
 
     public FGContainerWebSocket(IFGTemplate template, FGContainerSessionHolder sessionHolder)
     {
+        this (template, sessionHolder, null);
+    }
+
+    public FGContainerWebSocket(IFGTemplate template, FGContainerSessionHolder sessionHolder, Consumer<IFGContainer> containerConsumer)
+    {
         template_ = template;
         sessionHolder_ = sessionHolder;
+        containerConsumer_ = containerConsumer;
 
         FGAppServer.getFGLogger().info("WS Listener created " + System.identityHashCode(this));
     }
@@ -77,6 +86,10 @@ public class FGContainerWebSocket implements WebSocketListener
         setTextToRemote(statusMessage.toString());
 
         container_.initialize();
+        if (containerConsumer_ != null)
+        {
+            containerConsumer_.accept(container_.getContainer());
+        }
 
         statusMessage.append("|initialized app");
         setTextToRemote(statusMessage.toString());

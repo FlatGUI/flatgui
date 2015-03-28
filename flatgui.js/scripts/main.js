@@ -590,10 +590,10 @@ function decodeCommandVector(stream, byteLength)
                 var imageUrlSize = readShort(stream, c);
                 c+=2;
 
-                var imageUrl = [];
+                var imageUrl = "";
                 for (i=0; i<imageUrlSize; i++)
                 {
-                    imageUrl[i] = stream[c+i];
+                    imageUrl += String.fromCharCode(stream[c+i]);
                 }
                 c += imageUrlSize;
                 imageUrls[index] = imageUrl;
