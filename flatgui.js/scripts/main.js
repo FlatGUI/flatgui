@@ -201,6 +201,21 @@ function setClip(codeObj)
     applyCurrentClip();
 }
 
+function getTextLineHeight()
+{
+    return ctx.measureText("M").width;
+}
+
+function fillMultilineTextNoWrap(text, x, y)
+{
+    var lines = text.split("\n");
+    var lineHeight = getTextLineHeight();
+    for (var i=0; i<lines.length; i++)
+    {
+        ctx.fillText(lines[i], x, y + i*1.5*lineHeight);
+    }
+}
+
 function decodeLog(msg)
 {
     //console.log(msg);
@@ -249,7 +264,7 @@ function decodeLookVector(stream, byteLength)
                 {
                     codeObj = decodeString(stream, c);
                     decodeLog( "drawString " + JSON.stringify(codeObj)); 
-                    ctx.fillText(codeObj.s, codeObj.x, codeObj.y);
+                    fillMultilineTextNoWrap(codeObj.s, codeObj.x, codeObj.y);
                     c += codeObj.len;
                 }
                 break;
