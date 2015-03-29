@@ -12,6 +12,7 @@
   (:require [flatgui.awt :as awt]
             [flatgui.base :as fg]
             [flatgui.inputchannels.keyboard :as keyboard]
+            [flatgui.inputchannels.clipboard :as clipboard]
             [flatgui.inputchannels.awtbase :as inputbase]
             [flatgui.util.matrix :as m])
   (:import [java.awt.event KeyEvent]))
@@ -80,15 +81,18 @@
     :else old-selection-mark))
 
 (fg/defevolverfn text-model-evolver :model
-              (let [text-supplier (:text-supplier component)
-                    supplied-text (text-supplier component)
-                    prevcaretpos (:caret-pos old-model)
-                    old-selection-mark (:selection-mark old-model)
-                    old-text (:text old-model)
-                    caretpos (evovle-caret-pos component prevcaretpos old-selection-mark old-text supplied-text)
-                    text (evolve-text component prevcaretpos caretpos old-selection-mark old-text supplied-text)
-                    selection-mark (evovle-selection-mark component caretpos old-selection-mark)]
-                {:text text :caret-pos caretpos :selection-mark selection-mark}))
+  (if (clipboard/clipboard-event? component)
+    ;; TODO replace selection
+    {:text (clipboard/get-plain-text component) :caret-pos 0 :selection-mark 0}
+    (let [text-supplier (:text-supplier component)
+          supplied-text (text-supplier component)
+          prevcaretpos (:caret-pos old-model)
+          old-selection-mark (:selection-mark old-model)
+          old-text (:text old-model)
+          caretpos (evovle-caret-pos component prevcaretpos old-selection-mark old-text supplied-text)
+          text (evolve-text component prevcaretpos caretpos old-selection-mark old-text supplied-text)
+          selection-mark (evovle-selection-mark component caretpos old-selection-mark)]
+      {:text text :caret-pos caretpos :selection-mark selection-mark})))
 
 (fg/defevolverfn :text (:text (get-property component [:this] :model)))
 

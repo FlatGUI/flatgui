@@ -10,6 +10,8 @@
 
 package flatgui.core.websocket;
 
+import flatgui.core.FGClipboardEvent;
+
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -24,31 +26,32 @@ public class FGInputEventDecoder
 {
     public static final Component dummySourceComponent_ = new Container();
 
-    private Collection<IParser<BinaryInput, ? extends InputEvent>> binaryParsers_;
+    private Collection<IParser<BinaryInput, ?>> binaryParsers_;
 
     public FGInputEventDecoder()
     {
         binaryParsers_ = new ArrayList<>();
         addBinaryParser(new MouseBinaryParser());
+        addBinaryParser(new ClipboardBinaryParser());
     }
 
-    public final void addBinaryParser(IParser<BinaryInput, ? extends InputEvent> parser)
+    public final void addBinaryParser(IParser<BinaryInput, ?> parser)
     {
         binaryParsers_.add(parser);
     }
 
-    public <E extends InputEvent> E getInputEvent(BinaryInput binaryData)
+    public <E> E getInputEvent(BinaryInput binaryData)
     {
         return getInputEvent(binaryData, binaryParsers_);
     }
 
-    private static <S, E extends InputEvent> E getInputEvent(S input, Collection<IParser<S, ? extends InputEvent>> parsers)
+    private static <S, E> E getInputEvent(S input, Collection<IParser<S, ?>> parsers)
     {
         try
         {
             for (IParser p : parsers)
             {
-                InputEvent e = p.getInputEvent(input);
+                Object e = p.getInputEvent(input);
                 if (e != null)
                 {
                     return (E)e;
@@ -93,7 +96,7 @@ public class FGInputEventDecoder
         }
     }
 
-    public interface IParser<S, E extends InputEvent>
+    public interface IParser<S, E>
     {
         public E getInputEvent(S jsonObj) throws Exception;
     }
@@ -124,7 +127,7 @@ public class FGInputEventDecoder
 //        }
 //    }
 
-    public static abstract class AbstractBinaryParser<E extends InputEvent> implements IParser<BinaryInput, E>
+    public static abstract class AbstractBinaryParser<E> implements IParser<BinaryInput, E>
     {
         public E getInputEvent(BinaryInput binaryData) throws Exception
         {
@@ -166,6 +169,55 @@ public class FGInputEventDecoder
                 y += ((array[ofs + 3] & 0x0F) << 8);
 
                 return getMouseEvent(id, x, y);
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+
+    public static class ClipboardBinaryParser extends AbstractBinaryParser<FGClipboardEvent>
+    {
+
+        @Override
+        protected FGClipboardEvent parseImpl(BinaryInput binaryData, int id) throws Exception
+        {
+            if (id >= FGClipboardEvent.CLIPBOARD_FIRST && id <= FGClipboardEvent.CLIPBOARD_LAST)
+            {
+                if (id == FGClipboardEvent.CLIPBOARD_PASTE)
+                {
+                    byte[] array = binaryData.getPayload();
+                    int ofs = binaryData.getOffset();
+
+                    int lenLo = array[ofs + 1] & 0x7F;
+                    if ((array[ofs + 1] & 0x80) == 0x80)
+                    {
+                        lenLo += 0x80;
+                    }
+                    int lenHi = array[ofs + 2] & 0x7F;
+                    if ((array[ofs + 2] & 0x80) == 0x80)
+                    {
+                        lenHi += 0x80;
+                    }
+                    int len = lenHi * 256 + lenLo;
+
+                    char[] charArray = new char[len];
+                    for (int i = 0; i < len; i++)
+                    {
+                        charArray[i] = (char) array[ofs + 3 + i];
+                    }
+                    Object data = String.valueOf(charArray);
+
+                    System.out.println("-DLTEMP- ClipboardBinaryParser.parseImpl received data = " + data  +
+                        " lenLo = " + lenLo + " lenHi = " + lenHi + " len = " + len);
+
+                    return FGClipboardEvent.createPasteEvent(data);
+                }
+                else
+                {
+                    return null;
+                }
             }
             else
             {

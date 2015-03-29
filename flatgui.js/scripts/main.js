@@ -738,15 +738,9 @@ function getEncodedMouseEvent(x, y, id)
     bytearray[3] = ((x >> 4) & 0xF0) | ((y >> 8) & 0x0F);
 
     return bytearray.buffer;
-
-//    var json = JSON.stringify({
-//        "id": id,
-//        "x": x,
-//        "y": y});
-//    return json;
 }
 
-function storeMouseEventAndGetJSON(evt, id)
+function storeMouseEventAndGetEncoded(evt, id)
 {
     var rect = canvas.getBoundingClientRect();
     var x = evt.clientX - rect.left;
@@ -761,23 +755,23 @@ function storeMouseEventAndGetJSON(evt, id)
 function sendMouseDownEventToServer(evt)
 {
     mouseDown = true;
-    sendEventToServer(storeMouseEventAndGetJSON(evt, 501));
+    sendEventToServer(storeMouseEventAndGetEncoded(evt, 501));
 }
 
 function sendMouseUpEventToServer(evt)
 {
     if (lastUnprocessedMouseDrag)
     {
-        sendEventToServer(storeMouseEventAndGetJSON(lastUnprocessedMouseDrag, 506));
+        sendEventToServer(storeMouseEventAndGetEncoded(lastUnprocessedMouseDrag, 506));
         lastUnprocessedMouseDrag = null;
     }
     mouseDown = false;
-    sendEventToServer(storeMouseEventAndGetJSON(evt, 502));
+    sendEventToServer(storeMouseEventAndGetEncoded(evt, 502));
 }
 
 function sendMouseClickEventToServer(evt)
 {
-    sendEventToServer(storeMouseEventAndGetJSON(evt, 500));
+    sendEventToServer(storeMouseEventAndGetEncoded(evt, 500));
 }
 
 function isComponentReadyForMouseRollover(i)
@@ -803,10 +797,10 @@ function sendMouseMoveEventToServer(evt)
         if (mouseDown)
         {
             var nowTime = Date.now();
-            if (nowTime - lastMouseDragTime > 25)
+            if (nowTime - lastMouseDragTime > 5)
             {
                 lastUnprocessedMouseDrag = null;
-                sendEventToServer(storeMouseEventAndGetJSON(evt, 506));
+                sendEventToServer(storeMouseEventAndGetEncoded(evt, 506));
             }
             else
             {
@@ -847,7 +841,7 @@ function sendMouseMoveEventToServer(evt)
             if (indexUnderMouse !== lastIndexUnderMouse || lastMousePosWasOnEdge || onEdge)
             {
                 sendEventToServer(getEncodedMouseEvent(lastMouseX, lastMouseY, 503));
-                sendEventToServer(storeMouseEventAndGetJSON(evt, 503));
+                sendEventToServer(storeMouseEventAndGetEncoded(evt, 503));
 
                 lastIndexUnderMouse = indexUnderMouse;
                 lastMousePosWasOnEdge = onEdge;
@@ -856,10 +850,41 @@ function sendMouseMoveEventToServer(evt)
     }
 }
 
+var CLIPBOARD_PASTE_EVENT_CODE = 403;
+
+function handlePaste(evt)
+{
+    console.log("Paste --1- ----- ----- ");
+    if (evt && evt.clipboardData && evt.clipboardData.getData)
+    {
+        var text = evt.clipboardData.getData('text/plain');
+        console.log("Paste --2- ----- ----- " + text);
+
+        if (text && text.length)
+        {
+            var bytearray = new Uint8Array(3 + text.length);
+
+            bytearray[0] = CLIPBOARD_PASTE_EVENT_CODE - 400;
+            bytearray[1] = text.length & 0xFF;
+            bytearray[2] = ((text.length & 0xFF00) >> 8);
+
+            for (var i=0; i<text.length; i++)
+            {
+                bytearray[3+i] = text.charCodeAt(i);
+            }
+
+            console.log("Sent paste event to erver: " + bytearray[0]);
+            sendEventToServer(bytearray.buffer);
+        }
+    }
+}
+
 canvas.addEventListener("mousedown", sendMouseDownEventToServer, false);
 canvas.addEventListener("mouseup", sendMouseUpEventToServer, false);
 canvas.addEventListener("click", sendMouseClickEventToServer, false);
 canvas.addEventListener("mousemove", sendMouseMoveEventToServer, false);
+
+window.addEventListener("paste", handlePaste, false);
 
 canvas.ondragstart = function(e)
 {
