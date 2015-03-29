@@ -335,6 +335,7 @@ var lookVectors = [];
 var childCounts = [];
 var booleanStateFlags = [];
 var imageUrls = [];
+var images = [];
 var paintAllSequence;
 
 var absPositions = [];
@@ -457,14 +458,9 @@ function paintComponent(stream, c)
                     }
 
                     // TODO temporary
-                    var imageUrl = imageUrls[index];
-                    if (imageUrl)
+                    if (images[index])
                     {
-                        var img = new Image;
-                        img.onload = function(){
-                            ctx.drawImage(img,0,0);
-                        };
-                        img.src = imageUrl;
+                        ctx.drawImage(images[index],0,0);
                     }
                 }
                 else
@@ -597,6 +593,9 @@ function decodeCommandVector(stream, byteLength)
                 }
                 c += imageUrlSize;
                 imageUrls[index] = imageUrl;
+                var img = new Image;
+                img.src = imageUrl;
+                images[index] = img;
             }
             break;
         case PAINT_ALL_LIST_COMMAND_CODE:
