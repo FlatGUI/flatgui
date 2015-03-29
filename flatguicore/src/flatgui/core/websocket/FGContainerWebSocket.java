@@ -115,7 +115,7 @@ public class FGContainerWebSocket implements WebSocketListener
     {
         //logger_.debug("Received message #" + debugMessageCount_ + ": " + message);
         fgSession_.markAccesed();
-        InputEvent e = parser_.getInputEvent(new FGInputEventDecoder.BinaryInput(payload, offset, len));
+        Object e = parser_.getInputEvent(new FGInputEventDecoder.BinaryInput(payload, offset, len));
         processInputEvent(e);
     }
 
@@ -125,7 +125,7 @@ public class FGContainerWebSocket implements WebSocketListener
         //logger_.debug("Received message #" + debugMessageCount_ + ": " + message);
     }
 
-    private void processInputEvent(InputEvent e)
+    private void processInputEvent(Object e)
     {
         if (e == null)
         {

@@ -64,6 +64,7 @@ public class FGContainer implements IFGContainer
         reasonParser_.registerReasonClassParser(MouseEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
         reasonParser_.registerReasonClassParser(MouseWheelEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
         reasonParser_.registerReasonClassParser(KeyEvent.class, new FGKeyEventParser());
+        reasonParser_.registerReasonClassParser(FGClipboardEvent.class, new FGClipboardEventEventParser());
         reasonParser_.registerReasonClassParser(FGContainer.FGTimerEvent.class, new IFGInputEventParser<FGTimerEvent>() {
             @Override
             public Map<String, Object> initialize(IFGModule fgModule) {
