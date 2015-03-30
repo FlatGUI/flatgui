@@ -34,6 +34,21 @@
            (if (~'all-values ~'reason) false ~'old-pressed)
            (flatgui.widgets.radiobutton/radio-pressed-evolver ~'component))))))
 
+(defmacro radiogroupaccessor [all-radio-ids]
+  "Creates evolver fn for mutually exclusive radiobuttons.
+   The created evolver assumes all radio buttons are added
+   to the same container, and it should be assigned to each
+   radio button of the group"
+  (let [let-binding (vec
+                      (list
+                        'all-values (conj (mapcat (fn [e] [[e] (list 'get-property 'component [e] :pressed)]) all-radio-ids) 'hash-map)
+                        'reason (list 'flatgui.base/get-reason)))]
+    `(flatgui.base/accessorfn
+                                (let ~let-binding
+                                  (if (contains? ~'all-values ~'reason)
+                                    (if (~'all-values ~'reason) false (:pressed ~'component))
+                                    (flatgui.widgets.radiobutton/radio-pressed-evolver ~'component))))))
+
 (fg/defwidget "radiobutton"
   {:v-alignment :center
    :h-alignment :left

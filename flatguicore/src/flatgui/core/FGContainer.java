@@ -220,7 +220,14 @@ public class FGContainer implements IFGContainer
 
             if (targetCellIds_ == null || !targetCellIds_.isEmpty())
             {
-                module_.evolve(targetCellIds_, reason);
+                try
+                {
+                    module_.evolve(targetCellIds_, reason);
+                }
+                catch (Throwable ex)
+                {
+                    ex.printStackTrace();
+                }
             }
         }
         return reasonMap;
@@ -228,7 +235,14 @@ public class FGContainer implements IFGContainer
 
     private void cycleTargeted(Collection<Object> targetIdPath, Object repaintReason)
     {
-        module_.evolve(targetIdPath, repaintReason);
+        try
+        {
+            module_.evolve(targetIdPath, repaintReason);
+        }
+        catch (Throwable ex)
+        {
+            ex.printStackTrace();
+        }
     }
 
     @Override
