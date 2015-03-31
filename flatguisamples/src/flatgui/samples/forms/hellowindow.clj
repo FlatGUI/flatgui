@@ -13,8 +13,7 @@
             [flatgui.widgets.window :as window]
             [flatgui.widgets.checkbox :as checkbox]
             [flatgui.widgets.label :as label]
-            [flatgui.widgets.panel :as panel]
-            [flatgui.inputchannels.host :as host]))
+            [flatgui.widgets.panel :as panel]))
 
 (def nogreeting-text "Not now")
 
@@ -48,19 +47,10 @@
        :position-matrix (m/translation 1.0 0.75)
        :evolvers {:text greeting-evolver}})))
 
-(fg/defevolverfn :clip-size
-  (if (host/host-event? component)
-    (let [host-size (host/get-host-size component)
-          _ (println "Host-size = " host-size)]
-      (m/defpoint (:w host-size) (:h host-size)))
-    old-clip-size))
-
-
 (def root-panel
   (fg/defcomponent
     panel/panel
     :main
     {:clip-size (m/defpoint 4 2)
-     :background (awt/color 9 17 26)
-     :evolvers {:clip-size clip-size-evolver}}
+     :background (awt/color 9 17 26)}
     hello-window))
