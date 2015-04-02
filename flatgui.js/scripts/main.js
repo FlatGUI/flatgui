@@ -916,14 +916,15 @@ canvas.onselectstart = function(e)
 
 function getEncodedKeyEvent(evt, id)
 {
-    var rect = canvas.getBoundingClientRect();
-    var x = evt.clientX - rect.left;
-    var y = evt.clientY - rect.top;
-    var json = JSON.stringify({
-        "id": id,
-        "c": evt.keyCode,
-        "s": evt.charCode});
-    return json;
+    var bytearray = new Uint8Array(5);
+
+    bytearray[0] = id - 400;
+    bytearray[1] = evt.keyCode & 0xFF
+    bytearray[2] = ((evt.keyCode & 0xFF00) >> 8)
+    bytearray[3] = evt.charCode & 0xFF
+    bytearray[4] = ((evt.charCode & 0xFF00) >> 8)
+
+    return bytearray.buffer;
 }
 
 

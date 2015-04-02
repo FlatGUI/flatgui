@@ -32,6 +32,7 @@ public class FGInputEventDecoder
     {
         binaryParsers_ = new ArrayList<>();
         addBinaryParser(new MouseBinaryParser());
+        addBinaryParser(new KeyBinaryParser());
         addBinaryParser(new ClipboardBinaryParser());
     }
 
@@ -101,32 +102,6 @@ public class FGInputEventDecoder
         public E getInputEvent(S jsonObj) throws Exception;
     }
 
-
-//    public static class KeyJSONParser extends AbstractJSONParser<KeyEvent>
-//    {
-//        public static final String C = "c";
-//        public static final String S = "s";
-//
-//        @Override
-//        protected KeyEvent parseImpl(JSONObject jsonObj, int id) throws JSONException
-//        {
-//            if (id >= KeyEvent.KEY_FIRST && id <= KeyEvent.KEY_LAST)
-//            {
-//                int code = jsonObj.getInt(C);
-//                char c = (char)jsonObj.getInt(S);
-//
-//                KeyEvent e = new KeyEvent(dummySourceComponent_, id, 0, 0,
-//                        id == KeyEvent.KEY_TYPED ? KeyEvent.VK_UNDEFINED : code,
-//                        c);
-//                return e;
-//            }
-//            else
-//            {
-//                return null;
-//            }
-//        }
-//    }
-
     public static abstract class AbstractBinaryParser<E> implements IParser<BinaryInput, E>
     {
         public E getInputEvent(BinaryInput binaryData) throws Exception
@@ -169,6 +144,57 @@ public class FGInputEventDecoder
                 y += ((array[ofs + 3] & 0x0F) << 8);
 
                 return getMouseEvent(id, x, y);
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+
+    public static class KeyBinaryParser extends AbstractBinaryParser<KeyEvent>
+    {
+        public static final String C = "c";
+        public static final String S = "s";
+
+        @Override
+        protected KeyEvent parseImpl(BinaryInput binaryData, int id) throws Exception
+        {
+            if (id >= KeyEvent.KEY_FIRST && id <= KeyEvent.KEY_LAST)
+            {
+                byte[] array = binaryData.getPayload();
+                int ofs = binaryData.getOffset();
+
+                int keyCode;
+                int keyCodeLo = array[ofs + 1] & 0x7F;
+                if ((array[ofs + 1] & 0x80) == 0x80)
+                {
+                    keyCodeLo += 0x80;
+                }
+                int keyCodeHi = array[ofs + 2] & 0x7F;
+                if ((array[ofs + 1] & 0x80) == 0x80)
+                {
+                    keyCodeHi += 0x80;
+                }
+                keyCode = keyCodeHi*256+keyCodeLo;
+
+                char charCode;
+                int charCodeLo = array[ofs + 1] & 0x7F;
+                if ((array[ofs + 1] & 0x80) == 0x80)
+                {
+                    charCodeLo += 0x80;
+                }
+                int charCodeHi = array[ofs + 2] & 0x7F;
+                if ((array[ofs + 1] & 0x80) == 0x80)
+                {
+                    charCodeHi += 0x80;
+                }
+                charCode = (char)(charCodeHi*256+charCodeLo);
+
+                KeyEvent e = new KeyEvent(dummySourceComponent_, id, 0, 0,
+                        id == KeyEvent.KEY_TYPED ? KeyEvent.VK_UNDEFINED : keyCode,
+                        charCode);
+                return e;
             }
             else
             {
