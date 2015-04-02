@@ -384,7 +384,6 @@
 (defn- ready-for-paint? [container]
   (and
     (:position-matrix container)
-    (:clip-size container)
     (:viewport-matrix container)
     (:clip-size container)
     (:look-vec container)))
@@ -398,5 +397,5 @@
       (apply concat
              [(conj id-path (:id container))]
              (for [[_ v] (:children container)] (get-paint-all-sequence (conj id-path (:id container)) v)))
-      container))
+      (throw (IllegalStateException. "No ready for paint"))))
   ([container] (get-paint-all-sequence [] container)))
