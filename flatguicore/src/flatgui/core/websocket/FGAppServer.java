@@ -20,6 +20,8 @@ import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketServlet;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -27,31 +29,61 @@ import java.util.function.Consumer;
  */
 public class FGAppServer
 {
+    private static final String DEFAULT_MAPPING = "/*";
+
     private static FGLogger logger_ = new FGLogger();
 
     // TODO Some template provider
     private final IFGTemplate template_;
 
-    private Server server_;
+    private final Server server_;
+    private final ServletHandler handler_;
 
+    private final Map<String, FGWebSocketServlet> mappingToAppTemplateMap_;
 
     public FGAppServer(IFGTemplate template, int port) throws Exception
     {
-        this(template, port, null);
+        this(template, port, DEFAULT_MAPPING, null);
     }
 
-    public FGAppServer(IFGTemplate template, int port, Consumer<IFGContainer> containerConsumer) throws Exception
+    public FGAppServer(IFGTemplate template, int port, String mapping, Consumer<IFGContainer> containerConsumer) throws Exception
     {
         template_ = template;
         server_ = new Server(port);
 
-        ServletHandler handler = new ServletHandler();
-        server_.setHandler(handler);
+        handler_ = new ServletHandler();
+        server_.setHandler(handler_);
 
         ServletHolder h = new ServletHolder(new FGWebSocketServlet(template_, containerConsumer));
+        handler_.addServletWithMapping(h, "/*");
 
-        //handler.addServletWithMapping(FGWebSocketServlet.class, "/*");
-        handler.addServletWithMapping(h, "/*");
+        mappingToAppTemplateMap_ = new HashMap<>();
+    }
+
+    public synchronized void addApplication(String mapping, IFGTemplate template)
+    {
+        addApplication(mapping, template, null);
+    }
+
+    public synchronized void addApplication(String mapping, IFGTemplate template, Consumer<IFGContainer> containerConsumer)
+    {
+        FGWebSocketServlet servlet = new FGWebSocketServlet(template, containerConsumer);
+        ServletHolder h = new ServletHolder(servlet);
+        handler_.addServletWithMapping(h, mapping);
+        mappingToAppTemplateMap_.put(mapping, servlet);
+    }
+
+    public synchronized void setTemplateByMapping(String mapping, IFGTemplate template)
+    {
+        FGWebSocketServlet servlet = mappingToAppTemplateMap_.get(mapping);
+        if (servlet != null)
+        {
+            servlet.setTemplate(template);
+        }
+        else
+        {
+            addApplication(mapping, template);
+        }
     }
 
     public void start() throws Exception
@@ -75,13 +107,13 @@ public class FGAppServer
 
     private static class FGWebSocketServlet extends WebSocketServlet
     {
-        private final IFGTemplate template_;
+        private IFGTemplate template_;
         private final FGContainerSessionHolder sessionHolder_;
         private final Consumer<IFGContainer> containerConsumer_;
 
         FGWebSocketServlet(IFGTemplate template, Consumer<IFGContainer> containerConsumer)
         {
-            template_ = template;
+            setTemplate(template);
             sessionHolder_ = new FGContainerSessionHolder(new FGSessionContainerHost());
             containerConsumer_ = containerConsumer;
         }
@@ -91,6 +123,11 @@ public class FGAppServer
         {
             factory.getPolicy().setIdleTimeout(24 * 60 * 60 * 1000);
             factory.setCreator(this::createWebSocket);
+        }
+
+        final void setTemplate(IFGTemplate template)
+        {
+            template_ = template;
         }
 
         private Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp)
