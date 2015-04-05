@@ -19,9 +19,8 @@
             [flatgui.samples.forms.hellowindow :as hw]
             [flatgui.samples.forms.colorchooserwin :as cc]
             [flatgui.samples.forms.orderticketwin :as ticket]
-            [flatgui.samples.forms.blotterwin :as blotterwin])
-  (:import (java.awt Container)
-           (java.awt.event MouseEvent)))
+            [flatgui.samples.forms.blotterwin :as blotterwin]
+            [flatgui.testsuite]))
 
 (fg/defevolverfn main-theme-evolver :theme
   (if (get-property [:this :header-panel :dark] :pressed)
@@ -120,20 +119,7 @@
 ;;; both check boxes - as if it was for UI testing
 ;;;
 
-(def dummy-source (Container.))
-
-(defn simulate-mouse-left [container id target]
-  (flatgui.widgets.componentbase/evolve-container
-    container
-    target
-    (MouseEvent. dummy-source id 0 0 0 0 0 0 1 false MouseEvent/BUTTON1)))
-
-(defn simulate-mouse-click [container target]
-  (-> (simulate-mouse-left container MouseEvent/MOUSE_PRESSED target)
-      (simulate-mouse-left MouseEvent/MOUSE_RELEASED target)
-      (simulate-mouse-left MouseEvent/MOUSE_CLICKED target)))
-
 ;;; raw-compoundpanel container with two simulated mouse clicks passed to it
 (def compoundpanel
-  (-> (simulate-mouse-click raw-compoundpanel [:main :header-panel :hello-world])
-      (simulate-mouse-click [:main :header-panel :color-chooser])))
+  (-> (flatgui.testsuite/simulate-mouse-click raw-compoundpanel [:main :header-panel :hello-world])
+      (flatgui.testsuite/simulate-mouse-click [:main :header-panel :color-chooser])))
