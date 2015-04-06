@@ -19,6 +19,11 @@ public class FGHostStateEvent
 {
     public enum EventType {Resize}
 
+    public static final int HOST_FIRST = 406;
+    public static final int HOST_LAST = 406;
+
+    public static final int HOST_RESIZE = HOST_FIRST;
+
     private final EventType type_;
 
     private final Dimension hostSize_;

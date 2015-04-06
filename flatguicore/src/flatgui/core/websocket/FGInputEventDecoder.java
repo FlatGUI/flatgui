@@ -11,6 +11,7 @@
 package flatgui.core.websocket;
 
 import flatgui.core.FGClipboardEvent;
+import flatgui.core.FGHostStateEvent;
 
 import java.awt.*;
 import java.awt.event.InputEvent;
@@ -34,6 +35,7 @@ public class FGInputEventDecoder
         addBinaryParser(new MouseBinaryParser());
         addBinaryParser(new KeyBinaryParser());
         addBinaryParser(new ClipboardBinaryParser());
+        addBinaryParser(new HostEventBinaryParser());
     }
 
     public final void addBinaryParser(IParser<BinaryInput, ?> parser)
@@ -172,20 +174,20 @@ public class FGInputEventDecoder
                     keyCodeLo += 0x80;
                 }
                 int keyCodeHi = array[ofs + 2] & 0x7F;
-                if ((array[ofs + 1] & 0x80) == 0x80)
+                if ((array[ofs + 2] & 0x80) == 0x80)
                 {
                     keyCodeHi += 0x80;
                 }
                 keyCode = keyCodeHi*256+keyCodeLo;
 
                 char charCode;
-                int charCodeLo = array[ofs + 1] & 0x7F;
-                if ((array[ofs + 1] & 0x80) == 0x80)
+                int charCodeLo = array[ofs + 3] & 0x7F;
+                if ((array[ofs + 3] & 0x80) == 0x80)
                 {
                     charCodeLo += 0x80;
                 }
-                int charCodeHi = array[ofs + 2] & 0x7F;
-                if ((array[ofs + 1] & 0x80) == 0x80)
+                int charCodeHi = array[ofs + 4] & 0x7F;
+                if ((array[ofs + 4] & 0x80) == 0x80)
                 {
                     charCodeHi += 0x80;
                 }
@@ -244,6 +246,56 @@ public class FGInputEventDecoder
                 {
                     return null;
                 }
+            }
+            else
+            {
+                return null;
+            }
+        }
+    }
+
+    public static class HostEventBinaryParser extends AbstractBinaryParser<FGHostStateEvent>
+    {
+        public static final String C = "c";
+        public static final String S = "s";
+
+        @Override
+        protected FGHostStateEvent parseImpl(BinaryInput binaryData, int id) throws Exception
+        {
+            if (id >= FGHostStateEvent.HOST_FIRST && id <= FGHostStateEvent.HOST_LAST)
+            {
+                byte[] array = binaryData.getPayload();
+                int ofs = binaryData.getOffset();
+
+                int w;
+                int wLo = array[ofs + 1] & 0x7F;
+                if ((array[ofs + 1] & 0x80) == 0x80)
+                {
+                    wLo += 0x80;
+                }
+                int wHi = array[ofs + 2] & 0x7F;
+                if ((array[ofs + 2] & 0x80) == 0x80)
+                {
+                    wHi += 0x80;
+                }
+                w = wHi*256+wLo;
+
+                int h;
+                int hLo = array[ofs + 3] & 0x7F;
+                if ((array[ofs + 3] & 0x80) == 0x80)
+                {
+                    hLo += 0x80;
+                }
+                int hHi = array[ofs + 4] & 0x7F;
+                if ((array[ofs + 4] & 0x80) == 0x80)
+                {
+                    hHi += 0x80;
+                }
+                h = (char)(hHi*256+hLo);
+
+                System.out.println("-DLTEMP- HostEventBinaryParser.parseImpl w = " + w + " h = " + h);
+                FGHostStateEvent e = FGHostStateEvent.createHostSizeEvent(new Dimension(w, h));
+                return e;
             }
             else
             {

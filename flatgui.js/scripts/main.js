@@ -641,7 +641,7 @@ function displayUserTextMessage(msg, x, y)
 
 function displayStatus(msg)
 {
-    messages.innerHTML = "Connection status: " + msg;
+    //messages.innerHTML = "Connection status: " + msg;
 }
 
 /**
@@ -868,11 +868,9 @@ var CLIPBOARD_PASTE_EVENT_CODE = 403;
 
 function handlePaste(evt)
 {
-    console.log("Paste --1- ----- ----- ");
     if (evt && evt.clipboardData && evt.clipboardData.getData)
     {
         var text = evt.clipboardData.getData('text/plain');
-        console.log("Paste --2- ----- ----- " + text);
 
         if (text && text.length)
         {
@@ -948,7 +946,22 @@ window.addEventListener("keyup", sendKeyUpEventToServer, false);
 window.addEventListener("keypress", sendKeyPressEventToServer, false);
 
 
-// Adjust canvas size for window size
+// Adjust canvas size for window size, and send host-resize event to server
+
+var HOST_RESIZE_EVENT_CODE = 406;
+
+function getEncodedHostResizeEvent()
+{
+    var bytearray = new Uint8Array(5);
+
+    bytearray[0] = HOST_RESIZE_EVENT_CODE - 400;
+    bytearray[1] = window.innerWidth & 0xFF
+    bytearray[2] = ((window.innerWidth & 0xFF00) >> 8)
+    bytearray[3] = window.innerHeight & 0xFF
+    bytearray[4] = ((window.innerHeight & 0xFF00) >> 8)
+
+    return bytearray.buffer;
+}
 
 function adjustCanvasSize()
 {
@@ -956,10 +969,15 @@ function adjustCanvasSize()
     canvas.height = window.innerHeight;
 }
 
-//window.onresize = function(event)
-//{
-//    adjustCanvasSize();
-//};
+window.onresize = function(event)
+{
+    adjustCanvasSize();
+    sendEventToServer(getEncodedHostResizeEvent());
+};
+
+// Remove scroll bars
+document.documentElement.style.overflow = 'hidden';  // firefox, chrome
+document.body.scroll = "no"; // ie only
 
 // Start streaming
 
