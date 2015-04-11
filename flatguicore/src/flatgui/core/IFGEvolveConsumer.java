@@ -26,6 +26,13 @@ public interface IFGEvolveConsumer
     public Collection<List<Keyword>> getTargetPaths();
 
     /**
+     * @param path Id Path, one of those returned by {@link #getTargetPaths}
+     * @return properties for given path in which this consumer is interested
+     *         or null if it is interested in all properties
+     */
+    public Collection<Keyword> getTargetProperties(List<Keyword> path);
+
+    /**
      * This method is called by FlatGUI Core when Container is evolved for
      * Evolve Reason object targeted to any (or all) components identified by
      * {@link flatgui.core.IFGEvolveConsumer#getTargetPaths()} method

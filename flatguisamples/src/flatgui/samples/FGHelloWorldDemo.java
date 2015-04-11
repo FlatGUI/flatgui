@@ -101,6 +101,12 @@ public class FGHelloWorldDemo
         }
 
         @Override
+        public Collection<Keyword> getTargetProperties(List<Keyword> path)
+        {
+            return Arrays.asList(Keyword.intern("text"));
+        }
+
+        @Override
         public void acceptEvolveResult(Object sessionId, Object containerObject)
         {
             try

@@ -138,3 +138,29 @@
         (if (> r (/ p 2))
           (* p (inc m))
           (* p m))))))
+
+(defn get-evolved-properties [container targret-access-key]
+  (get-in (:aux-container container) (conjv targret-access-key :evolved-properties)))
+
+(defn get-evolved-properties-by-path [container targret-path]
+  (let [targret-access-key (get-access-key targret-path)]
+    (get-in (:aux-container container) (conjv targret-access-key :evolved-properties))))
+
+(defn property-evolved? [container targret-path property]
+  (let [evolved-properties (get-evolved-properties-by-path container targret-path)]
+    (if evolved-properties
+      (not (nil? (evolved-properties property)))
+      false)))
+
+(defn get-changed-properties [container targret-access-key]
+  (get-in (:aux-container container) (conjv targret-access-key :changed-properties)))
+
+(defn get-changed-properties-by-path [container targret-path]
+  (let [targret-access-key (get-access-key targret-path)]
+    (get-in (:aux-container container) (conjv targret-access-key :changed-properties))))
+
+(defn property-changed? [container targret-path property]
+  (let [changed-properties (get-changed-properties-by-path container targret-path)]
+    (if changed-properties
+      (not (nil? (changed-properties property)))
+      false)))

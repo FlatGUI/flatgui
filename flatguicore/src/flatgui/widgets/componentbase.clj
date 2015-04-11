@@ -62,7 +62,7 @@
          targret-visible-access-key (fgc/conjv targret-access-key :visible)
 
          properties (if initialization
-                      (let [ target-properties-already-evovled (get-in (:aux-container container) (fgc/conjv targret-access-key :evolved-properties))
+                      (let [ target-properties-already-evovled (fgc/get-evolved-properties container targret-access-key)
                              to-evolve (if target-properties-already-evovled
                                          (vec (remove target-properties-already-evovled (:properties dependents)))
                                          (:properties dependents))]

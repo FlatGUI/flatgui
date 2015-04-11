@@ -249,12 +249,16 @@ public class FGContainer implements IFGContainer
     public synchronized void feedEvent(Object repaintReason)
     {
         evolverExecutorService_.submit(() -> {
-            Map<Object, Collection<Object>> reasonMap = cycle(repaintReason);
-            for (Collection<Object> idPath : reasonMap.values())
+            try
             {
+                cycle(repaintReason);
                 evolveConsumers_.stream()
-                        .filter(consumer -> consumer.getTargetPaths().contains(idPath))
+                        .filter(this::shouldInvokeEvolveConsumer)
                         .forEach(consumer -> consumer.acceptEvolveResult(null, module_.getContainerObject()));
+            }
+            catch(Throwable ex)
+            {
+                ex.printStackTrace();
             }
         });
 
@@ -265,13 +269,54 @@ public class FGContainer implements IFGContainer
     public void feedTargetedEvent(Collection<Object> targetCellIdPath, Object repaintReason)
     {
         evolverExecutorService_.submit(() -> {
-            cycleTargeted(targetCellIdPath, repaintReason);
-            evolveConsumers_.stream()
-                    .filter(consumer -> consumer.getTargetPaths().contains(targetCellIdPath))
-                    .forEach(consumer -> consumer.acceptEvolveResult(null, module_.getContainerObject()));
+            try
+            {
+                cycleTargeted(targetCellIdPath, repaintReason);
+                evolveConsumers_.stream()
+                        .filter(this::shouldInvokeEvolveConsumer)
+                        .forEach(consumer -> consumer.acceptEvolveResult(null, module_.getContainerObject()));
+            }
+            catch(Throwable ex)
+            {
+                ex.printStackTrace();
+            }
         });
 
         eventFedCallback_.actionPerformed(null);
+    }
+
+    private boolean shouldInvokeEvolveConsumer(IFGEvolveConsumer consumer)
+    {
+        Map<Object, Object> container = (Map<Object, Object>) module_.getContainerObject();
+
+        for (List<Keyword> path : consumer.getTargetPaths())
+        {
+            Collection<Keyword> properties = consumer.getTargetProperties(path);
+            if (properties != null)
+            {
+                for (Keyword property : properties)
+                {
+                    Boolean evolved = (Boolean) clojure.lang.RT.var(
+                            "flatgui.comlogic", "property-changed?").invoke(container, path, property);
+                    if (evolved.booleanValue())
+                    {
+                        return true;
+                    }
+                }
+            }
+            else
+            {
+                Object evolvedProperties = clojure.lang.RT.var(
+                        "flatgui.comlogic", "get-changed-properties-by-path").invoke(container, path);
+                return evolvedProperties != null;
+            }
+        }
+        return false;
+    }
+
+    private static Keyword kw(String s)
+    {
+        return Keyword.intern(s);
     }
 
     static class FGTimerEvent
