@@ -20,7 +20,7 @@
     ;(if (= '(:apply-feature vfc) s) (println " ------- get-dependency2 for " s " of class " (.getClass s)  " eval " (eval s) ))
     ;(if (= 'apply-feature s) (println " ------- get-dependency2 for " s " of class " (.getClass s)  ))
 
-    (if (list? s)
+    (if (seq? s)
       (let [ n (first s)]
         (if (and (symbol? n) (= "get-property" (name n)))
           (let [ full-path (condp = (count s)
