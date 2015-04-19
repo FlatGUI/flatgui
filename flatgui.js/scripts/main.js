@@ -12,12 +12,15 @@ var imported = document.createElement('script');
 imported.src = 'scripts/fgdecoder.js';
 document.head.appendChild(imported);
 
-
+var referenceFont = '12px Tahoma';
 var canvas = document.getElementById("hostCanvas");
 var ctx = canvas.getContext("2d");
-ctx.lineWidth = 1;
-ctx.font = '12px Tahoma';
-
+function initCanvas()
+{
+    ctx.lineWidth = 1;
+    ctx.font = referenceFont;
+}
+initCanvas();
 
 var currentTransform = [[1, 0, 0],
                         [0, 1, 1],
@@ -662,6 +665,7 @@ function openSocket()
     }
 
     webSocket = new WebSocket("ws://localhost:13100");
+    //webSocket = new WebSocket("ws://localhost:13100/designer");
     //webSocket = new WebSocket("ws://flatgui.biz:13100");
 
     webSocket.binaryType = "arraybuffer";
@@ -965,15 +969,19 @@ function getEncodedHostResizeEvent()
 
 function adjustCanvasSize()
 {
+    console.log("Window size: " + window.innerWidth + " -- " + window.innerHeight);
     canvas.width  = window.innerWidth;
     canvas.height = window.innerHeight;
+    initCanvas();
 }
 
-window.onresize = function(event)
+function handleResize(evt)
 {
     adjustCanvasSize();
     sendEventToServer(getEncodedHostResizeEvent());
-};
+}
+
+window.onresize = handleResize;
 
 // Remove scroll bars
 document.documentElement.style.overflow = 'hidden';  // firefox, chrome

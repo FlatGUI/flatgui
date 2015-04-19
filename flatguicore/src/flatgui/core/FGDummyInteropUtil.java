@@ -27,6 +27,9 @@ public class FGDummyInteropUtil implements IFGInteropUtil
     {
         unitSizePx_ = unitSizePx;
         referenceFont_ = new Font("Tahoma", Font.PLAIN, 12);
+        // This will give FontMetrics constructed basing on default FontRenderContext
+        // (identity transformation, no antialiasing, no fractional metrics) which is
+        // a rendering device state that current FlatGUI implementation counts on
         referenceFontMetrics_ = new Container().getFontMetrics(referenceFont_);
     }
 
