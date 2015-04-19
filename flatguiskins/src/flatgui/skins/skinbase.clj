@@ -6,7 +6,7 @@
 ; the terms of this license.
 ; You must not remove this notice, or any other, from this software.
 
-(ns ^{:doc "'Oldschool' skin"
+(ns ^{:doc "Skin utilities"
       :author "Denys Lebediev"}
   flatgui.skins.skinbase
   (:use flatgui.base))
@@ -15,16 +15,18 @@
 (defn widgettype->key [widgettype]
   (keyword widgettype))
 
+(defn get-look-from-skin [skin-name skin-key]
+  (let [skin (find-ns (symbol skin-name))]
+    (if skin
+      (let [skin-map (var-get (ns-resolve skin 'skin-map))]
+        (get-in skin-map skin-key))
+      (throw (IllegalArgumentException. (str "Skin not found:" skin-name))))))
+
 (defevolverfn skin-look-evolver :look
   (cond
 
     (:skin-key component)
-    (let [skin-name (get-property component [:this] :skin)
-          skin (find-ns (symbol skin-name))]
-      (if skin
-        (let [skin-map (var-get (ns-resolve skin 'skin-map))]
-          (get-in skin-map (:skin-key component)))
-        (throw (IllegalArgumentException. (str "Skin not found:" skin-name)))))
+    (get-look-from-skin (get-property component [:this] :skin) (:skin-key component))
 
     old-look
     old-look
