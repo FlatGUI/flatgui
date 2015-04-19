@@ -10,13 +10,13 @@
 
 package flatgui.core.websocket;
 
+import flatgui.core.FGHostStateEvent;
 import flatgui.core.FGWebContainerWrapper;
 import flatgui.core.IFGContainer;
 import flatgui.core.IFGTemplate;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 
-import java.awt.event.InputEvent;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -101,7 +101,7 @@ public class FGContainerWebSocket implements WebSocketListener
 
         container_.resetCache();
 
-        collectAndSendResponse();
+        collectAndSendResponse(false);
     }
 
     @Override
@@ -141,12 +141,12 @@ public class FGContainerWebSocket implements WebSocketListener
         container_.feedEvent(e);
 
         // TODO Do not send response if new event is coming?
-        collectAndSendResponse();
+        collectAndSendResponse(e instanceof FGHostStateEvent);
 
         //debugMessageCount_++;
     }
 
-    private void collectAndSendResponse()
+    private void collectAndSendResponse(boolean forceRepaint)
     {
         Collection<ByteBuffer> response = container_.getResponseForClient();
 
@@ -157,9 +157,9 @@ public class FGContainerWebSocket implements WebSocketListener
 
             //logger_.debug("Finished sending " + response.size() + " responses and repaint cmd for #" + debugMessageCount_);
         }
-        else
+        else if (forceRepaint)
         {
-            //logger_.debug("Processed message #" + debugMessageCount_ + ": empty result.");
+            sendBytesToRemote(ByteBuffer.wrap(new byte[]{FGWebContainerWrapper.REPAINT_CACHED_COMMAND_CODE}));
         }
     }
 

@@ -22,6 +22,23 @@ function initCanvas()
 }
 initCanvas();
 
+function adjustCanvasSize()
+{
+    console.log("Window size: " + window.innerWidth + " -- " + window.innerHeight);
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    initCanvas();
+}
+
+function handleResize(evt)
+{
+    adjustCanvasSize();
+    sendEventToServer(getEncodedHostResizeEvent());
+}
+
+window.onresize = handleResize;
+
+
 var currentTransform = [[1, 0, 0],
                         [0, 1, 1],
                         [0, 0, 1]];
@@ -675,6 +692,8 @@ function openSocket()
         connectionOpen = true;
         displayUserTextMessage("Open.", 10, 30);
         displayStatus("open");
+
+        handleResize(null);
     };
 
     webSocket.onmessage = function(event)
@@ -967,27 +986,10 @@ function getEncodedHostResizeEvent()
     return bytearray.buffer;
 }
 
-function adjustCanvasSize()
-{
-    console.log("Window size: " + window.innerWidth + " -- " + window.innerHeight);
-    canvas.width  = window.innerWidth;
-    canvas.height = window.innerHeight;
-    initCanvas();
-}
-
-function handleResize(evt)
-{
-    adjustCanvasSize();
-    sendEventToServer(getEncodedHostResizeEvent());
-}
-
-window.onresize = handleResize;
-
 // Remove scroll bars
 document.documentElement.style.overflow = 'hidden';  // firefox, chrome
 document.body.scroll = "no"; // ie only
 
 // Start streaming
 
-//adjustCanvasSize();
 openSocket();
