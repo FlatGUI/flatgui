@@ -79,90 +79,74 @@
   "Subtracts b from each rect of rects list. See rect-."
   (mapcat (fn [r] (rect- r b)) rects))
 
-;
-; Tests
-;
+(defn fully-contains? [a b]
+  (if (and
+        (< (:x a) (:x b)) (> (:w a) (:w b))
+        (< (:y a) (:y b)) (> (:h a) (:h b)))
+    a))
 
-(deftest line&-test
-  (is (= [1 2] (line& 0 2 1 3)))
-  (is (= [2 4] (line& 2 5 0 4)))
-  (is (= [1 2] (line& 0 4 1 2)))
-  (is (= [2 3] (line& 2 3 1 4)))
-  (is (nil? (line& 0 1 2 3)))
-  (is (nil? (line& 4 5 0 2))))
+(defn rect+ [a b]
+  (cond
+    (fully-contains? a b)
+    a
+    (fully-contains? b a)
+    b
+    :else
+    (let [h-inter (rectmath/line& (:x a) (+ (:x a) (:w a)) (:x b) (+ (:x b) (:w b)))
+          v-inter (rectmath/line& (:y a) (+ (:y a) (:h a)) (:y b) (+ (:y b) (:h b)))
+          v-edge (and (nil? v-inter) (or
+                                       (= (:y b) (+ (:y a) (:h a)))
+                                       (= (:y a) (+ (:y b) (:h b)))))]
+      (if (and h-inter (or v-inter v-edge))
+        {:x (first h-inter)
+         :y (min (:y a) (:y b))
+         :w (- (nth h-inter 1) (nth h-inter 0))
+         :h (if v-edge
+              (+ (:h a) (:h b))
+              (- (+ (:h a) (:h b)) (- (nth v-inter 1) (nth v-inter 0))))}
+        (let [h-edge (and (nil? h-inter) (or
+                                           (= (:x b) (+ (:x a) (:w a)))
+                                           (= (:x a) (+ (:x b) (:w b)))))]
+          (if (and v-inter (or h-inter h-edge))
+            {:x (min (:x a) (:x b))
+             :y (nth v-inter 0)
+             :w (if h-edge
+                  (+ (:w a) (:w b))
+                  (- (+ (:w a) (:w b)) (- (nth h-inter 1) (nth h-inter 0))))
+             :h (- (nth v-inter 1) (nth v-inter 0))}))))))
 
-(deftest valid-rect?-test
-  (is (true? (valid-rect? {:x 1 :y 2 :w 4 :h 5})))
-  (is (false? (valid-rect? {:x 1 :y 2 :w 0 :h 5})))
-  (is (false? (valid-rect? {:x 1 :y 2 :w -2 :h 5})))
-  (is (false? (valid-rect? {:x 1 :y 2 :w 5 :h 0})))
-  (is (false? (valid-rect? {:x 1 :y 2 :w 5 :h -3})))
-  (is (false? (valid-rect? {:x 1 :y 2 :w 0 :h -4}))))
+(defn square [a]
+  (if a
+    (* (:w a) (:h a))
+    0))
 
-(deftest rect&-test
-  (is (= {:x 2 :y 3 :w 3 :h 2} (rect&
-                                 {:x 0 :y 0 :w 5 :h 5}
-                                 {:x 2 :y 3 :w 5 :h 5})))
-  (is (= {:x 2 :y 3 :w 3 :h 2} (rect&
-                                 {:x 2 :y 3 :w 5 :h 5}
-                                 {:x 0 :y 0 :w 5 :h 5})))
-  (is (= {:x 3 :y 2 :w 2 :h 3} (rect&
-                                 {:x 0 :y 2 :w 5 :h 5}
-                                 {:x 3 :y 0 :w 5 :h 5})))
-  (is (= {:x 3 :y 2 :w 2 :h 3} (rect&
-                                 {:x 3 :y 0 :w 5 :h 5}
-                                 {:x 0 :y 2 :w 5 :h 5})))
-  (is (= {:x 2 :y 2 :w 2 :h 2} (rect&
-                                 {:x 1 :y 0 :w 5 :h 7}
-                                 {:x 2 :y 2 :w 2 :h 2})))
-  (is (= {:x 2 :y 2 :w 2 :h 2} (rect&
-                                 {:x 2 :y 2 :w 2 :h 2}
-                                 {:x 0 :y 1 :w 8 :h 7})))
-  (is (= {:x 2 :y 2 :w 3 :h 4} (rect&
-                                 {:x 2 :y 2 :w 3 :h 4}
-                                 {:x 2 :y 2 :w 3 :h 4})))
-  (is (nil? (rect&
-              {:x 2 :y 2 :w 3 :h 4}
-              {:x 10 :y 2 :w 6 :h 4}))))
-
-(deftest rect--test
-  (is (= (list {:x 1 :y 2 :w 6 :h 1}
-               {:x 1 :y 3 :w 3 :h 2}
-               {:x 5 :y 3 :w 2 :h 2}
-               {:x 1 :y 5 :w 6 :h 1})
-        (rect-
-          {:x 1 :y 2 :w 6 :h 4}
-          {:x 4 :y 3 :w 1 :h 2})))
-  (is (= (list {:x 0 :y 0 :w 5 :h 3}
-               {:x 0 :y 3 :w 2 :h 2})
-        (rect-
-          {:x 0 :y 0 :w 5 :h 5}
-          {:x 2 :y 3 :w 5 :h 5})))
-  (is (= (list {:x 22 :y 2 :w 3 :h 4})
-        (rect-
-          {:x 22 :y 2 :w 3 :h 4}
-          {:x 10 :y 2 :w 6 :h 4})))
-  (is (empty?
-        (rect-
-          {:x 1 :y 2 :w 3 :h 4}
-          {:x 1 :y 2 :w 3 :h 4})))
-  (is (empty?
-        (rect-
-          {:x 10 :y 5 :w 1 :h 1}
-          {:x  4 :y 3 :w 9 :h 3}))))
-
-(deftest rects--test
-  (is (= #{{:x 0  :y 0 :w 10 :h 3}
-           {:x 0  :y 3 :w  2 :h 2}
-           {:x 12 :y 7 :w  6 :h 2}
-           {:x 8  :y 9 :w 10 :h 3}}
-        (set (rects-
-          (list {:x 0 :y 0 :w 10 :h 5} {:x 8 :y 7 :w 10 :h 5})
-          {:x 2 :y 3 :w 10 :h 6}))))
-  (is (= #{{:x 1, :y 1, :w 9, :h 2}
-           {:x 1, :y 3, :w 3, :h 1}}
-        (set (rects-
-               (list {:x 4, :y 3, :w 9, :h 3} {:x 1, :y 1, :w 9, :h 2} {:x 1, :y 3, :w 3, :h 1})
-               {:has-changes true, :prev-w 9, :prev-x 1, :y 3, :x 4, :prev-y 1, :h 3, :w 9, :prev-h 3, :id :c_1_1_1}))))
-  )
-
+(defn get-largest-adjacent [rects]
+  (let [c (count rects)]
+    (case c
+      0 nil
+      1 (first rects)
+      2 (let [adj (rect+ (nth rects 0) (nth rects 1))]
+          (if adj
+            adj
+            (max-key square (nth rects 0) (nth rects 1))))
+      (loop [i 0
+             fr nil]
+        (if (< i c)
+          (recur
+            (inc i)
+            (max-key square
+                     fr
+                     (loop [j 0
+                            r nil]
+                       (if (< j i)
+                         (recur
+                           (inc j)
+                           (let [adj (rect+ (nth rects i) (nth rects j))]
+                             (if adj
+                               (let [with-indexes (map #(vector %1 %2) rects (range))
+                                     filtered (filter #(not (#{i j} (second %))) with-indexes)
+                                     other-rects (map first filtered)]
+                                 (max-key square r (get-largest-adjacent (conj other-rects adj))))
+                               r)))
+                         r))))
+          fr)))))

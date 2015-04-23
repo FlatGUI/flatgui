@@ -94,3 +94,54 @@
                (list {:x 4, :y 3, :w 9, :h 3} {:x 1, :y 1, :w 9, :h 2} {:x 1, :y 3, :w 3, :h 1})
                {:has-changes true, :prev-w 9, :prev-x 1, :y 3, :x 4, :prev-y 1, :h 3, :w 9, :prev-h 3, :id :c_1_1_1})))))
 
+(test/deftest rect+-test
+  (let [r1 {:x 1 :y 0 :w 3 :h 1}
+        r2 {:x 0 :y 1 :w 4 :h 1}
+        r3 {:x 0 :y 0 :w 2 :h 2}
+        r4 {:x 2 :y 0 :w 1 :h 3}
+        r12 {:x 1 :y 0 :w 3 :h 2}
+        r34 {:x 0 :y 0 :w 3 :h 2}
+        r5 {:x 1 :y 0 :w 3 :h 1}
+        r6 {:x 0 :y 2 :w 4 :h 1}
+        r7 {:x 0 :y 0 :w 2 :h 2}
+        r8 {:x 3 :y 0 :w 1 :h 3}
+        r9 {:x 1 :y 0 :w 3 :h 1}
+        ra {:x 0 :y 0.2 :w 4 :h 1}
+        rb {:x 0 :y 0 :w 2 :h 2}
+        rc {:x 2 :y 1.125 :w 1 :h 3}
+        r9a {:x 1 :y 0 :w 3 :h 1.2}
+        rbc {:x 0 :y 1.125 :w 3 :h 0.875}
+        rd {:x 0 :y 0 :w 2 :h 2}
+        re {:x 1 :y 1 :w 1 :h 3}
+        rde {:x 1 :y 0 :w 1 :h 4}
+        rf {:x 0 :y 0 :w 4 :h 4}
+        rg {:x 1 :y 1 :w 2 :h 2}
+        rfg {:x 0 :y 0 :w 4 :h 4}]
+    (test/is (= r1 (rect+ r1 r1)))
+    (test/is (= r12 (rect+ r1 r2)))
+    (test/is (= r12 (rect+ r2 r1)))
+    (test/is (= r34 (rect+ r3 r4)))
+    (test/is (= r34 (rect+ r4 r3)))
+    (test/is (nil? (rect+ r5 r6)))
+    (test/is (nil? (rect+ r6 r5)))
+    (test/is (nil? (rect+ r7 r8)))
+    (test/is (nil? (rect+ r8 r7)))
+    (test/is (= r9a (rect+ r9 ra)))
+    (test/is (= r9a (rect+ ra r9)))
+    (test/is (= rbc (rect+ rb rc)))
+    (test/is (= rbc (rect+ rc rb)))
+    (test/is (= rde (rect+ rd re)))
+    (test/is (= rde (rect+ re rd)))
+    (test/is (= rfg (rect+ rf rg)))
+    (test/is (= rfg (rect+ rg rf)))))
+
+(test/deftest get-largest-adjacent-test
+  (let [r1 {:x 2 :y 0 :w 5 :h 2}
+        r2 {:x 0 :y 2 :w 7 :h 2}
+        r3 {:x 2 :y 4 :w 5 :h 1}
+        r4 {:x 2 :y 5 :w 1 :h 1}
+        r5 {:x 4 :y 5 :w 3 :h 1}
+        res {:x 2 :y 0 :w 5 :h 5}]
+    (test/is (= res (get-largest-adjacent [r1 r2 r3 r4 r5])))))
+
+
