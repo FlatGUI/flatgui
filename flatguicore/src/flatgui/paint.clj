@@ -397,5 +397,5 @@
       (apply concat
              [(conj id-path (:id container))]
              (for [[_ v] (:children container)] (get-paint-all-sequence (conj id-path (:id container)) v)))
-      (throw (IllegalStateException. "No ready for paint"))))
+     []))
   ([container] (get-paint-all-sequence [] container)))
