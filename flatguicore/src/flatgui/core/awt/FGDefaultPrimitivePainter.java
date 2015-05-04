@@ -192,7 +192,6 @@ public class FGDefaultPrimitivePainter implements IFGPrimitivePainter
                     }
                 }
             }
-            g.drawImage(img, x, y, w, h, null);
         }
         catch (IOException ex)
         {
