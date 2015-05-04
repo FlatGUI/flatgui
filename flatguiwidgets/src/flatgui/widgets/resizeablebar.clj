@@ -47,7 +47,7 @@
                     (m/x old-clip-size)
                     (do ;(println " (get-mouse-y component) " (float (get-mouse-y component)) " (:y mce) " (float (:y mce)))
                       (+ (m/y (:clip-size mce)) (- (mouse/get-mouse-y component) (:y mce)))))
-          :bottom (m/defpoint
+          :top (m/defpoint
                     (m/x old-clip-size)
                     (do ;(println " (get-mouse-y component) " (float (get-mouse-y component)) " (:y mce) " (float (:y mce)))
                       (+ (m/y (:clip-size mce)) (max 0 (- (mouse/get-mouse-y component) (:y mce))))))
