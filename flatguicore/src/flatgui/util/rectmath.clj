@@ -92,8 +92,8 @@
     (fully-contains? b a)
     b
     :else
-    (let [h-inter (rectmath/line& (:x a) (+ (:x a) (:w a)) (:x b) (+ (:x b) (:w b)))
-          v-inter (rectmath/line& (:y a) (+ (:y a) (:h a)) (:y b) (+ (:y b) (:h b)))
+    (let [h-inter (line& (:x a) (+ (:x a) (:w a)) (:x b) (+ (:x b) (:w b)))
+          v-inter (line& (:y a) (+ (:y a) (:h a)) (:y b) (+ (:y b) (:h b)))
           v-edge (and (nil? v-inter) (or
                                        (= (:y b) (+ (:y a) (:h a)))
                                        (= (:y a) (+ (:y b) (:h b)))))]
