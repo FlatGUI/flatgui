@@ -33,9 +33,6 @@ public class FGAppServer
 
     private static FGLogger logger_ = new FGLogger();
 
-    // TODO Some template provider
-    private final IFGTemplate template_;
-
     private final Server server_;
     private final ServletHandler handler_;
 
@@ -48,16 +45,14 @@ public class FGAppServer
 
     public FGAppServer(IFGTemplate template, int port, String mapping, Consumer<IFGContainer> containerConsumer) throws Exception
     {
-        template_ = template;
         server_ = new Server(port);
 
         handler_ = new ServletHandler();
         server_.setHandler(handler_);
 
-        ServletHolder h = new ServletHolder(new FGWebSocketServlet(template_, containerConsumer));
-        handler_.addServletWithMapping(h, "/*");
-
         mappingToAppTemplateMap_ = new HashMap<>();
+
+        addApplication(mapping, template, containerConsumer);
     }
 
     public synchronized void addApplication(String mapping, IFGTemplate template)
@@ -67,18 +62,24 @@ public class FGAppServer
 
     public synchronized void addApplication(String mapping, IFGTemplate template, Consumer<IFGContainer> containerConsumer)
     {
+        mapping = ensureMapping(mapping);
         FGWebSocketServlet servlet = new FGWebSocketServlet(template, containerConsumer);
         ServletHolder h = new ServletHolder(servlet);
         handler_.addServletWithMapping(h, mapping);
         mappingToAppTemplateMap_.put(mapping, servlet);
     }
 
-    public synchronized void setTemplateByMapping(String mapping, IFGTemplate template)
+    public synchronized void setTemplateByMapping(String mapping, IFGTemplate template, Consumer<IFGContainer> containerConsumer)
     {
+        mapping = ensureMapping(mapping);
         FGWebSocketServlet servlet = mappingToAppTemplateMap_.get(mapping);
         if (servlet != null)
         {
             servlet.setTemplate(template);
+            if (containerConsumer != null)
+            {
+                servlet.setContainerConsumer(containerConsumer);
+            }
         }
         else
         {
@@ -103,19 +104,32 @@ public class FGAppServer
         return logger_;
     }
 
+    private static String ensureMapping(String mapping)
+    {
+        if (mapping != null && !mapping.startsWith("/"))
+        {
+            mapping = "/"+mapping;
+        }
+        if (mapping == null)
+        {
+            mapping = "/*";
+        }
+        return mapping;
+    }
+
     // Inner classes
 
     private static class FGWebSocketServlet extends WebSocketServlet
     {
         private IFGTemplate template_;
         private final FGContainerSessionHolder sessionHolder_;
-        private final Consumer<IFGContainer> containerConsumer_;
+        private Consumer<IFGContainer> containerConsumer_;
 
         FGWebSocketServlet(IFGTemplate template, Consumer<IFGContainer> containerConsumer)
         {
             setTemplate(template);
             sessionHolder_ = new FGContainerSessionHolder(new FGSessionContainerHost());
-            containerConsumer_ = containerConsumer;
+            setContainerConsumer(containerConsumer);
         }
 
         @Override
@@ -128,6 +142,11 @@ public class FGAppServer
         final void setTemplate(IFGTemplate template)
         {
             template_ = template;
+        }
+
+        final void setContainerConsumer(Consumer<IFGContainer> containerConsumer)
+        {
+            containerConsumer_ = containerConsumer;
         }
 
         private Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp)
