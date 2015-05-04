@@ -54,7 +54,6 @@ function getImage(uri)
     var img = uriToImage.uri;
     if (img)
     {
-        console.log("Returning cached image: " + uriToImage.uri);
         return img;
     }
     else
@@ -62,7 +61,6 @@ function getImage(uri)
         img = new Image;
         img.src = uri;
         uriToImage.uri = img;
-        console.log("Returning NEW image: " + uriToImage.uri);
         return img;
     }
 }
