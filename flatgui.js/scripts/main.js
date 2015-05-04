@@ -8,10 +8,6 @@
  * You must not remove this notice, or any other, from this software.
  */
 
-var imported = document.createElement('script');
-imported.src = 'scripts/fgdecoder.js';
-document.head.appendChild(imported);
-
 var referenceFont = '12px Tahoma';
 var canvas = document.getElementById("hostCanvas");
 var ctx = canvas.getContext("2d");
@@ -681,9 +677,7 @@ function openSocket()
         return;
     }
 
-    webSocket = new WebSocket("ws://localhost:13100");
-    //webSocket = new WebSocket("ws://localhost:13100/designer");
-    //webSocket = new WebSocket("ws://flatgui.biz:13100");
+    webSocket = new WebSocket(serverWebSocketUri);
 
     webSocket.binaryType = "arraybuffer";
 
