@@ -32,12 +32,23 @@
             (inc i)))
         old-position-matrix))))
 
+;;TODO :content-size should be here instead of :clip-size but it does not work
+(fg/defaccessorfn get-default-columnfit-width [component]
+  (/ (m/x (get-property component [] :clip-size)) (count (get-property component [:_] :header-ids))))
+
 (fg/defevolverfn columnheader-clip-size-evolver :clip-size
-  (if (get-property component [] :fit-width)
-    (m/defpoint
-      (/ (m/x (get-property component [] :clip-size)) (count (get-property component [:_] :header-ids)))
-      (m/y old-clip-size))
-    old-clip-size))
+  (let [fit-width (get-property component [] :fit-width)]
+    (if fit-width
+      (m/defpoint
+        (if (map? fit-width)
+          (let [constraint (get fit-width (:id component))]
+            (cond
+              (:abs-width constraint) (:abs-width constraint)
+              (:fn constraint) ((:fn constraint) (m/x (get-property component [] :clip-size)));TODO :content-size should be here instead of :clip-size but it does not work
+              :else (get-default-columnfit-width component)))
+          (get-default-columnfit-width component))
+        (m/y old-clip-size))
+      old-clip-size)))
 
 (fg/defevolverfn columnheader-text-evolver :text
  (let [id (get-property component [:this] :id)

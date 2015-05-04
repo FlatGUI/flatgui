@@ -126,10 +126,11 @@
 
 ;;; ;;;;;;;;;;; TODO this should go into some generic widget-feature: a widget with flex child set ;;;;;;;;;;;;;;;;;;;;;;
 
-;;; TODO ability to have a cell type per column
-;;;
 (defn- get-cell-component [component header-id]
-  (:default-cell-component component))
+  (let [default-component (:default-cell-component component)]
+    (if (fn? default-component)
+      (default-component header-id)
+      default-component)))
 
 (fg/defaccessorfn create-cell-component [component id header-id cbuf-index clone]
                   (let [header-ids (get-property component [] :header-ids)

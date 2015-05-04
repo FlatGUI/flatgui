@@ -18,6 +18,7 @@
 (fg/defwidget "table"
   {:header-ids nil
    :header-aliases nil
+   ;; TODO Problem is that it requires :value-provider (NPE is thrown otherwise) even if cells have custom :text evolver
    :value-provider nil
    :children {:header flatgui.widgets.panel/panel
               :content-pane flatgui.widgets.table.contentpane/tablecontentpane}}
