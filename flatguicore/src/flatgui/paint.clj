@@ -140,32 +140,19 @@
   "Paints component, does not pait children"
   (if (:visible cmpnt)
     (let [ look-vec (:look-vec cmpnt)]
-      (flatten-vector [ (if look-vec look-vec) (if (:has-trouble cmpnt) (trouble-look cmpnt dirty-rects)) ]))
-    ))
-
-(defn paint-component-only2 [cmpnt dirty-rects]
-  "Paints component, does not pait children"
-  (if (and (:visible cmpnt) (:look cmpnt))
-    (flatten-vector ((:look cmpnt) cmpnt dirty-rects))
-    ))
+      (flatten-vector [ (if look-vec look-vec) (if (:has-trouble cmpnt) (trouble-look cmpnt dirty-rects))]))))
 
 (defn paint-component-with-children [component dirty-rects]
   "Paints component and its children"
   (try
-    (let [ clip-w (m/x (:clip-size component))
-           clip-h (m/y (:clip-size component))
-           position-matrix (:position-matrix component)
-           viewport-matrix (:viewport-matrix component)
-
-          ;transform-matrix (m/mx* position-matrix viewport-matrix)
-          ;awt-transform-matrix (affinetransform transform-matrix)
-          ;awt-transform-matrix-inverse (invert awt-transform-matrix)
-
+    (let [clip-w (m/x (:clip-size component))
+          clip-h (m/y (:clip-size component))
+          position-matrix (:position-matrix component)
+          viewport-matrix (:viewport-matrix component)
           awt-position-matrix (awt/affinetransform position-matrix)
           awt-viewport-matrix (awt/affinetransform viewport-matrix)
           awt-viewport-matrix-inverse (awt/invert awt-viewport-matrix)
-          awt-position-matrix-inverse (awt/invert awt-position-matrix)
-          ]
+          awt-position-matrix-inverse (awt/invert awt-position-matrix)]
         (flatten-vector
           ; TODO WARNING! This is a temporary hack. Otherwise content-pane children do not respect table clip rect (not= (:widget-type component) "tablecell")
           [(if (not= (:widget-type component) "tablecell")  (awt/pushCurrentClip))
@@ -173,16 +160,10 @@
            (if (not= (:widget-type component) "tablecell") (if (:popup component) (awt/setClip 0 0 clip-w clip-h) (awt/clipRect 0 0 clip-w clip-h)))
            (awt/transform awt-viewport-matrix)
            (paint-component-only component dirty-rects)
-           ;(vec (for [[k v] (:children component)] (paint-component-with-children v dirty-rects)))
            (mapv #(paint-component-with-children % dirty-rects) (sort-by :z-position (for [[_ v] (:children component)] v)))
-
            (awt/transform awt-viewport-matrix-inverse)
            (awt/transform awt-position-matrix-inverse)
-           ;(transform awt-transform-matrix-inverse)
-
-           (if (not= (:widget-type component) "tablecell") (awt/popCurrentClip))
-           ]
-        ))
+           (if (not= (:widget-type component) "tablecell") (awt/popCurrentClip))]))
     (catch Exception e (do
                          (fg/log-debug "Exception " (.getMessage e)
                            " when painting component id = " (:id component)
@@ -191,154 +172,7 @@
                          (.printStackTrace e)))))
 
 (defn paint-all [container clipx clipy clipw cliph]
-  (let [ t (System/currentTimeMillis)
-         result (paint-component-with-children container nil)]
-      (do
-        ;(println "  -----Painted container in " (- (System/currentTimeMillis) t) " millis ")
-        result)))
-
-(defn get-dirty-rect-from-container [container]
-  (let [ r (:dirty-rect container)]
-    (if r
-      [(double (:x r)) (double (:y r)) (double (:w r)) (double (:h r))])))
-
-
-;;@todo with such approach clip rect should be passed to evolve
-;;
-;(defn paint-all [container clipx clipy clipw cliph]
-;  (:paint-container-vec container))
-
-
-;(def has-changes-predicate {:has-changes (fn [v] (true? v))})
-
-;(defn- setup-clip [clip]
-;  (if (nil? clip)
-;    (awt/setClip nil)
-;    (awt/setClip (:x clip) (:y clip) (:w clip) (:h clip))))
-
-;(defn- get-all-components-for-dirty-rects [container all-rects-to-paint]
-;  "Determines all dirty rects: rects taken by components that have to be
-;  repainted because of changes, plus all rects that have to be repainted
-;  because of possible component location change (old location areas).
-;  Then returns all components that have to be painted to cover all those
-;  dirty rects. Finds components starting from topmost, and skips ones
-;  fully covered within dirty areas."
-;  (let [ components-within-rects (sort-components-by-id-depth
-;                                   (flatgui.access/get-components-within-all-rects container all-rects-to-paint))]
-;    (loop [ remaining-dirty-rects all-rects-to-paint
-;            components-to-paint nil
-;            i 0]
-;        (let [ relative-c (if (< i (count components-within-rects)) (nth components-within-rects i))
-;               c (if (not (nil? relative-c))
-;                   (convert-to-screen-coords relative-c))
-;               dirty-rects-minus-c (rects- remaining-dirty-rects c)]
-;        (if (or (= i (count components-within-rects)) (empty? remaining-dirty-rects))
-;          components-to-paint
-;          (recur
-;            dirty-rects-minus-c
-;            (if (= remaining-dirty-rects dirty-rects-minus-c) components-to-paint (conj components-to-paint c))
-;            (inc i)))))))
-;
-;(defn paint-dirty [container]
-;  "Paints all changed componets, and all components that have
-;  to be reapinted because of location changes of other components.
-;  Calculates dirty rects and provides them to look functions, so
-;  look functions have chance to repaint only certain rects, not
-;  whole components."
-;  (let [ all-rects-to-paint (find-rects-to-paint container)
-;         involved-components (get-all-components-for-dirty-rects container all-rects-to-paint)]
-;    (paint-components (sort-components-by-id involved-components) all-rects-to-paint)))
-
-;(defn- clip? [component] (not= (:widget-type component) "tablecell"))
-; TODO
-(defn- clip? [component] (#{"tablecontentpane" "window" "toolbar" "component" "tableheader"} (:widget-type component)))
-
-(defn paint-dirty-impl [component dirty-rects force-paint]
-  "Paints component and its children"
-  (try
-    (let [ clip-w (m/x (:clip-size component))
-          clip-h (m/y (:clip-size component))
-          position-matrix (:position-matrix component)
-          viewport-matrix (:viewport-matrix component)
-
-          ; TODO this is optimization for web: to transmit less commands
-          transform-matrix (m/mx* position-matrix viewport-matrix)
-          awt-transform-matrix (awt/affinetransform transform-matrix)
-          awt-transform-matrix-inverse (awt/invert awt-transform-matrix)
-
-          awt-position-matrix (awt/affinetransform position-matrix)
-          awt-viewport-matrix (awt/affinetransform viewport-matrix)
-          ;awt-viewport-matrix-inverse (invert awt-viewport-matrix)
-          ;awt-position-matrix-inverse (invert awt-position-matrix)
-
-          paint-this (or force-paint
-                         (   ;or (nil? dirty-rects)
-                           and dirty-rects
-                               (r/intersect?
-                                 dirty-rects
-                                 {:x (m/mx-x (:abs-position-matrix component))
-                                  :y (m/mx-y (:abs-position-matrix component))
-                                  :w (m/x (:clip-size component))
-                                  :h (m/y (:clip-size component))})))
-          ;_ (if (= :main (:id component)) (println "Painting " (:id component) " paint=" paint-this " dirty-rects = " dirty-rects " abs pm = " (:abs-position-matrix component)))
-          ;_ (if (and dirty-rects paint-this) (println "Painting " (:id component) " dirty-rects = " dirty-rects " abs pm = " (:abs-position-matrix component)))
-          children (:children component)]
-      (if paint-this
-        (flatten-vector
-          ; TODO WARNING! This is a temporary hack. Otherwise content-pane children do not respect table clip rect (not= (:widget-type component) "tablecell")
-          [(if (clip? component)  (awt/pushCurrentClip))
-           (awt/transform awt-position-matrix)
-
-           (if (clip? component) (if (:popup component) (awt/setClip 0 0 clip-w clip-h) (awt/clipRect 0 0 clip-w clip-h)))
-           (if (not= awt-viewport-matrix m/IDENTITY-MATRIX) (awt/transform awt-viewport-matrix))
-
-           (paint-component-only2 component dirty-rects)
-           ;(println "Painting component " (:id component) " :needs-repaint = " (:needs-repaint component))
-
-           (mapv #(paint-dirty-impl % dirty-rects (and paint-this (not= :main (:id component)))) (sort-by :z-position (for [[_ v] (:children component)] v)))
-
-           ;(transform awt-viewport-matrix-inverse)
-           ;(transform awt-position-matrix-inverse)
-           (awt/transform awt-transform-matrix-inverse)
-
-           (if (clip? component) (awt/popCurrentClip))
-           ])
-        (if (seq children)
-          (let [ children-look (mapv #(paint-dirty-impl % dirty-rects false) (sort-by :z-position (for [[_ v] children] v)))]
-            (if (seq children-look)
-              (flatten-vector
-                [                                               ;(transform awt-transform-matrix)
-                 (if (clip? component)  (awt/pushCurrentClip))
-                 (awt/transform awt-position-matrix)
-                 (if (clip? component) (if (:popup component) (awt/setClip 0 0 clip-w clip-h) (awt/clipRect 0 0 clip-w clip-h)))
-                 (if (not= awt-viewport-matrix m/IDENTITY-MATRIX) (awt/transform awt-viewport-matrix))
-
-                 children-look
-
-                 (awt/transform awt-transform-matrix-inverse)
-                 (if (clip? component) (awt/popCurrentClip))
-                 ;(transform awt-transform-matrix-inverse)
-                 ])
-              (do
-                ;(println "Chidren look skipped")
-                nil)))
-          )))
-    (catch Exception e (do
-                         (fg/log-debug "Exception " (.getMessage e)
-                                    " when painting component id = " (:id component)
-                                    ;" component: " (container-to-str component)
-                                    )
-                         (.printStackTrace e)))))
-
-(defn paint-dirty [component _ _]
-  (if (:dirty-rect component)
-    (do
-      ;(println "Dirty rect is " (:dirty-rect component) " painting...")
-      (paint-dirty-impl component (:dirty-rect component) nil))
-    (do
-      ;(println " Dirty rect is null, skipped painting")
-      [])))
-
+  (paint-component-with-children container nil))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;; New painting approach optimized for web
@@ -399,3 +233,155 @@
              (for [[_ v] (:children container)] (get-paint-all-sequence (conj id-path (:id container)) v)))
      []))
   ([container] (get-paint-all-sequence [] container)))
+
+
+
+;;;;;;;;;;;;;;
+;;;;;;;;;;;;;; Old experimental approaches
+;;;;;;;;;;;;;;
+
+;(defn paint-component-only2 [cmpnt dirty-rects]
+;  "Paints component, does not pait children"
+;  (if (and (:visible cmpnt) (:look cmpnt))
+;    (flatten-vector ((:look cmpnt) cmpnt dirty-rects))
+;    ))
+
+;(defn get-dirty-rect-from-container [container]
+;  (let [ r (:dirty-rect container)]
+;    (if r
+;      [(double (:x r)) (double (:y r)) (double (:w r)) (double (:h r))])))
+
+;;@todo with such approach clip rect should be passed to evolve
+;;
+;(defn paint-all [container clipx clipy clipw cliph]
+;  (:paint-container-vec container))
+
+
+;(def has-changes-predicate {:has-changes (fn [v] (true? v))})
+
+;(defn- setup-clip [clip]
+;  (if (nil? clip)
+;    (awt/setClip nil)
+;    (awt/setClip (:x clip) (:y clip) (:w clip) (:h clip))))
+
+;(defn- get-all-components-for-dirty-rects [container all-rects-to-paint]
+;  "Determines all dirty rects: rects taken by components that have to be
+;  repainted because of changes, plus all rects that have to be repainted
+;  because of possible component location change (old location areas).
+;  Then returns all components that have to be painted to cover all those
+;  dirty rects. Finds components starting from topmost, and skips ones
+;  fully covered within dirty areas."
+;  (let [ components-within-rects (sort-components-by-id-depth
+;                                   (flatgui.access/get-components-within-all-rects container all-rects-to-paint))]
+;    (loop [ remaining-dirty-rects all-rects-to-paint
+;            components-to-paint nil
+;            i 0]
+;        (let [ relative-c (if (< i (count components-within-rects)) (nth components-within-rects i))
+;               c (if (not (nil? relative-c))
+;                   (convert-to-screen-coords relative-c))
+;               dirty-rects-minus-c (rects- remaining-dirty-rects c)]
+;        (if (or (= i (count components-within-rects)) (empty? remaining-dirty-rects))
+;          components-to-paint
+;          (recur
+;            dirty-rects-minus-c
+;            (if (= remaining-dirty-rects dirty-rects-minus-c) components-to-paint (conj components-to-paint c))
+;            (inc i)))))))
+;
+;(defn paint-dirty [container]
+;  "Paints all changed componets, and all components that have
+;  to be reapinted because of location changes of other components.
+;  Calculates dirty rects and provides them to look functions, so
+;  look functions have chance to repaint only certain rects, not
+;  whole components."
+;  (let [ all-rects-to-paint (find-rects-to-paint container)
+;         involved-components (get-all-components-for-dirty-rects container all-rects-to-paint)]
+;    (paint-components (sort-components-by-id involved-components) all-rects-to-paint)))
+
+;; TODO
+;(defn- clip? [component] (#{"tablecontentpane" "window" "toolbar" "component" "tableheader"} (:widget-type component)))
+
+;(defn paint-dirty-impl [component dirty-rects force-paint]
+;  "Paints component and its children"
+;  (try
+;    (let [ clip-w (m/x (:clip-size component))
+;          clip-h (m/y (:clip-size component))
+;          position-matrix (:position-matrix component)
+;          viewport-matrix (:viewport-matrix component)
+;
+;          ; TODO this is optimization for web: to transmit less commands
+;          transform-matrix (m/mx* position-matrix viewport-matrix)
+;          awt-transform-matrix (awt/affinetransform transform-matrix)
+;          awt-transform-matrix-inverse (awt/invert awt-transform-matrix)
+;
+;          awt-position-matrix (awt/affinetransform position-matrix)
+;          awt-viewport-matrix (awt/affinetransform viewport-matrix)
+;          ;awt-viewport-matrix-inverse (invert awt-viewport-matrix)
+;          ;awt-position-matrix-inverse (invert awt-position-matrix)
+;
+;          paint-this (or force-paint
+;                         (   ;or (nil? dirty-rects)
+;                           and dirty-rects
+;                               (r/intersect?
+;                                 dirty-rects
+;                                 {:x (m/mx-x (:abs-position-matrix component))
+;                                  :y (m/mx-y (:abs-position-matrix component))
+;                                  :w (m/x (:clip-size component))
+;                                  :h (m/y (:clip-size component))})))
+;          ;_ (if (= :main (:id component)) (println "Painting " (:id component) " paint=" paint-this " dirty-rects = " dirty-rects " abs pm = " (:abs-position-matrix component)))
+;          ;_ (if (and dirty-rects paint-this) (println "Painting " (:id component) " dirty-rects = " dirty-rects " abs pm = " (:abs-position-matrix component)))
+;          children (:children component)]
+;      (if paint-this
+;        (flatten-vector
+;          ; TODO WARNING! This is a temporary hack. Otherwise content-pane children do not respect table clip rect (not= (:widget-type component) "tablecell")
+;          [(if (clip? component)  (awt/pushCurrentClip))
+;           (awt/transform awt-position-matrix)
+;
+;           (if (clip? component) (if (:popup component) (awt/setClip 0 0 clip-w clip-h) (awt/clipRect 0 0 clip-w clip-h)))
+;           (if (not= awt-viewport-matrix m/IDENTITY-MATRIX) (awt/transform awt-viewport-matrix))
+;
+;           (paint-component-only2 component dirty-rects)
+;           ;(println "Painting component " (:id component) " :needs-repaint = " (:needs-repaint component))
+;
+;           (mapv #(paint-dirty-impl % dirty-rects (and paint-this (not= :main (:id component)))) (sort-by :z-position (for [[_ v] (:children component)] v)))
+;
+;           ;(transform awt-viewport-matrix-inverse)
+;           ;(transform awt-position-matrix-inverse)
+;           (awt/transform awt-transform-matrix-inverse)
+;
+;           (if (clip? component) (awt/popCurrentClip))
+;           ])
+;        (if (seq children)
+;          (let [ children-look (mapv #(paint-dirty-impl % dirty-rects false) (sort-by :z-position (for [[_ v] children] v)))]
+;            (if (seq children-look)
+;              (flatten-vector
+;                [                                               ;(transform awt-transform-matrix)
+;                 (if (clip? component)  (awt/pushCurrentClip))
+;                 (awt/transform awt-position-matrix)
+;                 (if (clip? component) (if (:popup component) (awt/setClip 0 0 clip-w clip-h) (awt/clipRect 0 0 clip-w clip-h)))
+;                 (if (not= awt-viewport-matrix m/IDENTITY-MATRIX) (awt/transform awt-viewport-matrix))
+;
+;                 children-look
+;
+;                 (awt/transform awt-transform-matrix-inverse)
+;                 (if (clip? component) (awt/popCurrentClip))
+;                 ;(transform awt-transform-matrix-inverse)
+;                 ])
+;              (do
+;                ;(println "Chidren look skipped")
+;                nil)))
+;          )))
+;    (catch Exception e (do
+;                         (fg/log-debug "Exception " (.getMessage e)
+;                                    " when painting component id = " (:id component)
+;                                    ;" component: " (container-to-str component)
+;                                    )
+;                         (.printStackTrace e)))))
+;
+;(defn paint-dirty [component _ _]
+;  (if (:dirty-rect component)
+;    (do
+;      ;(println "Dirty rect is " (:dirty-rect component) " painting...")
+;      (paint-dirty-impl component (:dirty-rect component) nil))
+;    (do
+;      ;(println " Dirty rect is null, skipped painting")
+;      [])))
