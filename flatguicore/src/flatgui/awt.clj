@@ -80,6 +80,8 @@
 
 ; Extended command codes are 2-bytes where 1st byte is 00000000
 
+; Basic 1-byte commands
+
 (defn setColor                                              ;1  [xxx00|000]
   ([c] (if c
          ["setColor" c]
@@ -98,4 +100,10 @@
 (defn setClip [x y w h] ["setClip" x y w h])                ;11 [xxxx1|000]  Point-based all combinations except 127x31
 (defn pushCurrentClip [] ["pushCurrentClip"])               ;12 [00010|000]
 (defn popCurrentClip [] ["popCurrentClip"])                 ;13 [00110|000]
+
+; Extended commands
+
+(defn drawImage [imgUri x y] ["drawImage" imgUri x y])
+(defn fitImage [imgUri x y w h] ["fitImage" imgUri x y w h])
+(defn fillImage [imgUri x y w h] ["fillImage" imgUri x y w h])
 

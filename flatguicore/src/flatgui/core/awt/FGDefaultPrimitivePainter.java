@@ -11,9 +11,10 @@ package flatgui.core.awt;
 
 
 import java.awt.*;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 /**
@@ -32,19 +33,29 @@ public class FGDefaultPrimitivePainter implements IFGPrimitivePainter
 
     private static final String PUSH_CURRENT_CLIP = "pushCurrentClip";
     private static final String POP_CURRENT_CLIP = "popCurrentClip";
+    private static final String DRAW_IMAGE = "drawImage";
+    private static final String FIT_IMAGE = "fitImage";
+    private static final String FILL_IMAGE = "fillImage";
+
+    private IFGImageLoader imageLoader_;
 
     private double unitSizePx_;
 
     private Deque<Shape> clipRectStack_;
-    private Map<String, Consumer<Graphics2D>> customMethods_;
+    private Map<String, BiConsumer<Graphics2D, Object[]>> customMethods_;
     private Map<String, Method> methodByNameCache_;
 
     public FGDefaultPrimitivePainter(double unitSizePx)
     {
+        imageLoader_ = new FGImageLoader();
+
         clipRectStack_ = new LinkedList<>();
         customMethods_ = new HashMap<>();
-        customMethods_.put(PUSH_CURRENT_CLIP, g -> clipRectStack_.addLast(g.getClip()));
-        customMethods_.put(POP_CURRENT_CLIP, g -> g.setClip(clipRectStack_.removeLast()));
+        customMethods_.put(PUSH_CURRENT_CLIP, (g, args) -> clipRectStack_.addLast(g.getClip()));
+        customMethods_.put(POP_CURRENT_CLIP, (g, args) -> g.setClip(clipRectStack_.removeLast()));
+        customMethods_.put(DRAW_IMAGE, this::drawImage);
+        customMethods_.put(FIT_IMAGE, this::fitImage);
+        customMethods_.put(FILL_IMAGE, this::fillImage);
 
         methodByNameCache_ = new HashMap<>();
 
@@ -76,7 +87,7 @@ public class FGDefaultPrimitivePainter implements IFGPrimitivePainter
 
         if (customMethods_.containsKey(methodName))
         {
-            customMethods_.get(methodName).accept((Graphics2D)g);
+            customMethods_.get(methodName).accept((Graphics2D)g, argValues);
         }
         else
         {
@@ -114,14 +125,78 @@ public class FGDefaultPrimitivePainter implements IFGPrimitivePainter
         //System.out.println("paintPrimitive finishes at " + System.currentTimeMillis());
     }
 
-//    private static class CacheKey
-//    {
-//        private String methodName_;
-//        private Class<?> argTypes_;
-//
-//        private CacheKey(String methodName, Class<?> argTypes)
-//        {
-//        }
-//
-//    }
+    private void drawImage(Graphics2D g, Object[] argValues)
+    {
+        String url = (String)argValues[0];
+
+        int x = ((Number)argValues[1]).intValue();
+        int y = ((Number)argValues[2]).intValue();
+
+        try
+        {
+            Image img = imageLoader_.getImage(url);
+            g.drawImage(img, x, y, null);
+        }
+        catch (IOException ex)
+        {
+            ex.printStackTrace();
+        }
+    }
+
+    private void fitImage(Graphics2D g, Object[] argValues)
+    {
+        String url = (String)argValues[0];
+
+        int x = ((Number)argValues[1]).intValue();
+        int y = ((Number)argValues[2]).intValue();
+        int w = ((Number)argValues[3]).intValue();
+        int h = ((Number)argValues[4]).intValue();
+
+        try
+        {
+            Image img = imageLoader_.getImage(url);
+            g.drawImage(img, x, y, w, h, null);
+        }
+        catch (IOException ex)
+        {
+            ex.printStackTrace();
+        }
+    }
+
+    private void fillImage(Graphics2D g, Object[] argValues)
+    {
+        String url = (String)argValues[0];
+
+        int x = ((Number)argValues[1]).intValue();
+        int y = ((Number)argValues[2]).intValue();
+
+        int dw = ((Number)argValues[3]).intValue();
+        int dh = ((Number)argValues[4]).intValue();
+
+        try
+        {
+            Image img = imageLoader_.getImage(url);
+            int w = img.getWidth(null);
+            int h = img.getHeight(null);
+            if (dw <= w && dh <= h)
+            {
+                g.drawImage(img, x, y, null);
+            }
+            else
+            {
+                for (int ix=0; ix<dw; ix+=w)
+                {
+                    for (int iy=0; iy<dh; iy+=h)
+                    {
+                        g.drawImage(img, x+ix, y+iy, null);
+                    }
+                }
+            }
+            g.drawImage(img, x, y, w, h, null);
+        }
+        catch (IOException ex)
+        {
+            ex.printStackTrace();
+        }
+    }
 }
