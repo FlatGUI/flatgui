@@ -34,6 +34,8 @@ public class FGWebContainerWrapper
     public static final byte LOOK_VECTOR_MAP_COMMAND_CODE = 3;
     public static final byte CHILD_COUNT_MAP_COMMAND_CODE = 4;
     public static final byte BOOLEAN_STATE_FLAGS_COMMAND_CODE = 5;
+
+    @Deprecated
     public static final byte IMAGE_URL_MAP_COMMAND_CODE = 6;
 
     public static final byte PAINT_ALL_LIST_COMMAND_CODE = 64;
@@ -588,6 +590,7 @@ public class FGWebContainerWrapper
         }
     }
 
+    @Deprecated
     static class ImageUrlTransmitter extends StringTransmitter
     {
         public ImageUrlTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
@@ -724,7 +727,7 @@ public class FGWebContainerWrapper
             addDataTransmitter(new ChildCountMapTransmitter(keyCache_, () -> fgModule.getComponentIdPathToChildCount()));
             addDataTransmitter(new BooleanFlagsMapTransmitter(keyCache_, () -> fgModule.getComponentIdPathToBooleanStateFlags()));
             addDataTransmitter(new PaintAllTransmitter(keyCache_, () -> fgModule.getPaintAllSequence2()));
-            addDataTransmitter(new ImageUrlTransmitter(keyCache_, () -> fgModule.getComponentIdPathToImageUrl()));
+            //addDataTransmitter(new ImageUrlTransmitter(keyCache_, () -> fgModule.getComponentIdPathToImageUrl()));
 
             resetDataCache();
         }

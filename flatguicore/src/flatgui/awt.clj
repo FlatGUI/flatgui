@@ -103,7 +103,7 @@
 
 ; Extended commands
 
-(defn drawImage [imgUri x y] ["drawImage" imgUri x y])
-(defn fitImage [imgUri x y w h] ["fitImage" imgUri x y w h])
-(defn fillImage [imgUri x y w h] ["fillImage" imgUri x y w h])
+(defn drawImage [imgUri x y] ["drawImage" imgUri x y])          ;1 (regular), 2 (cached)
+(defn fitImage [imgUri x y w h] ["fitImage" imgUri x y w h])    ;3 (regular), 4 (cached)
+(defn fillImage [imgUri x y w h] ["fillImage" imgUri x y w h])  ;5 (regular), 6 (cached)
 

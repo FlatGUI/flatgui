@@ -42,6 +42,31 @@ var currentClip = {x: 0, y: 0, w: Infinity, h: Infinity};
 var clipRectStack = [];
 
 
+/*
+ * Image cache
+ */
+
+var uriToImage = {}
+
+// TODO handle loading delay properly
+function getImage(uri)
+{
+    var img = uriToImage.uri;
+    if (img)
+    {
+        console.log("Returning cached image: " + uriToImage.uri);
+        return img;
+    }
+    else
+    {
+        img = new Image;
+        img.src = uri;
+        uriToImage.uri = img;
+        console.log("Returning NEW image: " + uriToImage.uri);
+        return img;
+    }
+}
+
 /**
  * Utilities
  */
@@ -135,7 +160,6 @@ function rectInt(a, b)
         return null;
     }
 }
-
 
 /**
  * Binary decoding/performing
@@ -243,105 +267,157 @@ function decodeLookVector(stream, byteLength)
     while (c < byteLength)
     {
         var codeObj;
-        var opcodeBase = stream[c] & OP_BASE_MASK;
 
-        switch (opcodeBase)
+        if (stream[c] == 0) // Extended commands
         {
-            case CODE_ZERO_GROUP:
-                if ((stream[c] & MASK_SET_COLOR) == CODE_SET_COLOR)
-                {
-                    codeObj = decodeColor(stream, c);
-                    decodeLog("setColor " + JSON.stringify(codeObj));
-                    var colorStr = rgbToHex(codeObj);
-                    ctx.fillStyle=colorStr;
-                    ctx.strokeStyle=colorStr;  
+            var opcodeBase = stream[c+1];
+
+            switch (opcodeBase)
+            {
+                case CODE_DRAW_IMAGE_REGULAR:
+                    codeObj = decodeImageURIRegular(stream, c+1);
+                    var img = getImage(codeObj.s);
+                    ctx.drawImage(img, codeObj.x, codeObj.y);
                     c += codeObj.len;
-                }
-                else if ((stream[c] & MASK_SET_CLIP) == CODE_SET_CLIP)
-                {
+                break;
+                case CODE_FIT_IMAGE_REGULAR:
+                    codeObj = decodeImageURIRegular(stream, c+1);
+                    var img = getImage(codeObj.s);
+                    ctx.drawImage(img, codeObj.x, codeObj.y, codeObj.w, codeObj.h);
+                    c += codeObj.len;
+                break;
+                case CODE_FILL_IMAGE_REGULAR:
+                    codeObj = decodeImageURIRegular(stream, c+1);
+                    var img = getImage(codeObj.s);
+                    var w = img.width;
+                    var h = img.height;
+                    if (codeObj.w <= w && codeObj.h <= h)
+                    {
+                        ctx.drawImage(img, codeObj.x, codeObj.y);
+                    }
+                    else if (w > 0 && h >0)
+                    {
+                        for (var ix=0; ix<codeObj.w; ix+=w)
+                        {
+                            for (var iy=0; iy<codeObj.h; iy+=h)
+                            {
+                                ctx.drawImage(img, codeObj.x+ix, codeObj.y+iy);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        decodeLog("Cannot fill image with zero size: w=" + w + " h=" + h);
+                    }
+                    c += codeObj.len;
+                break;
+                default:
+                    decodeLog("Unknown extended operation code: " + stream[c]);
+                    throw new Error("Unknown extended operation code: " + stream[c]);
+            }
+        }
+        else
+        {
+            var opcodeBase = stream[c] & OP_BASE_MASK;
+
+            switch (opcodeBase)
+            {
+                case CODE_ZERO_GROUP:
+                    if ((stream[c] & MASK_SET_COLOR) == CODE_SET_COLOR)
+                    {
+                        codeObj = decodeColor(stream, c);
+                        decodeLog("setColor " + JSON.stringify(codeObj));
+                        var colorStr = rgbToHex(codeObj);
+                        ctx.fillStyle=colorStr;
+                        ctx.strokeStyle=colorStr;
+                        c += codeObj.len;
+                    }
+                    else if ((stream[c] & MASK_SET_CLIP) == CODE_SET_CLIP)
+                    {
+                        codeObj = decodeRect(stream, c);
+                        decodeLog( "setClip " + JSON.stringify(codeObj));
+                        setClip(codeObj);
+                        c += codeObj.len;
+                    }
+                    else if (stream[c] == CODE_PUSH_CLIP)
+                    {
+                        decodeLog( "pushCurrentClip");
+                        pushCurrentClip();
+                        c++;
+                    }
+                    else if (stream[c] == CODE_POP_CLIP)
+                    {
+                        decodeLog( "popCurrentClip");
+                        popCurrentClip();
+                        c++;
+                    }
+                    else
+                    {
+                        codeObj = decodeString(stream, c);
+                        decodeLog( "drawString " + JSON.stringify(codeObj));
+                        fillMultilineTextNoWrap(codeObj.s, codeObj.x, codeObj.y);
+                        c += codeObj.len;
+                    }
+                    break;
+                case CODE_DRAW_RECT:
                     codeObj = decodeRect(stream, c);
-                    decodeLog( "setClip " + JSON.stringify(codeObj));
-                    setClip(codeObj);
-                    c += codeObj.len;
-                }
-                else if (stream[c] == CODE_PUSH_CLIP)
-                {
-                    decodeLog( "pushCurrentClip");
-                    pushCurrentClip();
-                    c++;
-                }
-                else if (stream[c] == CODE_POP_CLIP)
-                {
-                    decodeLog( "popCurrentClip");
-                    popCurrentClip();
-                    c++;
-                }
-                else
-                {
-                    codeObj = decodeString(stream, c);
-                    decodeLog( "drawString " + JSON.stringify(codeObj)); 
-                    fillMultilineTextNoWrap(codeObj.s, codeObj.x, codeObj.y);
-                    c += codeObj.len;
-                }
-                break;
-            case CODE_DRAW_RECT:
-                codeObj = decodeRect(stream, c);
-                decodeLog( "drawRect " + JSON.stringify(codeObj)); 
-                ctx.strokeRect(codeObj.x+0.5, codeObj.y+0.5, codeObj.w, codeObj.h);
-                c+= codeObj.len;
-                break;
-            case CODE_FILL_RECT:
-                codeObj = decodeRect(stream, c);
-                decodeLog( "fillRect " + JSON.stringify(codeObj)); 
-                ctx.fillRect(codeObj.x, codeObj.y, codeObj.w, codeObj.h);
-                c+= codeObj.len;
-                break;
-            case CODE_DRAW_OVAL:
-                codeObj = decodeRect(stream, c);
-                decodeLog( "drawOval " + JSON.stringify(codeObj)); 
-                var r = codeObj.w/2;
-                ctx.beginPath();
-                ctx.arc(codeObj.x+r+0.5, codeObj.y+r+0.5, codeObj.w/2, 0, 2*Math.PI);
-                ctx.stroke();
-                c+= codeObj.len;
-                break;
-            case CODE_FILL_OVAL:
-                codeObj = decodeRect(stream, c);
-                decodeLog( "fillOval " + JSON.stringify(codeObj)); 
-                var r = codeObj.w/2-0.5;
-                if (r < 0)
-                {
-                    r = 0;
-                }
-                ctx.beginPath();
-                ctx.arc(codeObj.x+r+0.5, codeObj.y+r+0.5, r, 0, 2*Math.PI);
-                ctx.fill();
-                c+= codeObj.len;
-                break;
-            case CODE_DRAW_LINE:
-                codeObj = decodeRect(stream, c);
-                decodeLog( "drawLine " + JSON.stringify(codeObj)); 
-                ctx.beginPath();
-                ctx.moveTo(codeObj.x+0.5, codeObj.y+0.5);
-                ctx.lineTo(codeObj.w+0.5, codeObj.h+0.5);
-                ctx.stroke();             
-                c+= codeObj.len;
-                break;
-            case CODE_TRANSFORM:
-                codeObj = decodeRect(stream, c);
-                decodeLog( "transform " + JSON.stringify(codeObj)); 
-                applyTransform(codeObj);
-                c+= codeObj.len;
-                break;
-            case CODE_CLIP_RECT:
-                codeObj = decodeRect(stream, c);
-                decodeLog( "clipRect " + JSON.stringify(codeObj));
-                clipRect(codeObj);
-                c+= codeObj.len;
-                break;
-            default:
-                decodeLog( "Unknown operation code: " + stream[c]); 
-               throw new Error("Unknown operation code: " + stream[c]);
+                    decodeLog( "drawRect " + JSON.stringify(codeObj));
+                    ctx.strokeRect(codeObj.x+0.5, codeObj.y+0.5, codeObj.w, codeObj.h);
+                    c+= codeObj.len;
+                    break;
+                case CODE_FILL_RECT:
+                    codeObj = decodeRect(stream, c);
+                    decodeLog( "fillRect " + JSON.stringify(codeObj));
+                    ctx.fillRect(codeObj.x, codeObj.y, codeObj.w, codeObj.h);
+                    c+= codeObj.len;
+                    break;
+                case CODE_DRAW_OVAL:
+                    codeObj = decodeRect(stream, c);
+                    decodeLog( "drawOval " + JSON.stringify(codeObj));
+                    var r = codeObj.w/2;
+                    ctx.beginPath();
+                    ctx.arc(codeObj.x+r+0.5, codeObj.y+r+0.5, codeObj.w/2, 0, 2*Math.PI);
+                    ctx.stroke();
+                    c+= codeObj.len;
+                    break;
+                case CODE_FILL_OVAL:
+                    codeObj = decodeRect(stream, c);
+                    decodeLog( "fillOval " + JSON.stringify(codeObj));
+                    var r = codeObj.w/2-0.5;
+                    if (r < 0)
+                    {
+                        r = 0;
+                    }
+                    ctx.beginPath();
+                    ctx.arc(codeObj.x+r+0.5, codeObj.y+r+0.5, r, 0, 2*Math.PI);
+                    ctx.fill();
+                    c+= codeObj.len;
+                    break;
+                case CODE_DRAW_LINE:
+                    codeObj = decodeRect(stream, c);
+                    decodeLog( "drawLine " + JSON.stringify(codeObj));
+                    ctx.beginPath();
+                    ctx.moveTo(codeObj.x+0.5, codeObj.y+0.5);
+                    ctx.lineTo(codeObj.w+0.5, codeObj.h+0.5);
+                    ctx.stroke();
+                    c+= codeObj.len;
+                    break;
+                case CODE_TRANSFORM:
+                    codeObj = decodeRect(stream, c);
+                    decodeLog( "transform " + JSON.stringify(codeObj));
+                    applyTransform(codeObj);
+                    c+= codeObj.len;
+                    break;
+                case CODE_CLIP_RECT:
+                    codeObj = decodeRect(stream, c);
+                    decodeLog( "clipRect " + JSON.stringify(codeObj));
+                    clipRect(codeObj);
+                    c+= codeObj.len;
+                    break;
+                default:
+                    decodeLog( "Unknown operation code: " + stream[c]);
+                    throw new Error("Unknown operation code: " + stream[c]);
+            }
         }
     }
 }
@@ -352,7 +428,7 @@ var CLIP_SIZE_MAP_COMMAND_CODE = 2;
 var LOOK_VECTOR_MAP_COMMAND_CODE = 3;
 var CHILD_COUNT_MAP_COMMAND_CODE = 4;
 var BOOLEAN_STATE_FLAGS_COMMAND_CODE = 5;
-var IMAGE_URL_MAP_COMMAND_CODE = 6;
+//var IMAGE_URL_MAP_COMMAND_CODE = 6;
 
 var PAINT_ALL_LIST_COMMAND_CODE = 64;
 var REPAINT_CACHED_COMMAND_CODE = 65;
@@ -365,8 +441,8 @@ var clipSizes = [];
 var lookVectors = [];
 var childCounts = [];
 var booleanStateFlags = [];
-var imageUrls = [];
-var images = [];
+//var imageUrls = [];
+//var images = [];
 var paintAllSequence;
 
 var absPositions = [];
@@ -488,11 +564,11 @@ function paintComponent(stream, c)
                         decodeLookVector(lookVector, lookVector.length);
                     }
 
-                    // TODO temporary
-                    if (images[index])
-                    {
-                        ctx.drawImage(images[index],0,0);
-                    }
+//                    // TODO temporary
+//                    if (images[index])
+//                    {
+//                        ctx.drawImage(images[index],0,0);
+//                    }
                 }
                 else
                 {
@@ -609,26 +685,26 @@ function decodeCommandVector(stream, byteLength)
                 c++;
             }
             break;
-        case IMAGE_URL_MAP_COMMAND_CODE:
-            while (c < byteLength)
-            {
-                var index = readShort(stream, c);
-                c+=2;
-                var imageUrlSize = readShort(stream, c);
-                c+=2;
-
-                var imageUrl = "";
-                for (i=0; i<imageUrlSize; i++)
-                {
-                    imageUrl += String.fromCharCode(stream[c+i]);
-                }
-                c += imageUrlSize;
-                imageUrls[index] = imageUrl;
-                var img = new Image;
-                img.src = imageUrl;
-                images[index] = img;
-            }
-            break;
+//        case IMAGE_URL_MAP_COMMAND_CODE:
+//            while (c < byteLength)
+//            {
+//                var index = readShort(stream, c);
+//                c+=2;
+//                var imageUrlSize = readShort(stream, c);
+//                c+=2;
+//
+//                var imageUrl = "";
+//                for (i=0; i<imageUrlSize; i++)
+//                {
+//                    imageUrl += String.fromCharCode(stream[c+i]);
+//                }
+//                c += imageUrlSize;
+//                imageUrls[index] = imageUrl;
+//                var img = new Image;
+//                img.src = imageUrl;
+//                images[index] = img;
+//            }
+//            break;
         case PAINT_ALL_LIST_COMMAND_CODE:
             paintAllSequence = stream;
             while (c < byteLength)

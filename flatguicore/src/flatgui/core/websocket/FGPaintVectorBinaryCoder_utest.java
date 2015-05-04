@@ -84,7 +84,7 @@ public class FGPaintVectorBinaryCoder_utest extends Assert
             throws Exception
     {
         byte[] stream = new byte[9];
-        int writtenBytes = new FGPaintVectorBinaryCoder.SubCoderPoint511x511().writeBodyWithSubCodeHeader(stream, 0, (byte)0, 0, 0);
+        int writtenBytes = new FGPaintVectorBinaryCoder.SubCoderPoint511x511().writeBodyWithSubCodeHeader(stream, 0, (byte) 0, 0, 0);
         assertEquals(3, writtenBytes);
         writtenBytes = rectAreaCoder_.writeCommand(stream, 3, cmd(null, 0, 0, 432, 312));
         assertEquals(3, writtenBytes);
@@ -381,6 +381,54 @@ public class FGPaintVectorBinaryCoder_utest extends Assert
         assertEquals(2, decoded16.get("x"));
         assertEquals(64, decoded16.get("y"));
         assertEquals(s2, decoded16.get("s"));
+    }
+
+    @Test
+    public void testDrawImage()
+            throws Exception
+    {
+        String s1 = "Hello, world!";
+        String s2 = "1234?";
+        FGPaintVectorBinaryCoder.DrawImageRegularCoder stringCoder = new FGPaintVectorBinaryCoder.DrawImageRegularCoder((l,i)->(Integer)(l.get(i)));
+        byte[] stream = new byte[30];
+        int writtenBytes = stringCoder.writeCommand(stream, 0, cmd(null, s1, 2, 0));
+        assertEquals(6+s1.length(), writtenBytes);
+        writtenBytes = stringCoder.writeCommand(stream, 6+s1.length(), cmd(null, s2, 2, 64));
+        assertEquals(6+s2.length(), writtenBytes);
+        ScriptObjectMirror decoded0 = (ScriptObjectMirror)decoder_.invokeFunction("decodeImageURIRegular", stream, 0);
+        assertEquals(2, decoded0.get("x"));
+        assertEquals(0, decoded0.get("y"));
+        assertEquals(s1, decoded0.get("s"));
+        ScriptObjectMirror decoded6 = (ScriptObjectMirror)decoder_.invokeFunction("decodeImageURIRegular", stream, 6+s1.length());
+        assertEquals(2, decoded6.get("x"));
+        assertEquals(64, decoded6.get("y"));
+        assertEquals(s2, decoded6.get("s"));
+    }
+
+    @Test
+    public void testFitImage()
+            throws Exception
+    {
+        String s1 = "Hello, world!";
+        String s2 = "1234?";
+        FGPaintVectorBinaryCoder.FitImageRegularCoder stringCoder = new FGPaintVectorBinaryCoder.FitImageRegularCoder((l,i)->(Integer)(l.get(i)));
+        byte[] stream = new byte[36];
+        int writtenBytes = stringCoder.writeCommand(stream, 0, cmd(null, s1, 2, 0, 10, 20));
+        assertEquals(9+s1.length(), writtenBytes);
+        writtenBytes = stringCoder.writeCommand(stream, 9+s1.length(), cmd(null, s2, 1000, 2000, 3000, 4000));
+        assertEquals(9+s2.length(), writtenBytes);
+        ScriptObjectMirror decoded0 = (ScriptObjectMirror)decoder_.invokeFunction("decodeImageURIRegular", stream, 0);
+        assertEquals(2, decoded0.get("x"));
+        assertEquals(0, decoded0.get("y"));
+        assertEquals(10, decoded0.get("w"));
+        assertEquals(20, decoded0.get("h"));
+        assertEquals(s1, decoded0.get("s"));
+        ScriptObjectMirror decoded9 = (ScriptObjectMirror)decoder_.invokeFunction("decodeImageURIRegular", stream, 9+s1.length());
+        assertEquals(1000, decoded9.get("x"));
+        assertEquals(2000, decoded9.get("y"));
+        assertEquals(3000, decoded9.get("w"));
+        assertEquals(4000, decoded9.get("h"));
+        assertEquals(s2, decoded9.get("s"));
     }
 
     private List cmd(Object... objects)

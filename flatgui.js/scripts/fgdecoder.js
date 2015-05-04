@@ -73,6 +73,45 @@ var COLOR_GRAY_OP = b('01000000');      // [01000|000]  | [CCCC|CCCC]           
 var STR_REG_1BYTE_OP = b('01010000');      // [N1010|000]  | [LLLL|LLLL][XXXX|XXXX][YYYY|YYYY][YYYY|XXXX][..S..]   | Up to 255 str len; up to 4095 X; up 4095 Y; N=1 means 2 bytes per char, 0 means 1 byte
 var STR_SHORT_1BYTE_OP = b('01110000');    // [N1110|000]  | [XXXX|LLLL][XXYY|YYYY][..S..]                         | Up to 15 str len; up to 63 X; up to 63 Y; N=1 means 2 bytes per char, 0 means 1 byte
 
+//
+// Extended commands. All these opcodes are preceded with zero byte.
+//
+
+var CODE_DRAW_IMAGE_REGULAR = 1;
+
+var CODE_FIT_IMAGE_REGULAR = 3;
+
+var CODE_FILL_IMAGE_REGULAR = 5;
+
+function readUByte(stream, c)
+{
+    var c_hbit = (stream[c] & MASK_HBIT) >> 7;
+    var c_7bit = stream[c] & MASK_7BIT;
+    return 0x0000 | (c_7bit + c_hbit*128);
+}
+
+function readWord(stream, c)
+{
+    var c0_hbit = (stream[c] & MASK_HBIT) >> 7;
+    var c0_7bit = stream[c] & MASK_7BIT;
+    var r = c0_7bit + c0_hbit*128;
+    var c1_hbit = (stream[c+1] & MASK_HBIT);
+    var c1_7bit = stream[c+1] & MASK_7BIT;
+    var c01abs = (r + c1_7bit*256);
+    return 0x0000 | (c1_hbit == 0 ? c01abs : c01abs - 32768);
+}
+
+function readUWord(stream, c)
+{
+    var c0_hbit = (stream[c] & MASK_HBIT) >> 7;
+    var c0_7bit = stream[c] & MASK_7BIT;
+    var r = c0_7bit + c0_hbit*128;
+    var c1_hbit = (stream[c+1] & MASK_HBIT);
+    var c1_7bit = stream[c+1] & MASK_7BIT;
+    var c01abs = (r + c1_7bit*256);
+    return 0x0000 | c01abs;
+}
+
 // Returns object {x: <x> y: <y> w: <w> h: <h> :len <actual length of command in bytes>}
 function decodeRect(stream, c)
 {
@@ -319,4 +358,51 @@ function decodeString(stream, c)
     }
 
     return {x: x, y: y, s: s, len: len};
+}
+
+// Returns object {x: <x> y: <y> w: <w> h: <h> s: <image uri string> :len <actual length of command in bytes>}
+function decodeImageURIRegular(stream, c)
+{
+    var x;
+    var y;
+    var w;
+    var h;
+    var s;
+    var len;
+
+    var strlen;
+    var sstart;
+    var sto = sstart+strlen;
+    s = "";
+
+    strlen = readUWord(stream, c+1);
+
+    x = readUByte(stream, c+3);
+    y = readUByte(stream, c+4);
+    x = 0x0000 | (x + ((stream[c+5] & MASK_LB) << 8));
+    y = 0x0000 | (y + ((stream[c+5] & MASK_HB) << 4));
+
+    var header = 6;
+
+    if ((stream[c] == CODE_FIT_IMAGE_REGULAR) || (stream[c] == CODE_FILL_IMAGE_REGULAR))
+    {
+        w = readUByte(stream, c+6);
+        h = readUByte(stream, c+7);
+        w = 0x0000 | (w + ((stream[c+8] & MASK_LB) << 8));
+        h = 0x0000 | (h + ((stream[c+8] & MASK_HB) << 4));
+
+        header+=3;
+    }
+
+    sstart = c+header;
+
+    len = header + strlen;
+
+    var sto = sstart+strlen;
+    for (var i = sstart; i<sto; i++)
+    {
+        s += String.fromCharCode(stream[i]);
+    }
+
+    return {x: x, y: y, w: w, h: h, s: s, len: len};
 }

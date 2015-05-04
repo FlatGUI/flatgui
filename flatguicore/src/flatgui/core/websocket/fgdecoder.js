@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2015 Denys Lebediev and contributors. All rights reserved.
+ * The use and distribution terms for this software are covered by the
+ * Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0.php)
+ * which can be found in the file LICENSE at the root of this distribution.
+ * By using this software in any fashion, you are agreeing to be bound by
+ * the terms of this license.
+ * You must not remove this notice, or any other, from this software.
+ */
 
 function b(n)
 {
@@ -63,6 +72,45 @@ var COLOR_GRAY_OP = b('01000000');      // [01000|000]  | [CCCC|CCCC]           
 
 var STR_REG_1BYTE_OP = b('01010000');      // [N1010|000]  | [LLLL|LLLL][XXXX|XXXX][YYYY|YYYY][YYYY|XXXX][..S..]   | Up to 255 str len; up to 4095 X; up 4095 Y; N=1 means 2 bytes per char, 0 means 1 byte
 var STR_SHORT_1BYTE_OP = b('01110000');    // [N1110|000]  | [XXXX|LLLL][XXYY|YYYY][..S..]                         | Up to 15 str len; up to 63 X; up to 63 Y; N=1 means 2 bytes per char, 0 means 1 byte
+
+//
+// Extended commands. All these opcodes are preceded with zero byte.
+//
+
+var CODE_DRAW_IMAGE_REGULAR = 1;
+
+var CODE_FIT_IMAGE_REGULAR = 3;
+
+var CODE_FILL_IMAGE_REGULAR = 5;
+
+function readUByte(stream, c)
+{
+    var c_hbit = (stream[c] & MASK_HBIT) >> 7;
+    var c_7bit = stream[c] & MASK_7BIT;
+    return 0x0000 | (c_7bit + c_hbit*128);
+}
+
+function readWord(stream, c)
+{
+    var c0_hbit = (stream[c] & MASK_HBIT) >> 7;
+    var c0_7bit = stream[c] & MASK_7BIT;
+    var r = c0_7bit + c0_hbit*128;
+    var c1_hbit = (stream[c+1] & MASK_HBIT);
+    var c1_7bit = stream[c+1] & MASK_7BIT;
+    var c01abs = (r + c1_7bit*256);
+    return 0x0000 | (c1_hbit == 0 ? c01abs : c01abs - 32768);
+}
+
+function readUWord(stream, c)
+{
+    var c0_hbit = (stream[c] & MASK_HBIT) >> 7;
+    var c0_7bit = stream[c] & MASK_7BIT;
+    var r = c0_7bit + c0_hbit*128;
+    var c1_hbit = (stream[c+1] & MASK_HBIT);
+    var c1_7bit = stream[c+1] & MASK_7BIT;
+    var c01abs = (r + c1_7bit*256);
+    return 0x0000 | c01abs;
+}
 
 // Returns object {x: <x> y: <y> w: <w> h: <h> :len <actual length of command in bytes>}
 function decodeRect(stream, c)
@@ -198,7 +246,7 @@ function decodeRect(stream, c)
 
         var c3_hbit = (stream[c+3] & MASK_HBIT) >> 7;
         var c3_7bit = stream[c+3] & MASK_7BIT;
-        y = c3_7bit + c3_hbit*128;  
+        y = c3_7bit + c3_hbit*128;
         var c4_hbit = (stream[c+4] & MASK_HBIT);
         var c4_7bit = stream[c+4] & MASK_7BIT;
         // Without 0x0000 it becomes Double type
@@ -280,12 +328,8 @@ function decodeString(stream, c)
     var sto = sstart+strlen;
     s = "";
 
-    print(' stream[c] = ' + stream[c]);
-
     if (stream[c] == STR_REG_1BYTE_OP)
     {
-        print('Regular str');
-
         strlen = stream[c+1]
         x = stream[c+2];
         y = stream[c+3];
@@ -298,8 +342,6 @@ function decodeString(stream, c)
     }
     else if (stream[c] == STR_SHORT_1BYTE_OP)
     {
-        print('Short str');
-
         strlen = (stream[c+1] & MASK_LB);
         x = 0x0000 | ((stream[c+1] & MASK_HB) >> 4) + ((stream[c+2] & MASK_Q3) >> 2);
         y = 0x0000 | (stream[c+2] & MASK_Q123);
@@ -314,86 +356,53 @@ function decodeString(stream, c)
     {
         s += String.fromCharCode(stream[i]);
     }
-    print(' s= ' + s);
 
     return {x: x, y: y, s: s, len: len};
 }
 
-function decodeStream(stream, byteLength)
+// Returns object {x: <x> y: <y> w: <w> h: <h> s: <image uri string> :len <actual length of command in bytes>}
+function decodeImageURIRegular(stream, c)
 {
-    var c = 0;
-    while (c < byteLength)
+    var x;
+    var y;
+    var w;
+    var h;
+    var s;
+    var len;
+
+    var strlen;
+    var sstart;
+    var sto = sstart+strlen;
+    s = "";
+
+    strlen = readUWord(stream, c+1);
+
+    x = readUByte(stream, c+3);
+    y = readUByte(stream, c+4);
+    x = 0x0000 | (x + ((stream[c+5] & MASK_LB) << 8));
+    y = 0x0000 | (y + ((stream[c+5] & MASK_HB) << 4));
+
+    var header = 6;
+
+    if ((stream[c] == CODE_FIT_IMAGE_REGULAR) || (stream[c] == CODE_FILL_IMAGE_REGULAR))
     {
-        var codeObj;
-        var opcodeBase = stream[c] & OP_BASE_MASK;
-        switch (varName)
-        {
-            case CODE_ZERO_GROUP:
-                if ((stream[c] & MASK_SET_COLOR) == CODE_SET_COLOR)
-                {
-                    codeObj = decodeColor(stream, c);
+        w = readUByte(stream, c+6);
+        h = readUByte(stream, c+7);
+        w = 0x0000 | (w + ((stream[c+8] & MASK_LB) << 8));
+        h = 0x0000 | (h + ((stream[c+8] & MASK_HB) << 4));
 
-                    c += codeObj.len;
-                }
-                else if ((stream[c] & MASK_SET_CLIP) == CODE_SET_CLIP)
-                {
-                    codeObj = decodeRect(stream, c);
-
-                    c += codeObj.len;
-                }
-                else if (stream[c] == CODE_PUSH_CLIP)
-                {
-
-                    c++;
-                }
-                else if (stream[c] == CODE_POP_CLIP)
-                {
-
-                    c++;
-                }
-                else
-                {
-                    codeObj = decodeString(stream, c);
-
-                    c+= codeObj.len;
-                }
-            case CODE_DRAW_RECT:
-                codeObj = decodeRect(stream, c);
-
-                c+= codeObj.len;
-                break;
-            case CODE_FILL_RECT:
-                codeObj = decodeRect(stream, c);
-
-                c+= codeObj.len;
-                break;
-            case CODE_DRAW_OVAL:
-                codeObj = decodeRect(stream, c);
-
-                c+= codeObj.len;
-                break;
-            case CODE_FILL_OVAL:
-                codeObj = decodeRect(stream, c);
-
-                c+= codeObj.len;
-                break;
-            case CODE_DRAW_LINE:
-                codeObj = decodeRect(stream, c);
-
-                c+= codeObj.len;
-                break;
-            case CODE_DRAW_CODE_TRANSFORM:
-                codeObj = decodeRect(stream, c);
-
-                c+= codeObj.len;
-                break;
-            case CODE_CLIP_RECT:
-                codeObj = decodeRect(stream, c);
-
-                c+= codeObj.len;
-                break;
-            default:
-               throw new Error("Unknown operation code: " + stream[c]);
-        }
+        header+=3;
     }
+
+    sstart = c+header;
+
+    len = header + strlen;
+
+    var sto = sstart+strlen;
+    for (var i = sstart; i<sto; i++)
+    {
+        s += String.fromCharCode(stream[i]);
+    }
+
+    return {x: x, y: y, w: w, h: h, s: s, len: len};
 }

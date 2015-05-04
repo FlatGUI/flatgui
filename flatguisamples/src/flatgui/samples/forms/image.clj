@@ -12,3 +12,5 @@
             [flatgui.samples.forms.imagewindow :as iw]))
 
 (def imagepanel (flatgui.app/defroot iw/root-panel))
+
+(def imagepanelweb (assoc-in imagepanel [:children :hello :children :img-holder :image-url] "http://flatgui.org/resources/icon.png"))
