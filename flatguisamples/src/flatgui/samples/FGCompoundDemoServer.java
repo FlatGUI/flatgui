@@ -14,9 +14,7 @@ import flatgui.core.FGTemplate;
 import flatgui.core.IFGTemplate;
 import flatgui.core.websocket.FGAppServer;
 
-import java.io.File;
 import java.io.InputStream;
-import java.net.URL;
 import java.util.Scanner;
 
 /**
