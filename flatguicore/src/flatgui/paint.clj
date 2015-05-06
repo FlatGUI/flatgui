@@ -178,8 +178,17 @@
 ;;;;;;;;;;;;;;;;;;;;;; New painting approach optimized for web
 ;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;; TODO find better place for this, make configurable
-(def string-pool-properties [:text :image-url])
+;;;;; TODO find better place for this, make configurable
+;;;(def string-pool-properties [:text :image-url])
+
+;; TODO This works and may be used instead of string-pool-properties, but seems to be slow
+(defn extract-strings [look-vec]
+  (mapcat
+    #(cond
+      (string? %) [%]
+      (vector? %) (extract-strings %)
+      :else [])
+    look-vec))
 
 (defmulti extract-value (fn [property _ _] (class property)))
 
@@ -218,8 +227,12 @@
 (defn get-component-id-path-to-flags [container]
   (get-component-id-path-to-property-value [] container [:rollover-notify-disabled :popup :visible] (fn [v] (if v 1 0))))
 
+;(defn get-component-id-path-to-strings [container]
+;  (get-component-id-path-to-property-value [] container nil (fn [container] (mapv #(% container) string-pool-properties))))
+
 (defn get-component-id-path-to-strings [container]
-  (get-component-id-path-to-property-value [] container nil (fn [container] (mapv #(% container) string-pool-properties))))
+  (get-component-id-path-to-property-value [] container :look-vec extract-strings))
+
 
 (defn- ready-for-paint? [container]
   (and

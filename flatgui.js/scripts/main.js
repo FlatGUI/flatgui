@@ -354,7 +354,10 @@ function decodeLookVector(componentIndex, stream, byteLength)
                     {
                         codeObj = decodeString(stream, c);
                         decodeLog( "drawString " + JSON.stringify(codeObj));
-                        fillMultilineTextNoWrap(codeObj.s, codeObj.x, codeObj.y);
+                        if (stringPools[componentIndex] && stringPools[componentIndex][codeObj.i])
+                        {
+                            fillMultilineTextNoWrap(stringPools[componentIndex][codeObj.i], codeObj.x, codeObj.y);
+                        }
                         c += codeObj.len;
                     }
                     break;

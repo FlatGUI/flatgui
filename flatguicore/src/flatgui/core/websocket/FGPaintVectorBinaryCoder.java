@@ -44,7 +44,10 @@ public class FGPaintVectorBinaryCoder
         registerCoder("drawRoundRect", new DrawRoundRectCoder());
         registerCoder("drawOval", new DrawOvalCoder());
         registerCoder("fillOval", new FillOvalCoder());
-        registerCoder("drawString", new DrawStringCoder());
+
+        ICommandCoder drawStringCoder = new DrawStringCoder(stringPoolIdSupplier);
+        registerCoder("drawString", drawStringCoder);
+
         registerCoder("drawLine", new DrawLineCoder());
         registerCoder("transform", new TransformCoder());
         registerCoder("clipRect", new ClipRectCoder());
@@ -55,11 +58,11 @@ public class FGPaintVectorBinaryCoder
         ICommandCoder drawImageCoder = new DrawImageStrPoolCoder(stringPoolIdSupplier);
         ICommandCoder fitImageCoder = new FitImageStrPoolCoder(stringPoolIdSupplier);
         ICommandCoder fillImageCoder = new FillImageStrPoolCoder(stringPoolIdSupplier);
-        uidAwareCoders_ = Arrays.asList(drawImageCoder, fitImageCoder, fillImageCoder);
-
         registerCoder("drawImage", new ExtendedCommandCoder(drawImageCoder));
         registerCoder("fitImage", new ExtendedCommandCoder(fitImageCoder));
         registerCoder("fillImage", new ExtendedCommandCoder(fillImageCoder));
+
+        uidAwareCoders_ = Arrays.asList(drawStringCoder, drawImageCoder, fitImageCoder, fillImageCoder);
     }
 
     public void setCodedComponentUid(Object componentId, int uid)
@@ -554,21 +557,94 @@ public class FGPaintVectorBinaryCoder
         }
     }
 
+// This is a regular drawString coder that transmits actual string. It is not used by default
+//
+//    public static class DrawStringCoder implements ICommandCoder
+//    {
+//        private BiFunction<List, Integer, Integer> coordProvider_;
+//
+//        public DrawStringCoder()
+//        {
+//            this(FGPaintVectorBinaryCoder::getCoord);
+//        }
+//
+//        public DrawStringCoder(BiFunction<List, Integer, Integer> coordProvider)
+//        {
+//            coordProvider_ = coordProvider;
+//        }
+//
+//        // Header
+//        // [SSSSS|OOO]
+//        //
+//        // Body
+//        // -----
+//        // Sub          | Body                                                  | Comment
+//        // [N1010|000]  | [LLLL|LLLL][XXXX|XXXX][YYYY|YYYY][YYYY|XXXX][..S..]   | Up to 255 str len; up to 4095 X; up 4095 Y; N=1 means 2 bytes per char, 0 means 1 byte
+//        // [N1110|000]  | [XXXX|LLLL][XXYY|YYYY][..S..]                         | Up to 15 str len; up to 63 X; up to 63 Y; N=1 means 2 bytes per char, 0 means 1 byte
+//
+//        @Override
+//        public int writeCommand(byte[] stream, int n, List command)
+//        {
+//            // TODO detect whether it needs 2 bytes per char, or 1 byte is enough
+//            // TODO use java.nio.charset.CharsetEncoder then
+//            byte charsetIndicator = (byte)0b00000000;
+//
+//            String s = (String)command.get(1);
+//            byte[] sbytes = s.getBytes();
+//            int x = coordProvider_.apply(command, 2);
+//            int y = coordProvider_.apply(command, 3);
+//
+//            if (sbytes.length <= 15 && x <= 63 && y <= 63)
+//            {
+//                stream[n] = (byte)(charsetIndicator | 0b01110000);
+//                stream[n+1] = (byte)(((x & 0b00001111) << 4) | sbytes.length);
+//                stream[n+2] = (byte)(((x & 0b00110000) << 2) | y);
+//                for (int i=0;i<sbytes.length;i++) stream[n+3+i] = sbytes[i];
+//                return 3 + sbytes.length;
+//            }
+//            else if(sbytes.length <= 255 && x <= 4095 && y <= 4095)
+//            {
+//                stream[n] = (byte)(charsetIndicator | 0b01010000);
+//                stream[n+1] = (byte)sbytes.length;
+//                stream[n+2] = (byte)(x & 0b11111111);
+//                stream[n+3] = (byte)(y & 0b11111111);
+//                stream[n+4] = (byte)(((x & 0b111100000000) >> 8) | ((y & 0b111100000000) >> 4));
+//                for (int i=0;i<sbytes.length;i++) stream[n+5+i] = sbytes[i];
+//                return 5+sbytes.length;
+//            }
+//            else
+//            {
+//                throw new IllegalStateException("Cannot encode drawString using regular commands. String: " + s
+//                        + " len=" + sbytes.length + " x=" + x + " y=" + y);
+//            }
+//        }
+//    }
+
+    /*
+     * Transmits id of string in the pool instead of whole string
+     */
     public static class DrawStringCoder implements ICommandCoder
     {
         private BiFunction<List, Integer, Integer> coordProvider_;
+        private StringPoolIdSupplier stringPoolIdSupplier_;
+        private Object componentId_;
 
-        public DrawStringCoder()
+        public DrawStringCoder(StringPoolIdSupplier stringPoolIdSupplier)
         {
-            this(FGPaintVectorBinaryCoder::getCoord);
+            this(stringPoolIdSupplier, FGPaintVectorBinaryCoder::getCoord);
         }
 
-        public DrawStringCoder(BiFunction<List, Integer, Integer> coordProvider)
+        public DrawStringCoder(StringPoolIdSupplier stringPoolIdSupplier, BiFunction<List, Integer, Integer> coordProvider)
         {
+            stringPoolIdSupplier_ = stringPoolIdSupplier;
             coordProvider_ = coordProvider;
         }
 
-        // TODO Cache strings on client?
+        @Override
+        public void setCodedComponentUid(Object componentId, int uid)
+        {
+            componentId_ = componentId;
+        }
 
         // Header
         // [SSSSS|OOO]
@@ -576,8 +652,8 @@ public class FGPaintVectorBinaryCoder
         // Body
         // -----
         // Sub          | Body                                                  | Comment
-        // [N1010|000]  | [LLLL|LLLL][XXXX|XXXX][YYYY|YYYY][YYYY|XXXX][..S..]   | Up to 255 str len; up to 4095 X; up 4095 Y; N=1 means 2 bytes per char, 0 means 1 byte
-        // [N1110|000]  | [XXXX|LLLL][XXYY|YYYY][..S..]                         | Up to 15 str len; up to 63 X; up to 63 Y; N=1 means 2 bytes per char, 0 means 1 byte
+        // [N1010|000]  | [IIII|IIII][XXXX|XXXX][YYYY|YYYY][YYYY|XXXX][..S..]   | [0-255] str id; up to 4095 X; up 4095 Y; N=1 means 2 bytes per char, 0 means 1 byte
+        // [N1110|000]  | [XXXX|IIII][XXYY|YYYY][..S..]                         | [0-15] str id; up to 63 X; up to 63 Y; N=1 means 2 bytes per char, 0 means 1 byte
 
         @Override
         public int writeCommand(byte[] stream, int n, List command)
@@ -587,32 +663,31 @@ public class FGPaintVectorBinaryCoder
             byte charsetIndicator = (byte)0b00000000;
 
             String s = (String)command.get(1);
-            byte[] sbytes = s.getBytes();
+            byte sId = stringPoolIdSupplier_.getStringPoolId(s, componentId_);
+
             int x = coordProvider_.apply(command, 2);
             int y = coordProvider_.apply(command, 3);
 
-            if (sbytes.length <= 15 && x <= 63 && y <= 63)
+            if (sId <= 15 && x <= 63 && y <= 63)
             {
                 stream[n] = (byte)(charsetIndicator | 0b01110000);
-                stream[n+1] = (byte)(((x & 0b00001111) << 4) | sbytes.length);
+                stream[n+1] = (byte)(((x & 0b00001111) << 4) | sId);
                 stream[n+2] = (byte)(((x & 0b00110000) << 2) | y);
-                for (int i=0;i<sbytes.length;i++) stream[n+3+i] = sbytes[i];
-                return 3 + sbytes.length;
+                return 3;
             }
-            else if(sbytes.length <= 255 && x <= 4095 && y <= 4095)
+            else if(sId <= 255 && x <= 4095 && y <= 4095)
             {
                 stream[n] = (byte)(charsetIndicator | 0b01010000);
-                stream[n+1] = (byte)sbytes.length;
+                stream[n+1] = sId;
                 stream[n+2] = (byte)(x & 0b11111111);
                 stream[n+3] = (byte)(y & 0b11111111);
                 stream[n+4] = (byte)(((x & 0b111100000000) >> 8) | ((y & 0b111100000000) >> 4));
-                for (int i=0;i<sbytes.length;i++) stream[n+5+i] = sbytes[i];
-                return 5+sbytes.length;
+                return 5;
             }
             else
             {
                 throw new IllegalStateException("Cannot encode drawString using regular commands. String: " + s
-                        + " len=" + sbytes.length + " x=" + x + " y=" + y);
+                        + " sId=" + sId + " x=" + x + " y=" + y);
             }
         }
     }

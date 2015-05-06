@@ -358,29 +358,53 @@ public class FGPaintVectorBinaryCoder_utest extends Assert
         assertEquals(111, decoded6.get("b"));
     }
 
+// This is a test for regular drawString code (that transmits actual stirng) which is not used by default
+//    @Test
+//    public void testString()
+//        throws Exception
+//    {
+//        // [N1010|000]  | [LLLL|LLLL][XXXX|XXXX][YYYY|YYYY][YYYY|XXXX][..S..]   | Up to 255 str len; up to 4095 X; up 4095 Y; N=1 means 2 bytes per char, 0 means 1 byte
+//        // [N1110|000]  | [XXXX|LLLL][XXYY|YYYY][..S..]                         | Up to 15 str len; up to 63 X; up to 63 Y; N=1 means 2 bytes per char, 0 means 1 byte
+//
+//        String s1 = "Hello, world!";
+//        String s2 = "1234?";
+//        FGPaintVectorBinaryCoder.DrawStringCoder stringCoder = new FGPaintVectorBinaryCoder.DrawStringCoder((l,i)->(Integer)(l.get(i)));
+//        byte[] stream = new byte[26];
+//        int writtenBytes = stringCoder.writeCommand(stream, 0, cmd(null, s1, 2, 0));
+//        assertEquals(3+s1.length(), writtenBytes);
+//        writtenBytes = stringCoder.writeCommand(stream, 3+s1.length(), cmd(null, s2, 2, 64));
+//        assertEquals(5+s2.length(), writtenBytes);
+//        ScriptObjectMirror decoded0 = (ScriptObjectMirror)decoder_.invokeFunction("decodeString", stream, 0);
+//        assertEquals(2, decoded0.get("x"));
+//        assertEquals(0, decoded0.get("y"));
+//        assertEquals(s1, decoded0.get("s"));
+//        ScriptObjectMirror decoded16 = (ScriptObjectMirror)decoder_.invokeFunction("decodeString", stream, 3+s1.length());
+//        assertEquals(2, decoded16.get("x"));
+//        assertEquals(64, decoded16.get("y"));
+//        assertEquals(s2, decoded16.get("s"));
+//    }
+
     @Test
     public void testString()
-        throws Exception
+            throws Exception
     {
-        // [N1010|000]  | [LLLL|LLLL][XXXX|XXXX][YYYY|YYYY][YYYY|XXXX][..S..]   | Up to 255 str len; up to 4095 X; up 4095 Y; N=1 means 2 bytes per char, 0 means 1 byte
-        // [N1110|000]  | [XXXX|LLLL][XXYY|YYYY][..S..]                         | Up to 15 str len; up to 63 X; up to 63 Y; N=1 means 2 bytes per char, 0 means 1 byte
-
-        String s1 = "Hello, world!";
-        String s2 = "1234?";
-        FGPaintVectorBinaryCoder.DrawStringCoder stringCoder = new FGPaintVectorBinaryCoder.DrawStringCoder((l,i)->(Integer)(l.get(i)));
-        byte[] stream = new byte[26];
-        int writtenBytes = stringCoder.writeCommand(stream, 0, cmd(null, s1, 2, 0));
-        assertEquals(3+s1.length(), writtenBytes);
-        writtenBytes = stringCoder.writeCommand(stream, 3+s1.length(), cmd(null, s2, 2, 64));
-        assertEquals(5+s2.length(), writtenBytes);
+        FGPaintVectorBinaryCoder.DrawStringCoder stringCoder =
+                new FGPaintVectorBinaryCoder.DrawStringCoder((s, uid)->((Integer)uid).byteValue(), (l,i)->(Integer)(l.get(i)));
+        byte[] stream = new byte[8];
+        stringCoder.setCodedComponentUid(Integer.valueOf(1), -1);
+        int writtenBytes = stringCoder.writeCommand(stream, 0, cmd(null, "?", 2, 0));
+        assertEquals(3, writtenBytes);
+        stringCoder.setCodedComponentUid(Integer.valueOf(2), -1);
+        writtenBytes = stringCoder.writeCommand(stream, 3, cmd(null, "?", 2, 64));
+        assertEquals(5, writtenBytes);
         ScriptObjectMirror decoded0 = (ScriptObjectMirror)decoder_.invokeFunction("decodeString", stream, 0);
         assertEquals(2, decoded0.get("x"));
         assertEquals(0, decoded0.get("y"));
-        assertEquals(s1, decoded0.get("s"));
-        ScriptObjectMirror decoded16 = (ScriptObjectMirror)decoder_.invokeFunction("decodeString", stream, 3+s1.length());
-        assertEquals(2, decoded16.get("x"));
-        assertEquals(64, decoded16.get("y"));
-        assertEquals(s2, decoded16.get("s"));
+        assertEquals(1, ((Number)decoded0.get("i")).intValue());
+        ScriptObjectMirror decoded3 = (ScriptObjectMirror)decoder_.invokeFunction("decodeString", stream, 3);
+        assertEquals(2, decoded3.get("x"));
+        assertEquals(64, decoded3.get("y"));
+        assertEquals(2, ((Number)decoded3.get("i")).intValue());
     }
 
 // Not used by default
@@ -437,7 +461,7 @@ public class FGPaintVectorBinaryCoder_utest extends Assert
             throws Exception
     {
         FGPaintVectorBinaryCoder.DrawImageStrPoolCoder stringCoder =
-                new FGPaintVectorBinaryCoder.DrawImageStrPoolCoder((s, uid)->((Integer)uid).byteValue(),  (l,i)->(Integer)(l.get(i)));
+                new FGPaintVectorBinaryCoder.DrawImageStrPoolCoder((s, uid)->((Integer)uid).byteValue(), (l,i)->(Integer)(l.get(i)));
         byte[] stream = new byte[10];
         stringCoder.setCodedComponentUid(Integer.valueOf(11), -1);
         int writtenBytes = stringCoder.writeCommand(stream, 0, cmd(null, "?", 2, 0));

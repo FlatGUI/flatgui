@@ -320,7 +320,53 @@ function decodeColor(stream, c)
 //var STR_REG_1BYTE_OP = b('01010000');      // [N1010|000]  | [LLLL|LLLL][XXXX|XXXX][YYYY|YYYY][YYYY|XXXX][..S..]   | Up to 255 str len; up to 4095 X; up 4095 Y; N=1 means 2 bytes per char, 0 means 1 byte
 //var STR_SHORT_1BYTE_OP = b('01110000');    // [N1110|000]  | [XXXX|LLLL][XXYY|YYYY][..S..]                         | Up to 15 str len; up to 63 X; up to 63 Y; N=1 means 2 bytes per char, 0 means 1 byte
 
-// Returns object {x: <x> y: <y> s: <string> :len <actual length of command in bytes>}
+// Not used by default
+//// Returns object {x: <x> y: <y> s: <string> :len <actual length of command in bytes>}
+//function decodeString(stream, c)
+//{
+//    var x;
+//    var y;
+//    var s;
+//    var len;
+//
+//    var strlen;
+//    var sstart;
+//    var sto = sstart+strlen;
+//    s = "";
+//
+//    if (stream[c] == STR_REG_1BYTE_OP)
+//    {
+//        strlen = stream[c+1]
+//        x = stream[c+2];
+//        y = stream[c+3];
+//        x = 0x0000 | (x + ((stream[c+4] & MASK_LB) << 8));
+//        y = 0x0000 | (y + ((stream[c+4] & MASK_HB) << 4));
+//
+//        sstart = c+5;
+//
+//        len = 5 + strlen;
+//    }
+//    else if (stream[c] == STR_SHORT_1BYTE_OP)
+//    {
+//        strlen = (stream[c+1] & MASK_LB);
+//        x = 0x0000 | ((stream[c+1] & MASK_HB) >> 4) + ((stream[c+2] & MASK_Q3) >> 2);
+//        y = 0x0000 | (stream[c+2] & MASK_Q123);
+//
+//        sstart = c+3;
+//
+//        len = 3 + strlen;
+//    }
+//
+//    var sto = sstart+strlen;
+//    for (var i = sstart; i<sto; i++)
+//    {
+//        s += String.fromCharCode(stream[i]);
+//    }
+//
+//    return {x: x, y: y, s: s, len: len};
+//}
+
+// Returns object {x: <x> y: <y> i: <string index in pool> :len <actual length of command in bytes>}
 function decodeString(stream, c)
 {
     var x;
@@ -328,41 +374,28 @@ function decodeString(stream, c)
     var s;
     var len;
 
-    var strlen;
-    var sstart;
-    var sto = sstart+strlen;
-    s = "";
+    var index;
 
     if (stream[c] == STR_REG_1BYTE_OP)
     {
-        strlen = stream[c+1]
+        index = stream[c+1]
         x = stream[c+2];
         y = stream[c+3];
         x = 0x0000 | (x + ((stream[c+4] & MASK_LB) << 8));
         y = 0x0000 | (y + ((stream[c+4] & MASK_HB) << 4));
 
-        sstart = c+5;
-
-        len = 5 + strlen;
+        len = 5;
     }
     else if (stream[c] == STR_SHORT_1BYTE_OP)
     {
-        strlen = (stream[c+1] & MASK_LB);
+        index = (stream[c+1] & MASK_LB);
         x = 0x0000 | ((stream[c+1] & MASK_HB) >> 4) + ((stream[c+2] & MASK_Q3) >> 2);
         y = 0x0000 | (stream[c+2] & MASK_Q123);
 
-        sstart = c+3;
-
-        len = 3 + strlen;
+        len = 3;
     }
 
-    var sto = sstart+strlen;
-    for (var i = sstart; i<sto; i++)
-    {
-        s += String.fromCharCode(stream[i]);
-    }
-
-    return {x: x, y: y, s: s, len: len};
+    return {x: x, y: y, i: index, len: len};
 }
 
 // Not used by default
