@@ -54,7 +54,9 @@ public interface IFGModule
 
     public Map<Object, Object> getComponentIdPathToBooleanStateFlags();
 
-    public Map<Object, Object> getComponentIdPathToImageUrl();
+    public Map<Object, Object> getStringPoolDiffs();
+
+    public byte getStringPoolId(String s, Object componentId);
 
     public List<Object> getPaintAllSequence2();
 

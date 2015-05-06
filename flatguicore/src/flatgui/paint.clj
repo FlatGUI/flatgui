@@ -178,6 +178,9 @@
 ;;;;;;;;;;;;;;;;;;;;;; New painting approach optimized for web
 ;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;; TODO find better place for this, make configurable
+(def string-pool-properties [:text :image-url])
+
 (defmulti extract-value (fn [property _ _] (class property)))
 
 (defmethod extract-value Keyword [property f container]
@@ -186,6 +189,9 @@
 (defmethod extract-value Collection [property f container]
   ;; This reduce accumulates bit flags
   (reduce #(+ (* 2 %1) %2) 0 (for [p property] (f (p container)))))
+
+(defmethod extract-value nil [_ f container]
+  (f container))
 
 (defn- get-component-id-path-to-property-value [id-path container property f]
   (let [this-id-path (fgc/conjv id-path (:id container))]
@@ -212,8 +218,8 @@
 (defn get-component-id-path-to-flags [container]
   (get-component-id-path-to-property-value [] container [:rollover-notify-disabled :popup :visible] (fn [v] (if v 1 0))))
 
-(defn get-component-id-path-to-image-url [container]
-      (get-component-id-path-to-property-value [] container :image-url identity))
+(defn get-component-id-path-to-strings [container]
+  (get-component-id-path-to-property-value [] container nil (fn [container] (mapv #(% container) string-pool-properties))))
 
 (defn- ready-for-paint? [container]
   (and

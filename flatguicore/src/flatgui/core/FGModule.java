@@ -9,10 +9,13 @@
  */
 package flatgui.core;
 
+import clojure.lang.Keyword;
 import clojure.lang.Var;
 import flatgui.core.awt.FGMouseTargetComponentInfo;
+import flatgui.core.util.FGStringPool;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Denis Lebedev
@@ -22,11 +25,16 @@ class FGModule implements IFGModule
     static final String FG_CORE_NAMESPACE = "flatgui.appcontainer";
     static final String GET_CONTAINER_FN_NAME = "get-container";
 
-    private String containerName_;
+    private static final int STRING_POOL_PER_COMPONENT_CAPACITY = 16;
+
+    private final String containerName_;
+
+    private final Map<Object, FGStringPool> stringPoolMap_;
 
     public FGModule(String containerName)
     {
         containerName_ = containerName;
+        stringPoolMap_ = new HashMap<>();
     }
 
     @Override
@@ -177,11 +185,43 @@ class FGModule implements IFGModule
     }
 
     @Override
-    public Map<Object, Object> getComponentIdPathToImageUrl()
+    public Map<Object, Object> getStringPoolDiffs()
+    {
+        Map<List<Keyword>, List<String>> idPathToStrings = getComponentIdPathToStrings();
+        Map<Object, Object> result = new HashMap<>();
+
+        idPathToStrings.entrySet().stream().forEach(e -> {
+            Map<Integer, String> valDiff = putStrings(e.getKey(), e.getValue());
+            if (!valDiff.isEmpty())
+            {
+                result.put(e.getKey(), valDiff);
+            }
+        });
+
+        return result;
+    }
+
+    public byte getStringPoolId(String s, Object componentId)
+    {
+        return (byte)(stringPoolMap_.get(componentId).getIndexOfString(s).intValue());
+    }
+
+    private Map<List<Keyword>, List<String>> getComponentIdPathToStrings()
     {
         Object container = getContainer();
-        Var fn = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-image-url");
-        return (Map<Object, Object>) fn.invoke(container);
+        Var fn = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-strings");
+        return (Map<List<Keyword>, List<String>>) fn.invoke(container);
+    }
+
+    private Map<Integer, String> putStrings(Object componentId, Collection<String> strings)
+    {
+        FGStringPool pool = stringPoolMap_.get(componentId);
+        if (pool == null)
+        {
+            pool = new FGStringPool(STRING_POOL_PER_COMPONENT_CAPACITY);
+            stringPoolMap_.put(componentId, pool);
+        }
+        return pool.addStrings(strings.stream().filter(s -> s != null).collect(Collectors.toSet()));
     }
 
     @Override

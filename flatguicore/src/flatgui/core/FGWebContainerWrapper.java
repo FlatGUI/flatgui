@@ -34,9 +34,7 @@ public class FGWebContainerWrapper
     public static final byte LOOK_VECTOR_MAP_COMMAND_CODE = 3;
     public static final byte CHILD_COUNT_MAP_COMMAND_CODE = 4;
     public static final byte BOOLEAN_STATE_FLAGS_COMMAND_CODE = 5;
-
-    @Deprecated
-    public static final byte IMAGE_URL_MAP_COMMAND_CODE = 6;
+    public static final byte STRING_POOL_MAP_COMMAND_CODE = 7;
 
     public static final byte PAINT_ALL_LIST_COMMAND_CODE = 64;
     public static final byte REPAINT_CACHED_COMMAND_CODE = 65;
@@ -333,24 +331,15 @@ public class FGWebContainerWrapper
         int getUniqueId(Object key);
     }
 
-    static abstract class MapTransmitter<V> extends AbstractTransmitter<Map<Object, Object>>
+    static abstract class AbstractMapTransmitter<V> extends AbstractTransmitter<Map<Object, Object>>
     {
         private IKeyCache keyCache_;
         private Supplier<Map<Object, Object>> sourceMapSupplier_;
 
-        public MapTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
+        public AbstractMapTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
         {
             keyCache_ = keyCache;
             sourceMapSupplier_ = sourceMapSupplier;
-        }
-
-        @Override
-        public Map<Object, Object> getDiffToTransmit(Map<Object, Object> previousData, Map<Object, Object> newData)
-        {
-            Map<Object, Object> diff = newData.entrySet().stream()
-                    .filter(e -> !eq(previousData.get(e.getKey()), e.getValue()))
-                    .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
-            return diff.isEmpty() ? null : diff;
         }
 
         @Override
@@ -358,7 +347,9 @@ public class FGWebContainerWrapper
         {
             for (Map.Entry<Object, Object> e : data.entrySet())
             {
-                int uid = keyCache_.getUniqueId(e.getKey());
+                Object componentId = e.getKey();
+                int uid = keyCache_.getUniqueId(componentId);
+                onWritingUid(componentId, uid);
                 stream.write((byte)(uid & 0xFF));
                 n++;
                 stream.write((byte)((uid >> 8) & 0xFF));
@@ -381,7 +372,59 @@ public class FGWebContainerWrapper
             return sourceMapSupplier_;
         }
 
+        protected void onWritingUid(Object componentId, int uid)
+        {
+        }
+
+
+//        /**
+//         * Computes value to transmit for given key when value is changed. It is the whole
+//         * new value by default. Implementations may compute diff between old and new value
+//         * since they have specific knowledge about the type of the value.
+//         *
+//         * @param key key
+//         * @param prevValue previous value by given key
+//         * @param newValue new value by given key
+//         * @return value to transmit
+//         */
+//        protected Object computeValueToTransmit(Object key, Object prevValue, Object newValue)
+//        {
+//            // By default - whole new value
+//            return newValue;
+//        }
+
         protected abstract int writeValue(ByteArrayOutputStream stream, int n, V value);
+    }
+
+    static abstract class MapTransmitter<V> extends AbstractMapTransmitter<V>
+    {
+        public MapTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
+        {
+            super(keyCache, sourceMapSupplier);
+        }
+
+        @Override
+        public Map<Object, Object> getDiffToTransmit(Map<Object, Object> previousData, Map<Object, Object> newData)
+        {
+            Map<Object, Object> diff = newData.entrySet().stream()
+                    .filter(e -> !eq(previousData.get(e.getKey()), e.getValue()))
+                    .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+            return diff.isEmpty() ? null : diff;
+        }
+    }
+
+    static abstract class MapFullNewTransmitter<V> extends AbstractMapTransmitter<V>
+    {
+        public MapFullNewTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
+        {
+            super(keyCache, sourceMapSupplier);
+        }
+
+        @Override
+        public Map<Object, Object> getDiffToTransmit(Map<Object, Object> previousData, Map<Object, Object> newData)
+        {
+            return newData.isEmpty() ? null : newData;
+        }
     }
 
     static abstract class TransformMatrixMapTransmitter extends MapTransmitter<AffineTransform>
@@ -532,7 +575,7 @@ public class FGWebContainerWrapper
             int h = (int)(value.get(1).doubleValue() * IFGContainer.UNIT_SIZE_PX);
             stream.write((byte)(w & 0xFF));
             stream.write((byte)(h & 0xFF));
-            stream.write((byte)((w >> 8) & 0x0F | (h >> 4) & 0xF0));
+            stream.write((byte) ((w >> 8) & 0x0F | (h >> 4) & 0xF0));
             return 3;
         }
 
@@ -547,10 +590,16 @@ public class FGWebContainerWrapper
     {
         private FGPaintVectorBinaryCoder coder_;
 
-        public LookVectorTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
+        public LookVectorTransmitter(FGPaintVectorBinaryCoder.StringPoolIdSupplier stringPoolIdSupplier, IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
         {
             super(keyCache, sourceMapSupplier);
-            coder_ = new FGPaintVectorBinaryCoder();
+            coder_ = new FGPaintVectorBinaryCoder(stringPoolIdSupplier);
+        }
+
+        @Override
+        protected void onWritingUid(Object componentId, int uid)
+        {
+            coder_.setCodedComponentUid(componentId, uid);
         }
 
         @Override
@@ -581,6 +630,11 @@ public class FGWebContainerWrapper
         @Override
         protected int writeValue(ByteArrayOutputStream stream, int n, String value)
         {
+            return writeString(stream, n, value);
+        }
+
+        static int writeString(ByteArrayOutputStream stream, int n, String value)
+        {
             int strLen = value.length();
             stream.write((byte)(strLen & 0xFF));
             stream.write((byte)((strLen >> 8) & 0xFF));
@@ -590,21 +644,42 @@ public class FGWebContainerWrapper
         }
     }
 
-    @Deprecated
-    static class ImageUrlTransmitter extends StringTransmitter
+    public static class StringPoolMapTransmitter extends MapFullNewTransmitter<Map<Integer, String>>
     {
-        public ImageUrlTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
+        public StringPoolMapTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
         {
             super(keyCache, sourceMapSupplier);
         }
 
         @Override
+        protected int writeValue(ByteArrayOutputStream stream, int n, Map<Integer, String> value)
+        {
+            int strCount = value.size();
+            if (strCount > 255)
+            {
+                throw new UnsupportedOperationException();
+            }
+
+            int w=0;
+            stream.write((byte) (strCount & 0xFF));
+            w++;
+
+            for(Map.Entry<Integer, String> e : value.entrySet())
+            {
+                stream.write(e.getKey().byteValue());
+                w++;
+                w += StringTransmitter.writeString(stream, w, e.getValue());
+            }
+
+            return w;
+        }
+
+        @Override
         public byte getCommandCode()
         {
-            return IMAGE_URL_MAP_COMMAND_CODE;
+            return STRING_POOL_MAP_COMMAND_CODE;
         }
     }
-
 
     static abstract class ListTransmitter<V> extends AbstractTransmitter<List<Object>>
     {
@@ -714,20 +789,23 @@ public class FGWebContainerWrapper
         private IKeyCache keyCache_;
         private Map<Byte, ?> cmdToLastData_;
         private Map<Byte, IDataTransmitter<Object>> cmdToDataTransmitter_;
+        private FGPaintVectorBinaryCoder.StringPoolIdSupplier stringPoolIdSupplier_;
 
         public FGContainerStateTransmitter(IFGModule fgModule)
         {
             keyCache_ = new KeyCahe();
             cmdToDataTransmitter_ = new LinkedHashMap<>();
 
-            addDataTransmitter(new PositionMatrixMapTrasmitter(keyCache_, () -> fgModule.getComponentIdPathToPositionMatrix()));
-            addDataTransmitter(new ViewportMatrixMapTrasmitter(keyCache_, () -> fgModule.getComponentIdPathToViewportMatrix()));
-            addDataTransmitter(new ClipRectTransmitter(keyCache_, () -> fgModule.getComponentIdPathToClipRect()));
-            addDataTransmitter(new LookVectorTransmitter(keyCache_, () -> fgModule.getComponentIdPathToLookVector()));
-            addDataTransmitter(new ChildCountMapTransmitter(keyCache_, () -> fgModule.getComponentIdPathToChildCount()));
-            addDataTransmitter(new BooleanFlagsMapTransmitter(keyCache_, () -> fgModule.getComponentIdPathToBooleanStateFlags()));
-            addDataTransmitter(new PaintAllTransmitter(keyCache_, () -> fgModule.getPaintAllSequence2()));
-            //addDataTransmitter(new ImageUrlTransmitter(keyCache_, () -> fgModule.getComponentIdPathToImageUrl()));
+            stringPoolIdSupplier_ = fgModule::getStringPoolId;
+
+            addDataTransmitter(new PositionMatrixMapTrasmitter(keyCache_, fgModule::getComponentIdPathToPositionMatrix));
+            addDataTransmitter(new ViewportMatrixMapTrasmitter(keyCache_, fgModule::getComponentIdPathToViewportMatrix));
+            addDataTransmitter(new ClipRectTransmitter(keyCache_, fgModule::getComponentIdPathToClipRect));
+            addDataTransmitter(new LookVectorTransmitter(stringPoolIdSupplier_, keyCache_, fgModule::getComponentIdPathToLookVector));
+            addDataTransmitter(new ChildCountMapTransmitter(keyCache_, fgModule::getComponentIdPathToChildCount));
+            addDataTransmitter(new BooleanFlagsMapTransmitter(keyCache_, fgModule::getComponentIdPathToBooleanStateFlags));
+            addDataTransmitter(new PaintAllTransmitter(keyCache_, fgModule::getPaintAllSequence2));
+            addDataTransmitter(new StringPoolMapTransmitter(keyCache_, fgModule::getStringPoolDiffs));
 
             resetDataCache();
         }

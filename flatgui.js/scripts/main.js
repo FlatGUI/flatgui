@@ -259,7 +259,7 @@ function decodeLog(msg)
     //console.log(msg);
 }
 
-function decodeLookVector(stream, byteLength)
+function decodeLookVector(componentIndex, stream, byteLength)
 {
     var c = 0;
     while (c < byteLength)
@@ -269,24 +269,25 @@ function decodeLookVector(stream, byteLength)
         if (stream[c] == 0) // Extended commands
         {
             var opcodeBase = stream[c+1];
+            c++;
 
             switch (opcodeBase)
             {
-                case CODE_DRAW_IMAGE_REGULAR:
-                    codeObj = decodeImageURIRegular(stream, c+1);
-                    var img = getImage(codeObj.s);
+                case CODE_DRAW_IMAGE_STRPOOL:
+                    codeObj = decodeImageURIStrPool(stream, c);
+                    var img = getImage(stringPools[componentIndex][codeObj.i]);
                     ctx.drawImage(img, codeObj.x, codeObj.y);
                     c += codeObj.len;
-                break;
-                case CODE_FIT_IMAGE_REGULAR:
-                    codeObj = decodeImageURIRegular(stream, c+1);
-                    var img = getImage(codeObj.s);
+                    break;
+                case CODE_FIT_IMAGE_STRPOOL:
+                    codeObj = decodeImageURIStrPool(stream, c);
+                    var img = getImage(stringPools[componentIndex][codeObj.i]);
                     ctx.drawImage(img, codeObj.x, codeObj.y, codeObj.w, codeObj.h);
                     c += codeObj.len;
-                break;
-                case CODE_FILL_IMAGE_REGULAR:
-                    codeObj = decodeImageURIRegular(stream, c+1);
-                    var img = getImage(codeObj.s);
+                    break;
+                case CODE_FILL_IMAGE_STRPOOL:
+                    codeObj = decodeImageURIStrPool(stream, c);
+                    var img = getImage(stringPools[componentIndex][codeObj.i]);
                     var w = img.width;
                     var h = img.height;
                     if (codeObj.w <= w && codeObj.h <= h)
@@ -308,10 +309,10 @@ function decodeLookVector(stream, byteLength)
                         decodeLog("Cannot fill image with zero size: w=" + w + " h=" + h);
                     }
                     c += codeObj.len;
-                break;
+                    break;
                 default:
-                    decodeLog("Unknown extended operation code: " + stream[c]);
-                    throw new Error("Unknown extended operation code: " + stream[c]);
+                    decodeLog("Unknown extended operation code: " + opcodeBase);
+                    throw new Error("Unknown extended operation code: " + opcodeBase);
             }
         }
         else
@@ -426,7 +427,7 @@ var CLIP_SIZE_MAP_COMMAND_CODE = 2;
 var LOOK_VECTOR_MAP_COMMAND_CODE = 3;
 var CHILD_COUNT_MAP_COMMAND_CODE = 4;
 var BOOLEAN_STATE_FLAGS_COMMAND_CODE = 5;
-//var IMAGE_URL_MAP_COMMAND_CODE = 6;
+var STRING_POOL_MAP_COMMAND_CODE = 7;
 
 var PAINT_ALL_LIST_COMMAND_CODE = 64;
 var REPAINT_CACHED_COMMAND_CODE = 65;
@@ -439,8 +440,8 @@ var clipSizes = [];
 var lookVectors = [];
 var childCounts = [];
 var booleanStateFlags = [];
-//var imageUrls = [];
-//var images = [];
+var stringPools = [];
+
 var paintAllSequence;
 
 var absPositions = [];
@@ -559,14 +560,8 @@ function paintComponent(stream, c)
                 {
                     if (lookVector.length > 0)
                     {
-                        decodeLookVector(lookVector, lookVector.length);
+                        decodeLookVector(index, lookVector, lookVector.length);
                     }
-
-//                    // TODO temporary
-//                    if (images[index])
-//                    {
-//                        ctx.drawImage(images[index],0,0);
-//                    }
                 }
                 else
                 {
@@ -683,26 +678,34 @@ function decodeCommandVector(stream, byteLength)
                 c++;
             }
             break;
-//        case IMAGE_URL_MAP_COMMAND_CODE:
-//            while (c < byteLength)
-//            {
-//                var index = readShort(stream, c);
-//                c+=2;
-//                var imageUrlSize = readShort(stream, c);
-//                c+=2;
-//
-//                var imageUrl = "";
-//                for (i=0; i<imageUrlSize; i++)
-//                {
-//                    imageUrl += String.fromCharCode(stream[c+i]);
-//                }
-//                c += imageUrlSize;
-//                imageUrls[index] = imageUrl;
-//                var img = new Image;
-//                img.src = imageUrl;
-//                images[index] = img;
-//            }
-//            break;
+        case STRING_POOL_MAP_COMMAND_CODE:
+            while (c < byteLength)
+            {
+                var index = readShort(stream, c);
+                c+=2;
+                var sCount = stream[c];
+                c++;
+                for (var i=0; i<sCount; i++)
+                {
+                    var sIndex = stream[c];
+                    c++;
+                    var sSize = readShort(stream, c);
+                    c+=2;
+                    var str = "";
+                    for (var j=0; j<sSize; j++)
+                    {
+                        str += String.fromCharCode(stream[c+j]);
+                    }
+                    c+=sSize;
+
+                    if (!stringPools[index])
+                    {
+                        stringPools[index] = [];
+                    }
+                    stringPools[index][sIndex] = str;
+                }
+            }
+            break;
         case PAINT_ALL_LIST_COMMAND_CODE:
             paintAllSequence = stream;
             while (c < byteLength)

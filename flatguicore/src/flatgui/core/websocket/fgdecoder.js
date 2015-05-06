@@ -77,11 +77,16 @@ var STR_SHORT_1BYTE_OP = b('01110000');    // [N1110|000]  | [XXXX|LLLL][XXYY|YY
 // Extended commands. All these opcodes are preceded with zero byte.
 //
 
-var CODE_DRAW_IMAGE_REGULAR = 1;
+// Image commands that transmit image URL as string (not used by default)
+//var CODE_DRAW_IMAGE_REGULAR = 1;
+//var CODE_FIT_IMAGE_REGULAR = 3;
+//var CODE_FILL_IMAGE_REGULAR = 5;
 
-var CODE_FIT_IMAGE_REGULAR = 3;
+// Image commands that transmit image URL as reference to the string pool
+var CODE_DRAW_IMAGE_STRPOOL = 2;
+var CODE_FIT_IMAGE_STRPOOL = 4;
+var CODE_FILL_IMAGE_STRPOOL = 6;
 
-var CODE_FILL_IMAGE_REGULAR = 5;
 
 function readUByte(stream, c)
 {
@@ -360,49 +365,82 @@ function decodeString(stream, c)
     return {x: x, y: y, s: s, len: len};
 }
 
-// Returns object {x: <x> y: <y> w: <w> h: <h> s: <image uri string> :len <actual length of command in bytes>}
-function decodeImageURIRegular(stream, c)
+// Not used by default
+//// Returns object {x: <x> y: <y> w: <w> h: <h> s: <image uri string> :len <actual length of command in bytes>}
+//function decodeImageURIRegular(stream, c)
+//{
+//    var x;
+//    var y;
+//    var w;
+//    var h;
+//    var s;
+//    var len;
+//
+//    var strlen;
+//    var sstart;
+//    var sto = sstart+strlen;
+//    s = "";
+//
+//    strlen = readUWord(stream, c+1);
+//
+//    x = readUByte(stream, c+3);
+//    y = readUByte(stream, c+4);
+//    x = 0x0000 | (x + ((stream[c+5] & MASK_LB) << 8));
+//    y = 0x0000 | (y + ((stream[c+5] & MASK_HB) << 4));
+//
+//    var header = 6;
+//
+//    if ((stream[c] == CODE_FIT_IMAGE_REGULAR) || (stream[c] == CODE_FILL_IMAGE_REGULAR))
+//    {
+//        w = readUByte(stream, c+6);
+//        h = readUByte(stream, c+7);
+//        w = 0x0000 | (w + ((stream[c+8] & MASK_LB) << 8));
+//        h = 0x0000 | (h + ((stream[c+8] & MASK_HB) << 4));
+//
+//        header+=3;
+//    }
+//
+//    sstart = c+header;
+//
+//    len = header + strlen;
+//
+//    var sto = sstart+strlen;
+//    for (var i = sstart; i<sto; i++)
+//    {
+//        s += String.fromCharCode(stream[i]);
+//    }
+//
+//    return {x: x, y: y, w: w, h: h, s: s, len: len};
+//}
+
+// Returns object {x: <x> y: <y> w: <w> h: <h> i: <image uri string index in pool> :len <actual length of command in bytes>}
+function decodeImageURIStrPool(stream, c)
 {
     var x;
     var y;
     var w;
     var h;
-    var s;
+    var index;
     var len;
 
-    var strlen;
-    var sstart;
-    var sto = sstart+strlen;
-    s = "";
+    index = readUByte(stream, c+1);
 
-    strlen = readUWord(stream, c+1);
+    x = readUByte(stream, c+2);
+    y = readUByte(stream, c+3);
+    x = 0x0000 | (x + ((stream[c+4] & MASK_LB) << 8));
+    y = 0x0000 | (y + ((stream[c+4] & MASK_HB) << 4));
 
-    x = readUByte(stream, c+3);
-    y = readUByte(stream, c+4);
-    x = 0x0000 | (x + ((stream[c+5] & MASK_LB) << 8));
-    y = 0x0000 | (y + ((stream[c+5] & MASK_HB) << 4));
+    var header = 5;
 
-    var header = 6;
-
-    if ((stream[c] == CODE_FIT_IMAGE_REGULAR) || (stream[c] == CODE_FILL_IMAGE_REGULAR))
+    if ((stream[c] == CODE_FIT_IMAGE_STRPOOL) || (stream[c] == CODE_FILL_IMAGE_STRPOOL))
     {
-        w = readUByte(stream, c+6);
-        h = readUByte(stream, c+7);
-        w = 0x0000 | (w + ((stream[c+8] & MASK_LB) << 8));
-        h = 0x0000 | (h + ((stream[c+8] & MASK_HB) << 4));
+        w = readUByte(stream, c+5);
+        h = readUByte(stream, c+6);
+        w = 0x0000 | (w + ((stream[c+7] & MASK_LB) << 8));
+        h = 0x0000 | (h + ((stream[c+7] & MASK_HB) << 4));
 
         header+=3;
     }
 
-    sstart = c+header;
-
-    len = header + strlen;
-
-    var sto = sstart+strlen;
-    for (var i = sstart; i<sto; i++)
-    {
-        s += String.fromCharCode(stream[i]);
-    }
-
-    return {x: x, y: y, w: w, h: h, s: s, len: len};
+    return {x: x, y: y, w: w, h: h, i: index, len: header};
 }

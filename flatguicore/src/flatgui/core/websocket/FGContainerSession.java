@@ -25,7 +25,6 @@ public class FGContainerSession
     private final Object sessionId_;
     private final FGWebContainerWrapper containerWrapper_;
     private final FGInputEventDecoder parser_;
-    private final FGPaintVectorBinaryCoder binaryCoder_;
     private final LongAccumulator lastAccessTime_;
 
     public FGContainerSession(IFGContainer container)
@@ -36,7 +35,6 @@ public class FGContainerSession
         containerWrapper_.initialize();
 
         parser_ = new FGInputEventDecoder();
-        binaryCoder_ = new FGPaintVectorBinaryCoder();
         lastAccessTime_ = new LongAccumulator((r,t) -> t, 0);
     }
 
@@ -48,11 +46,6 @@ public class FGContainerSession
     public FGInputEventDecoder getParser()
     {
         return parser_;
-    }
-
-    public FGPaintVectorBinaryCoder getBinaryCoder()
-    {
-        return binaryCoder_;
     }
 
     public void markIdle()

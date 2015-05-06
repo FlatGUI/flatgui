@@ -383,52 +383,103 @@ public class FGPaintVectorBinaryCoder_utest extends Assert
         assertEquals(s2, decoded16.get("s"));
     }
 
+// Not used by default
+//    @Test
+//    public void testDrawImage()
+//            throws Exception
+//    {
+//        String s1 = "Hello, world!";
+//        String s2 = "1234?";
+//        FGPaintVectorBinaryCoder.DrawImageRegularCoder stringCoder = new FGPaintVectorBinaryCoder.DrawImageRegularCoder((l,i)->(Integer)(l.get(i)));
+//        byte[] stream = new byte[30];
+//        int writtenBytes = stringCoder.writeCommand(stream, 0, cmd(null, s1, 2, 0));
+//        assertEquals(6+s1.length(), writtenBytes);
+//        writtenBytes = stringCoder.writeCommand(stream, 6+s1.length(), cmd(null, s2, 2, 64));
+//        assertEquals(6+s2.length(), writtenBytes);
+//        ScriptObjectMirror decoded0 = (ScriptObjectMirror)decoder_.invokeFunction("decodeImageURIRegular", stream, 0);
+//        assertEquals(2, decoded0.get("x"));
+//        assertEquals(0, decoded0.get("y"));
+//        assertEquals(s1, decoded0.get("s"));
+//        ScriptObjectMirror decoded6 = (ScriptObjectMirror)decoder_.invokeFunction("decodeImageURIRegular", stream, 6+s1.length());
+//        assertEquals(2, decoded6.get("x"));
+//        assertEquals(64, decoded6.get("y"));
+//        assertEquals(s2, decoded6.get("s"));
+//    }
+//
+//    @Test
+//    public void testFitImage()
+//            throws Exception
+//    {
+//        String s1 = "Hello, world!";
+//        String s2 = "1234?";
+//        FGPaintVectorBinaryCoder.FitImageRegularCoder stringCoder = new FGPaintVectorBinaryCoder.FitImageRegularCoder((l,i)->(Integer)(l.get(i)));
+//        byte[] stream = new byte[36];
+//        int writtenBytes = stringCoder.writeCommand(stream, 0, cmd(null, s1, 2, 0, 10, 20));
+//        assertEquals(9+s1.length(), writtenBytes);
+//        writtenBytes = stringCoder.writeCommand(stream, 9+s1.length(), cmd(null, s2, 1000, 2000, 3000, 4000));
+//        assertEquals(9+s2.length(), writtenBytes);
+//        ScriptObjectMirror decoded0 = (ScriptObjectMirror)decoder_.invokeFunction("decodeImageURIRegular", stream, 0);
+//        assertEquals(2, decoded0.get("x"));
+//        assertEquals(0, decoded0.get("y"));
+//        assertEquals(10, decoded0.get("w"));
+//        assertEquals(20, decoded0.get("h"));
+//        assertEquals(s1, decoded0.get("s"));
+//        ScriptObjectMirror decoded9 = (ScriptObjectMirror)decoder_.invokeFunction("decodeImageURIRegular", stream, 9+s1.length());
+//        assertEquals(1000, decoded9.get("x"));
+//        assertEquals(2000, decoded9.get("y"));
+//        assertEquals(3000, decoded9.get("w"));
+//        assertEquals(4000, decoded9.get("h"));
+//        assertEquals(s2, decoded9.get("s"));
+//    }
+
     @Test
-    public void testDrawImage()
+    public void testDrawPoolImage()
             throws Exception
     {
-        String s1 = "Hello, world!";
-        String s2 = "1234?";
-        FGPaintVectorBinaryCoder.DrawImageRegularCoder stringCoder = new FGPaintVectorBinaryCoder.DrawImageRegularCoder((l,i)->(Integer)(l.get(i)));
-        byte[] stream = new byte[30];
-        int writtenBytes = stringCoder.writeCommand(stream, 0, cmd(null, s1, 2, 0));
-        assertEquals(6+s1.length(), writtenBytes);
-        writtenBytes = stringCoder.writeCommand(stream, 6+s1.length(), cmd(null, s2, 2, 64));
-        assertEquals(6+s2.length(), writtenBytes);
-        ScriptObjectMirror decoded0 = (ScriptObjectMirror)decoder_.invokeFunction("decodeImageURIRegular", stream, 0);
+        FGPaintVectorBinaryCoder.DrawImageStrPoolCoder stringCoder =
+                new FGPaintVectorBinaryCoder.DrawImageStrPoolCoder((s, uid)->((Integer)uid).byteValue(),  (l,i)->(Integer)(l.get(i)));
+        byte[] stream = new byte[10];
+        stringCoder.setCodedComponentUid(Integer.valueOf(11), -1);
+        int writtenBytes = stringCoder.writeCommand(stream, 0, cmd(null, "?", 2, 0));
+        assertEquals(5, writtenBytes);
+        stringCoder.setCodedComponentUid(Integer.valueOf(22), -1);
+        writtenBytes = stringCoder.writeCommand(stream, 5, cmd(null, "?", 2, 64));
+        assertEquals(5, writtenBytes);
+        ScriptObjectMirror decoded0 = (ScriptObjectMirror)decoder_.invokeFunction("decodeImageURIStrPool", stream, 0);
         assertEquals(2, decoded0.get("x"));
         assertEquals(0, decoded0.get("y"));
-        assertEquals(s1, decoded0.get("s"));
-        ScriptObjectMirror decoded6 = (ScriptObjectMirror)decoder_.invokeFunction("decodeImageURIRegular", stream, 6+s1.length());
-        assertEquals(2, decoded6.get("x"));
-        assertEquals(64, decoded6.get("y"));
-        assertEquals(s2, decoded6.get("s"));
+        assertEquals(11, decoded0.get("i"));
+        ScriptObjectMirror decoded5 = (ScriptObjectMirror)decoder_.invokeFunction("decodeImageURIStrPool", stream, 5);
+        assertEquals(2, decoded5.get("x"));
+        assertEquals(64, decoded5.get("y"));
+        assertEquals(22, decoded5.get("i"));
     }
 
     @Test
-    public void testFitImage()
+    public void testFitPoolImage()
             throws Exception
     {
-        String s1 = "Hello, world!";
-        String s2 = "1234?";
-        FGPaintVectorBinaryCoder.FitImageRegularCoder stringCoder = new FGPaintVectorBinaryCoder.FitImageRegularCoder((l,i)->(Integer)(l.get(i)));
-        byte[] stream = new byte[36];
-        int writtenBytes = stringCoder.writeCommand(stream, 0, cmd(null, s1, 2, 0, 10, 20));
-        assertEquals(9+s1.length(), writtenBytes);
-        writtenBytes = stringCoder.writeCommand(stream, 9+s1.length(), cmd(null, s2, 1000, 2000, 3000, 4000));
-        assertEquals(9+s2.length(), writtenBytes);
-        ScriptObjectMirror decoded0 = (ScriptObjectMirror)decoder_.invokeFunction("decodeImageURIRegular", stream, 0);
+        FGPaintVectorBinaryCoder.FitImageStrPoolCoder stringCoder =
+                new FGPaintVectorBinaryCoder.FitImageStrPoolCoder((s, uid)->((Integer)uid).byteValue(),  (l,i)->(Integer)(l.get(i)));
+        byte[] stream = new byte[16];
+        stringCoder.setCodedComponentUid(Integer.valueOf(33), -1);
+        int writtenBytes = stringCoder.writeCommand(stream, 0, cmd(null, "?", 2, 0, 10, 20));
+        assertEquals(8, writtenBytes);
+        stringCoder.setCodedComponentUid(Integer.valueOf(44), -1);
+        writtenBytes = stringCoder.writeCommand(stream, 8, cmd(null, "?", 1000, 2000, 3000, 4000));
+        assertEquals(8, writtenBytes);
+        ScriptObjectMirror decoded0 = (ScriptObjectMirror)decoder_.invokeFunction("decodeImageURIStrPool", stream, 0);
         assertEquals(2, decoded0.get("x"));
         assertEquals(0, decoded0.get("y"));
         assertEquals(10, decoded0.get("w"));
         assertEquals(20, decoded0.get("h"));
-        assertEquals(s1, decoded0.get("s"));
-        ScriptObjectMirror decoded9 = (ScriptObjectMirror)decoder_.invokeFunction("decodeImageURIRegular", stream, 9+s1.length());
-        assertEquals(1000, decoded9.get("x"));
-        assertEquals(2000, decoded9.get("y"));
-        assertEquals(3000, decoded9.get("w"));
-        assertEquals(4000, decoded9.get("h"));
-        assertEquals(s2, decoded9.get("s"));
+        assertEquals(33, decoded0.get("i"));
+        ScriptObjectMirror decoded8 = (ScriptObjectMirror)decoder_.invokeFunction("decodeImageURIStrPool", stream, 8);
+        assertEquals(1000, decoded8.get("x"));
+        assertEquals(2000, decoded8.get("y"));
+        assertEquals(3000, decoded8.get("w"));
+        assertEquals(4000, decoded8.get("h"));
+        assertEquals(44, decoded8.get("i"));
     }
 
     private List cmd(Object... objects)

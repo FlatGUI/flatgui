@@ -17,10 +17,8 @@ import java.awt.geom.AffineTransform;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPOutputStream;
@@ -34,8 +32,9 @@ public class FGPaintVectorBinaryCoder
     private static int UNIT_SIZE_PX = IFGContainer.UNIT_SIZE_PX;
 
     private Map<String, ICommandCoder> cmdNameToCoder_;
+    private Collection<ICommandCoder> uidAwareCoders_;
 
-    public FGPaintVectorBinaryCoder()
+    public FGPaintVectorBinaryCoder(StringPoolIdSupplier stringPoolIdSupplier)
     {
         cmdNameToCoder_ = new HashMap<>();
 
@@ -52,9 +51,20 @@ public class FGPaintVectorBinaryCoder
         registerCoder("setClip", new SetClipCoder());
         registerCoder("pushCurrentClip", new PushCurrentClipCoder());
         registerCoder("popCurrentClip", new PopCurrentClipCoder());
-        registerCoder("drawImage", new ExtendedCommandCoder(new DrawImageRegularCoder()));
-        registerCoder("fitImage", new ExtendedCommandCoder(new FitImageRegularCoder()));
-        registerCoder("fillImage", new ExtendedCommandCoder(new FillImageRegularCoder()));
+
+        ICommandCoder drawImageCoder = new DrawImageStrPoolCoder(stringPoolIdSupplier);
+        ICommandCoder fitImageCoder = new FitImageStrPoolCoder(stringPoolIdSupplier);
+        ICommandCoder fillImageCoder = new FillImageStrPoolCoder(stringPoolIdSupplier);
+        uidAwareCoders_ = Arrays.asList(drawImageCoder, fitImageCoder, fillImageCoder);
+
+        registerCoder("drawImage", new ExtendedCommandCoder(drawImageCoder));
+        registerCoder("fitImage", new ExtendedCommandCoder(fitImageCoder));
+        registerCoder("fillImage", new ExtendedCommandCoder(fillImageCoder));
+    }
+
+    public void setCodedComponentUid(Object componentId, int uid)
+    {
+        uidAwareCoders_.forEach(c -> c.setCodedComponentUid(componentId, uid));
     }
 
     public ByteBuffer codeCommandVector(List<Object> commandVector)
@@ -132,6 +142,9 @@ public class FGPaintVectorBinaryCoder
     public static interface ICommandCoder
     {
         public int writeCommand(byte[] stream, int n, List command);
+
+        default void setCodedComponentUid(Object componentId, int uid)
+        {}
     }
 
 
@@ -710,25 +723,154 @@ public class FGPaintVectorBinaryCoder
         }
     }
 
-    public static abstract class ImageRegularCoder implements ICommandCoder
+// Not used by default
+//    public static abstract class ImageRegularCoder implements ICommandCoder
+//    {
+//        private BiFunction<List, Integer, Integer> coordProvider_;
+//
+//        public ImageRegularCoder()
+//        {
+//            this(FGPaintVectorBinaryCoder::getCoord);
+//        }
+//
+//        public ImageRegularCoder(BiFunction<List, Integer, Integer> coordProvider)
+//        {
+//            coordProvider_ = coordProvider;
+//        }
+//
+//        // Up to 255 str len; up to 4095 X and Y; 1 byte per char
+//        // [image op] | [LLLL|LLLL][LLLL|LLLL][XXXX|XXXX][YYYY|YYYY][YYYY|XXXX][..S..]
+//        //
+//        // Up to 255 str len; up to 4095 X,Y,W,H; 1 byte per char
+//        // [image op] | [LLLL|LLLL][LLLL|LLLL][XXXX|XXXX][YYYY|YYYY][YYYY|XXXX][WWWW|WWWW][HHHH|HHHH][HHHH|WWWW][..S..]
+//
+//        @Override
+//        public int writeCommand(byte[] stream, int n, List command)
+//        {
+//            int csize = command.size();
+//
+//            if (csize != 4 && csize != 6)
+//            {
+//                throw new IllegalStateException(
+//                        "Cannot encode image operation: command length should be 4 or 6. Command " + command);
+//            }
+//
+//            String s = (String)command.get(1);
+//            byte[] sbytes = s.getBytes();
+//            int x = coordProvider_.apply(command, 2);
+//            int y = coordProvider_.apply(command, 3);
+//
+//            if(sbytes.length <= 65535 && x <= 4095 && y <= 4095)
+//            {
+//                stream[n] = getImageCommandCode();
+//                stream[n+1] = (byte)(sbytes.length & 0xFF);
+//                stream[n+2] = (byte)((sbytes.length & 0xFF00) >> 8);
+//                stream[n+3] = (byte)(x & 0b11111111);
+//                stream[n+4] = (byte)(y & 0b11111111);
+//                stream[n+5] = (byte)(((x & 0b111100000000) >> 8) | ((y & 0b111100000000) >> 4));
+//
+//                int header = 6;
+//
+//                if (csize == 6)
+//                {
+//                    int w = coordProvider_.apply(command, 4);
+//                    int h = coordProvider_.apply(command, 5);
+//
+//                    stream[n+6] = (byte)(w & 0b11111111);
+//                    stream[n+7] = (byte)(h & 0b11111111);
+//                    stream[n+8] = (byte)(((w & 0b111100000000) >> 8) | ((h & 0b111100000000) >> 4));
+//
+//                    header += 3;
+//                }
+//
+//                for (int i=0;i<sbytes.length;i++) stream[n+header+i] = sbytes[i];
+//                return header+sbytes.length;
+//            }
+//            else
+//            {
+//                throw new IllegalStateException("Cannot encode image operation: params out of range. URI: " + s
+//                        + " len=" + sbytes.length + " x=" + x + " y=" + y);
+//            }
+//        }
+//
+//        protected abstract byte getImageCommandCode();
+//    }
+//
+//    public static class DrawImageRegularCoder extends ImageRegularCoder
+//    {
+//        public DrawImageRegularCoder()
+//        {
+//            super();
+//        }
+//
+//        public DrawImageRegularCoder(BiFunction<List, Integer, Integer> coordProvider)
+//        {
+//            super(coordProvider);
+//        }
+//
+//        @Override
+//        protected byte getImageCommandCode()
+//        {
+//            return 1;
+//        }
+//    }
+//
+//    public static class FitImageRegularCoder extends ImageRegularCoder
+//    {
+//        public FitImageRegularCoder()
+//        {
+//            super();
+//        }
+//
+//        public FitImageRegularCoder(BiFunction<List, Integer, Integer> coordProvider)
+//        {
+//            super(coordProvider);
+//        }
+//
+//        @Override
+//        protected byte getImageCommandCode()
+//        {
+//            return 3;
+//        }
+//    }
+//
+//    public static class FillImageRegularCoder extends ImageRegularCoder
+//    {
+//        @Override
+//        protected byte getImageCommandCode()
+//        {
+//            return 5;
+//        }
+//    }
+
+    public static abstract class ImageStrPoolCoder implements ICommandCoder
     {
         private BiFunction<List, Integer, Integer> coordProvider_;
+        private StringPoolIdSupplier stringPoolIdSupplier_;
+        private Object componentId_;
 
-        public ImageRegularCoder()
+        public ImageStrPoolCoder(StringPoolIdSupplier stringPoolIdSupplier)
         {
-            this(FGPaintVectorBinaryCoder::getCoord);
+            this(stringPoolIdSupplier, FGPaintVectorBinaryCoder::getCoord);
         }
 
-        public ImageRegularCoder(BiFunction<List, Integer, Integer> coordProvider)
+        public ImageStrPoolCoder(StringPoolIdSupplier stringPoolIdSupplier, BiFunction<List, Integer, Integer> coordProvider)
         {
+            stringPoolIdSupplier_ = stringPoolIdSupplier;
             coordProvider_ = coordProvider;
         }
 
         // Up to 255 str len; up to 4095 X and Y; 1 byte per char
-        // [image op] | [LLLL|LLLL][LLLL|LLLL][XXXX|XXXX][YYYY|YYYY][YYYY|XXXX][..S..]
+        // [image op] | [IIII|IIII][YYYY|YYYY][YYYY|XXXX]
         //
         // Up to 255 str len; up to 4095 X,Y,W,H; 1 byte per char
-        // [image op] | [LLLL|LLLL][LLLL|LLLL][XXXX|XXXX][YYYY|YYYY][YYYY|XXXX][WWWW|WWWW][HHHH|HHHH][HHHH|WWWW][..S..]
+        // [image op] | [IIII|IIII][YYYY|YYYY][YYYY|XXXX][WWWW|WWWW][HHHH|HHHH][HHHH|WWWW]
+
+        @Override
+        public void setCodedComponentUid(Object componentId, int uid)
+        {
+            componentId_ = componentId;
+        }
 
         @Override
         public int writeCommand(byte[] stream, int n, List command)
@@ -742,90 +884,98 @@ public class FGPaintVectorBinaryCoder
             }
 
             String s = (String)command.get(1);
-            byte[] sbytes = s.getBytes();
+            byte sId = stringPoolIdSupplier_.getStringPoolId(s, componentId_);
+
             int x = coordProvider_.apply(command, 2);
             int y = coordProvider_.apply(command, 3);
 
-            if(sbytes.length <= 65535 && x <= 4095 && y <= 4095)
+            if(x <= 4095 && y <= 4095)
             {
                 stream[n] = getImageCommandCode();
-                stream[n+1] = (byte)(sbytes.length & 0xFF);
-                stream[n+2] = (byte)((sbytes.length & 0xFF00) >> 8);
-                stream[n+3] = (byte)(x & 0b11111111);
-                stream[n+4] = (byte)(y & 0b11111111);
-                stream[n+5] = (byte)(((x & 0b111100000000) >> 8) | ((y & 0b111100000000) >> 4));
+                stream[n+1] = sId;
+                stream[n+2] = (byte)(x & 0b11111111);
+                stream[n+3] = (byte)(y & 0b11111111);
+                stream[n+4] = (byte)(((x & 0b111100000000) >> 8) | ((y & 0b111100000000) >> 4));
 
-                int header = 6;
+                int header = 5;
 
                 if (csize == 6)
                 {
                     int w = coordProvider_.apply(command, 4);
                     int h = coordProvider_.apply(command, 5);
 
-                    stream[n+6] = (byte)(w & 0b11111111);
-                    stream[n+7] = (byte)(h & 0b11111111);
-                    stream[n+8] = (byte)(((w & 0b111100000000) >> 8) | ((h & 0b111100000000) >> 4));
+                    stream[n+5] = (byte)(w & 0b11111111);
+                    stream[n+6] = (byte)(h & 0b11111111);
+                    stream[n+7] = (byte)(((w & 0b111100000000) >> 8) | ((h & 0b111100000000) >> 4));
 
                     header += 3;
                 }
-
-                for (int i=0;i<sbytes.length;i++) stream[n+header+i] = sbytes[i];
-                return header+sbytes.length;
+                return header;
             }
             else
             {
                 throw new IllegalStateException("Cannot encode image operation: params out of range. URI: " + s
-                        + " len=" + sbytes.length + " x=" + x + " y=" + y);
+                        + " x=" + x + " y=" + y);
             }
         }
 
         protected abstract byte getImageCommandCode();
     }
 
-    public static class DrawImageRegularCoder extends ImageRegularCoder
+    public static class DrawImageStrPoolCoder extends ImageStrPoolCoder
     {
-        public DrawImageRegularCoder()
+        public DrawImageStrPoolCoder(StringPoolIdSupplier stringPoolIdSupplier)
         {
-            super();
+            super(stringPoolIdSupplier);
         }
 
-        public DrawImageRegularCoder(BiFunction<List, Integer, Integer> coordProvider)
+        public DrawImageStrPoolCoder(StringPoolIdSupplier stringPoolIdSupplier, BiFunction<List, Integer, Integer> coordProvider)
         {
-            super(coordProvider);
+            super(stringPoolIdSupplier, coordProvider);
         }
 
         @Override
         protected byte getImageCommandCode()
         {
-            return 1;
+            return 2;
         }
     }
 
-    public static class FitImageRegularCoder extends ImageRegularCoder
+    public static class FitImageStrPoolCoder extends ImageStrPoolCoder
     {
-        public FitImageRegularCoder()
+        public FitImageStrPoolCoder(StringPoolIdSupplier stringPoolIdSupplier)
         {
-            super();
+            super(stringPoolIdSupplier);
         }
 
-        public FitImageRegularCoder(BiFunction<List, Integer, Integer> coordProvider)
+        public FitImageStrPoolCoder(StringPoolIdSupplier stringPoolIdSupplier, BiFunction<List, Integer, Integer> coordProvider)
         {
-            super(coordProvider);
+            super(stringPoolIdSupplier, coordProvider);
         }
 
         @Override
         protected byte getImageCommandCode()
         {
-            return 3;
+            return 4;
         }
     }
 
-    public static class FillImageRegularCoder extends ImageRegularCoder
+    public static class FillImageStrPoolCoder extends ImageStrPoolCoder
     {
+        public FillImageStrPoolCoder(StringPoolIdSupplier stringPoolIdSupplier)
+        {
+            super(stringPoolIdSupplier);
+        }
+
         @Override
         protected byte getImageCommandCode()
         {
-            return 5;
+            return 6;
         }
+    }
+
+    public interface StringPoolIdSupplier
+    {
+        byte getStringPoolId(String s, Object componentId);
     }
 }
