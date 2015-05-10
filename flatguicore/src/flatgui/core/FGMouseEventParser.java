@@ -98,7 +98,7 @@ class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
 
         //System.out.println("-DLTEMP- FGMouseEventParser.getTargetCellIds PROCESSING " + mouseEvent);
 
-        Map<MouseEvent, Collection<Object>> map = new HashMap<>();
+        Map<MouseEvent, Collection<Object>> map = new LinkedHashMap<>();
         if (targetPath != null)
         {
             boolean targetChanged = lastTargetIdPath_ != null && !lastTargetIdPath_.equals(targetPath.getTargetIdPath());
