@@ -48,30 +48,9 @@ public interface IFGModule
 
     public Map<List<Keyword>, Map<Keyword, Object>> getComponentIdPathToComponent(Collection<List<Keyword>> paths);
 
-
-
-//    public Map<Object, Object> getComponentIdPathToPositionMatrix();
-//
-//    public Map<Object, Object> getComponentIdPathToViewportMatrix();
-//
-//    public Map<Object, Object> getComponentIdPathToClipRect();
-//
-//    public Map<Object, Object> getComponentIdPathToLookVector();
-//
-//    public Map<Object, Object> getComponentIdPathToChildCount();
-//
-//    public Map<Object, Object> getComponentIdPathToBooleanStateFlags();
-//
-//    public Map<List<Keyword>, List<String>> getComponentIdPathToStrings();
-
     public Map<Object, Object> getStringPoolDiffs(Map<List<Keyword>, List<String>> idPathToStrings);
 
     public byte getStringPoolId(String s, Object componentId);
 
     public List<Object> getPaintAllSequence2();
-
-    public List<Object> getPaintChangedSequence2();
-
-    //
-
 }
