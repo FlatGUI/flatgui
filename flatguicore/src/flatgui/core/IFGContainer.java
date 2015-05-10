@@ -9,11 +9,15 @@
  */
 package flatgui.core;
 
+import clojure.lang.Keyword;
+
 import java.awt.event.ActionListener;
 import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
-import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * @author Denys Lebediev
@@ -37,11 +41,11 @@ public interface IFGContainer
 
     public IFGModule getFGModule();
 
-    public Consumer<Object> connect(ActionListener eventFedCallback, Object hostContext);
+    public Function<Object, Future<Set<List<Keyword>>>> connect(ActionListener eventFedCallback, Object hostContext);
 
     public <T> Future<T> submitTask(Callable<T> callable);
 
-    public void feedEvent(Object repaintReason);
+    public Future<Set<List<Keyword>>> feedEvent(Object repaintReason);
 
     public void feedTargetedEvent(Collection<Object> targetCellIdPath, Object repaintReason);
 

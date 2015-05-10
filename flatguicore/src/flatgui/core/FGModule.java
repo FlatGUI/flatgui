@@ -27,14 +27,47 @@ class FGModule implements IFGModule
 
     private static final int STRING_POOL_PER_COMPONENT_CAPACITY = 16;
 
+    private static final Keyword CHANGED_PATHS_KEY = Keyword.intern("_changed-paths");
+
     private final String containerName_;
 
     private final Map<Object, FGStringPool> stringPoolMap_;
+
+    private final Var getContainerFn;
+
+    Var getComponentIdPathToPositionMatrix;
+    Var getComponentIdPathToViewportMatrix;
+    Var getComponentIdPathToClipRect;
+    Var getComponentIdPathToLookVector;
+    Var getComponentIdPathToChildCount;
+    Var getComponentIdPathToBooleanStateFlags;
+    Var getComponentIdPathToStrings;
+    Var getPaintAllSequence;
+
+    Var getChangedComponentIdPaths;
+    Var getComponentIdPathToComponent;
+
 
     public FGModule(String containerName)
     {
         containerName_ = containerName;
         stringPoolMap_ = new HashMap<>();
+
+        getContainerFn = clojure.lang.RT.var(
+                FG_CORE_NAMESPACE,
+                GET_CONTAINER_FN_NAME);
+
+        getComponentIdPathToPositionMatrix = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-position-matrix");
+        getComponentIdPathToViewportMatrix = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-viewport-matrix");
+        getComponentIdPathToClipRect = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-clip-size");
+        getComponentIdPathToLookVector = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-look-vector");
+        getComponentIdPathToChildCount = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-child-count");
+        getComponentIdPathToBooleanStateFlags = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-flags");
+        getComponentIdPathToStrings = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-strings");
+        getPaintAllSequence =  clojure.lang.RT.var("flatgui.paint", "get-paint-all-sequence");
+
+        getChangedComponentIdPaths = clojure.lang.RT.var("flatgui.paint", "get-changed-component-id-paths");
+        getComponentIdPathToComponent  = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-component");
     }
 
     @Override
@@ -135,59 +168,82 @@ class FGModule implements IFGModule
     //
 
     @Override
-    public Map<Object, Object> getComponentIdPathToPositionMatrix()
+    public Set<List<Keyword>> getChangedComponentIdPaths()
     {
-        // @todo Do not call clojure.lang.RT.var each time
+//        Map<Keyword, Object> container = (Map<Keyword, Object>) getContainer();
+//        Map<Keyword, Object> aux = (Map<Keyword, Object>) container.get(AUX_KEY);
+//        Set<List<Keyword>> changedPaths = (Set<List<Keyword>>) aux.get(CHANGED_PATHS_KEY);
+//        return changedPaths;
 
         Object container = getContainer();
-        Var fn = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-position-matrix");
-        return (Map<Object, Object>) fn.invoke(container);
+        //return (Set<List<Keyword>>)getChangedComponentIdPaths.invoke(container);
+        return (Set<List<Keyword>>) ((Map<Object, Object>)container).get(CHANGED_PATHS_KEY);
     }
 
     @Override
-    public Map<Object, Object> getComponentIdPathToViewportMatrix()
+    public Map<List<Keyword>, Map<Keyword, Object>> getComponentIdPathToComponent(Collection<List<Keyword>> paths)
     {
         Object container = getContainer();
-        Var fn = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-viewport-matrix");
-        return (Map<Object, Object>) fn.invoke(container);
+        return (Map<List<Keyword>, Map<Keyword, Object>>) getComponentIdPathToComponent.invoke(container, paths);
+    }
+
+//    @Override
+//    public Map<Object, Object> getComponentIdPathToPositionMatrix()
+//    {
+//        Object container = getContainer();
+//
+//        return (Map<Object, Object>) getComponentIdPathToPositionMatrix.invoke(container);
+//    }
+//
+//    @Override
+//    public Map<Object, Object> getComponentIdPathToViewportMatrix()
+//    {
+//        Object container = getContainer();
+//
+//        return (Map<Object, Object>) getComponentIdPathToViewportMatrix.invoke(container);
+//    }
+//
+//    @Override
+//    public Map<Object, Object> getComponentIdPathToClipRect()
+//    {
+//        Object container = getContainer();
+//
+//        return (Map<Object, Object>) getComponentIdPathToClipRect.invoke(container);
+//    }
+//
+//    @Override
+//    public Map<Object, Object> getComponentIdPathToLookVector()
+//    {
+//        Object container = getContainer();
+//
+//        return (Map<Object, Object>) getComponentIdPathToLookVector.invoke(container);
+//    }
+//
+//    @Override
+//    public Map<Object, Object> getComponentIdPathToChildCount()
+//    {
+//        Object container = getContainer();
+//
+//        return (Map<Object, Object>) getComponentIdPathToChildCount.invoke(container);
+//    }
+//
+//    @Override
+//    public Map<Object, Object> getComponentIdPathToBooleanStateFlags()
+//    {
+//        Object container = getContainer();
+//
+//        return (Map<Object, Object>) getComponentIdPathToBooleanStateFlags.invoke(container);
+//    }
+
+    public Map<List<Keyword>, List<String>> getComponentIdPathToStrings()
+    {
+        Object container = getContainer();
+        return (Map<List<Keyword>, List<String>>) getComponentIdPathToStrings.invoke(container);
     }
 
     @Override
-    public Map<Object, Object> getComponentIdPathToClipRect()
+    public Map<Object, Object> getStringPoolDiffs(Map<List<Keyword>, List<String>> idPathToStrings)
     {
-        Object container = getContainer();
-        Var fn = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-clip-size");
-        return (Map<Object, Object>) fn.invoke(container);
-    }
-
-    @Override
-    public Map<Object, Object> getComponentIdPathToLookVector()
-    {
-        Object container = getContainer();
-        Var fn = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-look-vector");
-        return (Map<Object, Object>) fn.invoke(container);
-    }
-
-    @Override
-    public Map<Object, Object> getComponentIdPathToChildCount()
-    {
-        Object container = getContainer();
-        Var fn = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-child-count");
-        return (Map<Object, Object>) fn.invoke(container);
-    }
-
-    @Override
-    public Map<Object, Object> getComponentIdPathToBooleanStateFlags()
-    {
-        Object container = getContainer();
-        Var fn = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-flags");
-        return (Map<Object, Object>) fn.invoke(container);
-    }
-
-    @Override
-    public Map<Object, Object> getStringPoolDiffs()
-    {
-        Map<List<Keyword>, List<String>> idPathToStrings = getComponentIdPathToStrings();
         Map<Object, Object> result = new HashMap<>();
 
         idPathToStrings.entrySet().stream().forEach(e -> {
@@ -206,13 +262,6 @@ class FGModule implements IFGModule
         return (byte)(stringPoolMap_.get(componentId).getIndexOfString(s).intValue());
     }
 
-    private Map<List<Keyword>, List<String>> getComponentIdPathToStrings()
-    {
-        Object container = getContainer();
-        Var fn = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-strings");
-        return (Map<List<Keyword>, List<String>>) fn.invoke(container);
-    }
-
     private Map<Integer, String> putStrings(Object componentId, Collection<String> strings)
     {
         FGStringPool pool = stringPoolMap_.get(componentId);
@@ -228,9 +277,7 @@ class FGModule implements IFGModule
     public List<Object> getPaintAllSequence2()
     {
         Object container = getContainer();
-        Var fn = clojure.lang.RT.var("flatgui.paint", "get-paint-all-sequence");
-
-        List<Object> s = (List<Object>) fn.invoke(container);
+        List<Object> s = (List<Object>) getPaintAllSequence.invoke(container);
 
         return s;
     }
@@ -243,9 +290,6 @@ class FGModule implements IFGModule
 
     private Object getContainer()
     {
-        Var getContainerFn = clojure.lang.RT.var(
-                FG_CORE_NAMESPACE,
-                GET_CONTAINER_FN_NAME);
         return getContainerFn.invoke(containerName_);
     }
 

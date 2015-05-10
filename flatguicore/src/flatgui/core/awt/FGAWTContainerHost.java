@@ -10,12 +10,16 @@
 
 package flatgui.core.awt;
 
+import clojure.lang.Keyword;
 import flatgui.core.IFGContainer;
 import flatgui.core.IFGContainerHost;
 
 import java.awt.*;
 import java.awt.event.ActionListener;
-import java.util.function.Consumer;
+import java.util.*;
+import java.util.List;
+import java.util.concurrent.Future;
+import java.util.function.Function;
 
 /**
  * @author Denis Lebedev
@@ -27,8 +31,8 @@ public class FGAWTContainerHost implements IFGContainerHost<Component>
     {
         HostComponent c = new HostComponent(container);
         ActionListener eventFedCallBack = c.getEventFedCallback();
-        Consumer<Object> inputEventConsumer = container.connect(eventFedCallBack, c);
-        c.setInputEventConsumer(inputEventConsumer);
+        Function<Object, Future<Set<List<Keyword>>>> inputEventConsumer = container.connect(eventFedCallBack, c);
+        c.setInputEventConsumer(inputEventConsumer::apply);
         return c;
     }
 }

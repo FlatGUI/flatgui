@@ -237,11 +237,10 @@
                              ;_ (if (= :base (:id tgt)) (println "evolve-component" target-id-path "Reason" reason " Property " p "old" old-value "new" new-value " has-changes " has-changes))
 
                              new-aux (if has-changes
-                                       (update-in!
+                                       (->
                                          (update-in! new-aux-with-consume changed-properties-key fgc/set-conj! p)
-                                         latest-changed-properties-key
-                                         fgc/set-conj!
-                                         p)
+                                         (update-in! latest-changed-properties-key fgc/set-conj! p)
+                                         (update-in! [:_changed-paths] fgc/set-conj! target-id-path))
                                        new-aux-with-consume)
                              new-ret (if has-changes
                                        (let [ fin-ret1 (assoc (assoc-in root-p pk new-value)
@@ -450,15 +449,19 @@
 (defn evolve-container [container target-id-path reason]
   (let [ t (System/currentTimeMillis)]
     (do
-      ;(println "\n\n===============================--started evolving-----" reason "\n\n")
+      ;(println "\n\n======================--started evolving-----" reason " tgt: " target-id-path "\n\n")
       (let [ result (evolve-container-private (dissoc container :dirty-rect) nil target-id-path reason)
              ;@todo this if reason check is just a temporary solution to skip initialization cycle because of exception (NullPointerException: Font is null)
              with-look (if reason                      ;(and reason (:dirty-rect container))       ; OPTIMIZATION FOR WEB  reason
                          (rebuild-look result [(:id result)] (:aux-container result) true (:dirty-rect container))
-                         result)]
+                         result)
+            changed (get-in result [:aux-container :_changed-paths])]
         (do
           ;(println "Evolved container in " (- (System/currentTimeMillis) t) " millis ")
-          with-look)))))
+          (if changed
+            (assoc with-look :_changed-paths (persistent! changed))
+            with-look)
+          )))))
 
 (defn- initialize-all
   ([root-container path-to-target component]

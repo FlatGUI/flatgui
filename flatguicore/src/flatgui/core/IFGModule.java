@@ -9,11 +9,13 @@
  */
 package flatgui.core;
 
+import clojure.lang.Keyword;
 import flatgui.core.awt.FGMouseTargetComponentInfo;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Denys Lebediev
@@ -42,19 +44,27 @@ public interface IFGModule
 
     // new approach
 
-    public Map<Object, Object> getComponentIdPathToPositionMatrix();
+    public Set<List<Keyword>> getChangedComponentIdPaths();
 
-    public Map<Object, Object> getComponentIdPathToViewportMatrix();
+    public Map<List<Keyword>, Map<Keyword, Object>> getComponentIdPathToComponent(Collection<List<Keyword>> paths);
 
-    public Map<Object, Object> getComponentIdPathToClipRect();
 
-    public Map<Object, Object> getComponentIdPathToLookVector();
 
-    public Map<Object, Object> getComponentIdPathToChildCount();
+//    public Map<Object, Object> getComponentIdPathToPositionMatrix();
+//
+//    public Map<Object, Object> getComponentIdPathToViewportMatrix();
+//
+//    public Map<Object, Object> getComponentIdPathToClipRect();
+//
+//    public Map<Object, Object> getComponentIdPathToLookVector();
+//
+//    public Map<Object, Object> getComponentIdPathToChildCount();
+//
+//    public Map<Object, Object> getComponentIdPathToBooleanStateFlags();
+//
+//    public Map<List<Keyword>, List<String>> getComponentIdPathToStrings();
 
-    public Map<Object, Object> getComponentIdPathToBooleanStateFlags();
-
-    public Map<Object, Object> getStringPoolDiffs();
+    public Map<Object, Object> getStringPoolDiffs(Map<List<Keyword>, List<String>> idPathToStrings);
 
     public byte getStringPoolId(String s, Object componentId);
 

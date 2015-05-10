@@ -10,6 +10,7 @@
       :author "Denys Lebediev"}
   flatgui.base
   (:require flatgui.comlogic
+            flatgui.responsefeed
             flatgui.util.matrix)
   (:import [clojure.lang Keyword])
   ;;; TODO Get rid of :use

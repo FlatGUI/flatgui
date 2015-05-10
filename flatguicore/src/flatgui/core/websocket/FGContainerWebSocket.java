@@ -10,6 +10,7 @@
 
 package flatgui.core.websocket;
 
+import clojure.lang.Keyword;
 import flatgui.core.FGHostStateEvent;
 import flatgui.core.FGWebContainerWrapper;
 import flatgui.core.IFGContainer;
@@ -20,6 +21,9 @@ import org.eclipse.jetty.websocket.api.WebSocketListener;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 /**
@@ -101,7 +105,7 @@ public class FGContainerWebSocket implements WebSocketListener
 
         container_.resetCache();
 
-        collectAndSendResponse(false);
+        collectAndSendResponse(null, false);
     }
 
     @Override
@@ -138,17 +142,15 @@ public class FGContainerWebSocket implements WebSocketListener
         // Feed input event received from the remote endpoint to the engine
         //
 
-        container_.feedEvent(e);
-
-        // TODO Do not send response if new event is coming?
-        collectAndSendResponse(e instanceof FGHostStateEvent);
+        Future<Set<List<Keyword>>> changedPathsFuture = container_.feedEvent(e);
+        collectAndSendResponse(changedPathsFuture, e instanceof FGHostStateEvent);
 
         //debugMessageCount_++;
     }
 
-    private void collectAndSendResponse(boolean forceRepaint)
+    private void collectAndSendResponse(Future<Set<List<Keyword>>> changedPathsFuture, boolean forceRepaint)
     {
-        Collection<ByteBuffer> response = container_.getResponseForClient();
+        Collection<ByteBuffer> response = container_.getResponseForClient(changedPathsFuture);
 
         if (response.size() > 0)
         {

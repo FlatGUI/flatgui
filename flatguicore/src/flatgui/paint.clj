@@ -181,24 +181,27 @@
 ;;;;; TODO find better place for this, make configurable
 ;;;(def string-pool-properties [:text :image-url])
 
-;; TODO This works and may be used instead of string-pool-properties, but seems to be slow
-(defn extract-strings [look-vec]
-  (mapcat
-    #(cond
-      (string? %) [%]
-      (vector? %) (extract-strings %)
-      :else [])
-    look-vec))
-
+;;; TODO This works and may be used instead of string-pool-properties, but seems to be slow
+;;;
+;;; TODO Idea: gather all needed info in :aux-container while evolving
+;;;
+;(defn extract-strings [look-vec]
+;  (mapcat
+;    #(cond
+;      (string? %) [%]
+;      (vector? %) (extract-strings %)
+;      :else [])
+;    look-vec))
+;
 (defmulti extract-value (fn [property _ _] (class property)))
-
-(defmethod extract-value Keyword [property f container]
-  (f (property container)))
-
-(defmethod extract-value Collection [property f container]
-  ;; This reduce accumulates bit flags
-  (reduce #(+ (* 2 %1) %2) 0 (for [p property] (f (p container)))))
-
+;
+;(defmethod extract-value Keyword [property f container]
+;  (f (property container)))
+;
+;(defmethod extract-value Collection [property f container]
+;  ;; This reduce accumulates bit flags
+;  (reduce #(+ (* 2 %1) %2) 0 (for [p property] (f (p container)))))
+;
 (defmethod extract-value nil [_ f container]
   (f container))
 
@@ -209,30 +212,44 @@
       {this-id-path (extract-value property f container)}
       (for [[_ v] (:children container)] (get-component-id-path-to-property-value this-id-path v property f)))))
 
-(defn get-component-id-path-to-position-matrix [container]
-  (get-component-id-path-to-property-value [] container :position-matrix awt/affinetransform))
+;(defn get-component-id-path-to-position-matrix [container]
+;  (get-component-id-path-to-property-value [] container :position-matrix awt/affinetransform))
+;
+;(defn get-component-id-path-to-viewport-matrix [container]
+;  (get-component-id-path-to-property-value [] container :viewport-matrix awt/affinetransform))
+;
+;(defn get-component-id-path-to-clip-size [container]
+;  (get-component-id-path-to-property-value [] container :clip-size (fn [c] [(m/x c) (m/y c)])))
+;
+;(defn get-component-id-path-to-look-vector [container]
+;  (get-component-id-path-to-property-value [] container :look-vec identity))
+;
+;(defn get-component-id-path-to-child-count [container]
+;  (get-component-id-path-to-property-value [] container :children count))
+;
+;(defn get-component-id-path-to-flags [container]
+;  (get-component-id-path-to-property-value [] container [:rollover-notify-disabled :popup :visible] (fn [v] (if v 1 0))))
+;
+;;(defn get-component-id-path-to-strings [container]
+;;  (get-component-id-path-to-property-value [] container nil (fn [container] (mapv #(% container) string-pool-properties))))
+;
+;;(defn get-component-id-path-to-strings [container]
+;;  (get-component-id-path-to-property-value [] container :look-vec extract-strings))
+;
+;(defn get-component-id-path-to-strings
+;  ;([container paths]
+;  ; (into {} (map (fn [p] [p (extract-strings (get-in container (fgc/conjv (fgc/get-access-key p) :look-vec)))]) paths)))
+;  ;([container id-path-to-component]
+;  ; (into {} (for [[k v] id-path-to-component] [k (extract-strings (:look-vec v))])))
+;
+;  ([container]
+;   (get-component-id-path-to-property-value [] container :look-vec extract-strings)))
 
-(defn get-component-id-path-to-viewport-matrix [container]
-  (get-component-id-path-to-property-value [] container :viewport-matrix awt/affinetransform))
 
-(defn get-component-id-path-to-clip-size [container]
-  (get-component-id-path-to-property-value [] container :clip-size (fn [c] [(m/x c) (m/y c)])))
-
-(defn get-component-id-path-to-look-vector [container]
-  (get-component-id-path-to-property-value [] container :look-vec identity))
-
-(defn get-component-id-path-to-child-count [container]
-  (get-component-id-path-to-property-value [] container :children count))
-
-(defn get-component-id-path-to-flags [container]
-  (get-component-id-path-to-property-value [] container [:rollover-notify-disabled :popup :visible] (fn [v] (if v 1 0))))
-
-;(defn get-component-id-path-to-strings [container]
-;  (get-component-id-path-to-property-value [] container nil (fn [container] (mapv #(% container) string-pool-properties))))
-
-(defn get-component-id-path-to-strings [container]
-  (get-component-id-path-to-property-value [] container :look-vec extract-strings))
-
+(defn get-component-id-path-to-component [container paths]
+  (if paths
+    (into {} (map (fn [p] [p (get-in container (fgc/get-access-key p))]) paths))
+    (get-component-id-path-to-property-value [] container nil identity)))
 
 (defn- ready-for-paint? [container]
   (and

@@ -15,7 +15,7 @@ import clojure.lang.Var;
 import java.awt.event.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * @author Denis Lebedev
@@ -24,8 +24,12 @@ public class FGContainer implements IFGContainer
 {
     private static final String REGISTER_FN_NAME = "register-container";
 
+    private static final String FGC_NS = "flatgui.comlogic";
+    private static final String PROPERTY_CHANGED_FN = "property-changed?";
+    private static final String GET_CHANGED_PROPERTIES_BY_PATH = "get-changed-properties-by-path";
 
-
+    private static final Var propetyChanged_ = clojure.lang.RT.var(FGC_NS, PROPERTY_CHANGED_FN);
+    private static final Var getChangedPropertiesByPath_ = clojure.lang.RT.var(FGC_NS, GET_CHANGED_PROPERTIES_BY_PATH);
 
     private final FGInputEventParser reasonParser_;
 
@@ -153,7 +157,7 @@ public class FGContainer implements IFGContainer
     }
 
     @Override
-    public Consumer<Object> connect(ActionListener eventFedCallback, Object hostContext)
+    public Function<Object, Future<Set<List<Keyword>>>> connect(ActionListener eventFedCallback, Object hostContext)
     {
         eventFedCallback_ = eventFedCallback;
         return this::feedEvent;
@@ -180,7 +184,7 @@ public class FGContainer implements IFGContainer
 
     ///
 
-    private Map<Object, Collection<Object>> cycle(Object repaintReason)
+    private Set<List<Keyword>> cycle(Object repaintReason)
     {
         if (repaintReason == null)
         {
@@ -214,6 +218,8 @@ public class FGContainer implements IFGContainer
         {
             containerProperties_.putAll(generalProperties);
         }
+
+        Set<List<Keyword>> changedPaths = new HashSet<>();
         for (Object reason : reasonMap.keySet())
         {
             Collection<Object> targetCellIds_ = reasonMap.get(reason);
@@ -223,6 +229,7 @@ public class FGContainer implements IFGContainer
                 try
                 {
                     module_.evolve(targetCellIds_, reason);
+                    changedPaths.addAll(module_.getChangedComponentIdPaths());
                 }
                 catch (Throwable ex)
                 {
@@ -230,7 +237,7 @@ public class FGContainer implements IFGContainer
                 }
             }
         }
-        return reasonMap;
+        return changedPaths;
     }
 
     private void cycleTargeted(Collection<Object> targetIdPath, Object repaintReason)
@@ -246,23 +253,27 @@ public class FGContainer implements IFGContainer
     }
 
     @Override
-    public synchronized void feedEvent(Object repaintReason)
+    public synchronized Future<Set<List<Keyword>>> feedEvent(Object repaintReason)
     {
-        evolverExecutorService_.submit(() -> {
+        Future<Set<List<Keyword>>> resultFuture = evolverExecutorService_.submit(() -> {
             try
             {
-                cycle(repaintReason);
+                Set<List<Keyword>> changedPaths = cycle(repaintReason);
                 evolveConsumers_.stream()
                         .filter(this::shouldInvokeEvolveConsumer)
                         .forEach(consumer -> consumer.acceptEvolveResult(null, module_.getContainerObject()));
+                return changedPaths;
             }
-            catch(Throwable ex)
+            catch (Throwable ex)
             {
                 ex.printStackTrace();
+                return Collections.EMPTY_SET;
             }
         });
 
         eventFedCallback_.actionPerformed(null);
+
+        return resultFuture;
     }
 
     @Override
@@ -296,8 +307,7 @@ public class FGContainer implements IFGContainer
             {
                 for (Keyword property : properties)
                 {
-                    Boolean evolved = (Boolean) clojure.lang.RT.var(
-                            "flatgui.comlogic", "property-changed?").invoke(container, path, property);
+                    Boolean evolved = (Boolean) propetyChanged_.invoke(container, path, property);
                     if (evolved.booleanValue())
                     {
                         return true;
@@ -306,17 +316,11 @@ public class FGContainer implements IFGContainer
             }
             else
             {
-                Object evolvedProperties = clojure.lang.RT.var(
-                        "flatgui.comlogic", "get-changed-properties-by-path").invoke(container, path);
-                return evolvedProperties != null;
+                Object changedProperties = getChangedPropertiesByPath_.invoke(container, path);
+                return changedProperties != null;
             }
         }
         return false;
-    }
-
-    private static Keyword kw(String s)
-    {
-        return Keyword.intern(s);
     }
 
     static class FGTimerEvent

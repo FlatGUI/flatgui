@@ -10,6 +10,8 @@
 
 package flatgui.core;
 
+import clojure.lang.Keyword;
+import clojure.lang.Var;
 import flatgui.core.websocket.FGPaintVectorBinaryCoder;
 
 import java.awt.geom.AffineTransform;
@@ -19,7 +21,7 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.function.BinaryOperator;
-import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -58,7 +60,7 @@ public class FGWebContainerWrapper
 
 
     private final IFGContainer fgContainer_;
-    private Consumer<Object> eventConsumer_;
+    private Function<Object, Future<Set<List<Keyword>>>> eventConsumer_;
 
     public FGWebContainerWrapper(IFGContainer fgContainer)
     {
@@ -85,19 +87,20 @@ public class FGWebContainerWrapper
         fgContainer_.unInitialize();
     }
 
-    public synchronized void feedEvent(Object repaintReason)
+    public synchronized Future<Set<List<Keyword>>> feedEvent(Object repaintReason)
     {
-        eventConsumer_.accept(repaintReason);
+        Future<Set<List<Keyword>>> changedPathsFuture = eventConsumer_.apply(repaintReason);
+        return changedPathsFuture;
     }
 
-    public synchronized Collection<ByteBuffer> getResponseForClient()
+    public synchronized Collection<ByteBuffer> getResponseForClient(Future<Set<List<Keyword>>> changedPathsFuture)
     {
         Future<Collection<ByteBuffer>> responseFuture =
-                fgContainer_.submitTask(() -> stateTransmitter_.computeDataDiffsToTransmit());
-
+                fgContainer_.submitTask(() -> stateTransmitter_.computeDataDiffsToTransmit(changedPathsFuture));
         try
         {
-            return responseFuture.get();
+            Collection<ByteBuffer> r =  responseFuture.get();
+            return r;
         }
         catch (InterruptedException | ExecutionException e)
         {
@@ -784,42 +787,97 @@ public class FGWebContainerWrapper
 
     static class FGContainerStateTransmitter
     {
-        private static BinaryOperator THROWING_MERGER = (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u));};
+        private static final String RESPONSE_FEED_NS = "flatgui.responsefeed";
+
+        private static final Var extractPositionMatrix_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-position-matrix");
+        private static final Var extractViewportMatrix_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-viewport-matrix");
+        private static final Var extractClipSize_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-clip-size");
+        private static final Var extractLookVector_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-look-vector");
+        private static final Var extractChildCount_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-child-count");
+        private static final Var extractBitFlags_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-bit-flags");
+        private static final Var extractStringPool_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-string-pool");
+
+        private static final BinaryOperator THROWING_MERGER = (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u));};
 
         private IKeyCache keyCache_;
+
+        private final IFGModule fgModule_;
+
+        // TODO track removed components, otherwise memory leak here
+        //
         private Map<Byte, ?> cmdToLastData_;
+
         private Map<Byte, IDataTransmitter<Object>> cmdToDataTransmitter_;
         private FGPaintVectorBinaryCoder.StringPoolIdSupplier stringPoolIdSupplier_;
 
+        private Map<List<Keyword>, Map<Keyword, Object>> idPathToComponent_;
+
+        boolean initialCycle_;
+
         public FGContainerStateTransmitter(IFGModule fgModule)
         {
+            initialCycle_ = true;
+
+            fgModule_ = fgModule;
             keyCache_ = new KeyCahe();
             cmdToDataTransmitter_ = new LinkedHashMap<>();
 
             stringPoolIdSupplier_ = fgModule::getStringPoolId;
 
-            addDataTransmitter(new PositionMatrixMapTrasmitter(keyCache_, fgModule::getComponentIdPathToPositionMatrix));
-            addDataTransmitter(new ViewportMatrixMapTrasmitter(keyCache_, fgModule::getComponentIdPathToViewportMatrix));
-            addDataTransmitter(new ClipRectTransmitter(keyCache_, fgModule::getComponentIdPathToClipRect));
-            addDataTransmitter(new LookVectorTransmitter(stringPoolIdSupplier_, keyCache_, fgModule::getComponentIdPathToLookVector));
-            addDataTransmitter(new ChildCountMapTransmitter(keyCache_, fgModule::getComponentIdPathToChildCount));
-            addDataTransmitter(new BooleanFlagsMapTransmitter(keyCache_, fgModule::getComponentIdPathToBooleanStateFlags));
+            addDataTransmitter(new PositionMatrixMapTrasmitter(keyCache_,
+                    () -> idPathToComponent_.entrySet().stream()
+                            .collect(Collectors.toMap(e -> e.getKey(), e -> extractPositionMatrix_.invoke(e.getValue())))));
+
+            addDataTransmitter(new ViewportMatrixMapTrasmitter(keyCache_,
+                    () -> idPathToComponent_.entrySet().stream()
+                            .collect(Collectors.toMap(e -> e.getKey(), e -> extractViewportMatrix_.invoke(e.getValue())))));
+
+            addDataTransmitter(new ClipRectTransmitter(keyCache_,
+                    () -> idPathToComponent_.entrySet().stream()
+                            .collect(Collectors.toMap(e -> e.getKey(), e -> extractClipSize_.invoke(e.getValue())))));
+
+            addDataTransmitter(new LookVectorTransmitter(stringPoolIdSupplier_, keyCache_,
+                    () -> idPathToComponent_.entrySet().stream()
+                            .collect(Collectors.toMap(e -> e.getKey(), e -> extractLookVector_.invoke(e.getValue())))));
+
+            addDataTransmitter(new ChildCountMapTransmitter(keyCache_,
+                    () -> idPathToComponent_.entrySet().stream()
+                            .collect(Collectors.toMap(e -> e.getKey(), e -> extractChildCount_.invoke(e.getValue())))));
+
+            addDataTransmitter(new BooleanFlagsMapTransmitter(keyCache_,
+                    () -> idPathToComponent_.entrySet().stream()
+                            .collect(Collectors.toMap(e -> e.getKey(), e -> extractBitFlags_.invoke(e.getValue())))));
+
             addDataTransmitter(new PaintAllTransmitter(keyCache_, fgModule::getPaintAllSequence2));
-            addDataTransmitter(new StringPoolMapTransmitter(keyCache_, fgModule::getStringPoolDiffs));
+
+            Supplier<Map<Object, Object>> stringPoolSupplier = () -> {
+                Map<List<Keyword>, List<String>> idPathToString = new HashMap<>();
+                idPathToComponent_.forEach((k, v) -> idPathToString.put(k, (List<String>) extractStringPool_.invoke(v)));
+                return fgModule.getStringPoolDiffs(idPathToString);
+            };
+            addDataTransmitter(new StringPoolMapTransmitter(keyCache_,
+                    stringPoolSupplier));
 
             resetDataCache();
         }
 
-        public Collection<ByteBuffer> computeDataDiffsToTransmit()
+        public Collection<ByteBuffer> computeDataDiffsToTransmit(Future<Set<List<Keyword>>> changedPathsFuture)
         {
+            try
+            {
+                idPathToComponent_ = fgModule_.getComponentIdPathToComponent(
+                        (initialCycle_ || changedPathsFuture == null) ? null : changedPathsFuture.get());
+            }
+            catch (InterruptedException | ExecutionException e)
+            {
+                e.printStackTrace();
+            }
+
+            initialCycle_ = false;
+
             Map<Byte, Object> newDatas = cmdToDataTransmitter_.entrySet().stream()
                     .collect(Collectors.toMap(e -> e.getKey(), e -> {
                         Object sourceData = e.getValue().getSourceDataSupplier().get();
-                        if (sourceData == null)
-                        {
-                            System.out.println(
-                                    "-DLTEMP- FGContainerStateTransmitter.computeDataDiffsToTransmit null source data for cmd " + e.getKey());
-                        }
                         return sourceData;
                     },
                     THROWING_MERGER,
