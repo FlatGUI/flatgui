@@ -229,7 +229,11 @@ public class FGContainer implements IFGContainer
                 try
                 {
                     module_.evolve(targetCellIds_, reason);
-                    changedPaths.addAll(module_.getChangedComponentIdPaths());
+                    Set<List<Keyword>> changed = module_.getChangedComponentIdPaths();
+                    if (changed != null)
+                    {
+                        changedPaths.addAll(changed);
+                    }
                 }
                 catch (Throwable ex)
                 {
