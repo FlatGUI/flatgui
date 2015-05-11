@@ -49,6 +49,7 @@
    :h-alignment :left
    :foreground :prime-4
    :text ""
+   :closed-focus-root true
    :look window-look
    :evolvers {:capture-area window-capture-area-evolver
               :position-matrix window-position-matrix-evolver}}

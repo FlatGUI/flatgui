@@ -78,6 +78,11 @@
       []))
   ([target-id-path] (get-access-key target-id-path (count target-id-path))))
 
+(defn child-reason? [reason]
+  (and (vector? reason) (= 2 (count reason)) (= :this (nth reason 0))))
+
+(defn parent-reason? [reason]
+  (= reason []))
 
 ;;;; temporary
 (def std-colors

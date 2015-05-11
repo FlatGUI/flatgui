@@ -113,7 +113,11 @@
     ; Use true value for popup property for such components.
     :popup false
 
+    :focusable false
+    :closed-focus-root false
+
     :z-position 0
+
     :position-matrix m/IDENTITY-MATRIX
     :viewport-matrix m/IDENTITY-MATRIX
     :abs-position-matrix m/IDENTITY-MATRIX
