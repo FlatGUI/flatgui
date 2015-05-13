@@ -30,6 +30,8 @@ public interface IFGModule
 
     public Object getContainerObject();
 
+    public List<Keyword> getFocusedPath();
+
     // Painting
 
     // old approach

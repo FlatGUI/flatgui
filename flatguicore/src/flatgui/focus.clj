@@ -76,8 +76,8 @@
         {:mode :throws-focus
          :focused-child nil
          :throw-mode (cond
-                       (and (inputbase/with-alt? component) (inputbase/with-shift? component)) :out-of-cycle-prev
-                       (inputbase/with-alt? component) :out-of-cycle-next
+                       (and (inputbase/with-ctrl? component) (inputbase/with-shift? component)) :out-of-cycle-prev
+                       (inputbase/with-ctrl? component) :out-of-cycle-next
                        (inputbase/with-shift? component) :prev
                        :else :next)}
         old-focus-state)
@@ -142,7 +142,14 @@
                             ;; If my child wants focus but I don't have it - I start requesting focus in order to give
                             ;; it to my child as soon as I have it (*1)
                             :none {:mode :requests-focus
-                                   :focused-child nil})
+                                   :focused-child nil}
+
+                            ;; If my child request focus and I request focus as well - there is nothing that can be
+                            ;; changed about this
+                            :requests-focus old-focus-state
+
+                            ;; My child request focus and I thow focus - then I let this child get focus
+                            :throws-focus (focus-child child-id))
           :throws-focus (case child-throw-mode
                           ;; My child throws focus in :prev direction. Give focus to previous child.
                           ;; But if I'm not a closed root then there may be no previous child,

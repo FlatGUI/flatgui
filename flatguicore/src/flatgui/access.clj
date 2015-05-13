@@ -155,3 +155,18 @@
   (if (nil? path)
     (vec (for [c path] 0.0))
     (mapv (fn [c] (fgc/masknil (:mouse-y-relative c))) path)))
+
+;;
+;; Keyboard focus
+;;
+
+(defn get-focused-path
+  ([container path-to-target]
+    (let [target-id-path (fgc/conjv path-to-target (:id container))
+          focus-state (:focus-state container)
+          focus-mode (:mode focus-state)]
+      (case focus-mode
+        :has-focus target-id-path
+        :parent-of-focused (get-focused-path (get (:children container) (:focused-child focus-state)) target-id-path)
+        nil)))
+  ([container] (get-focused-path container [])))

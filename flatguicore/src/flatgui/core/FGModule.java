@@ -35,6 +35,8 @@ class FGModule implements IFGModule
     private static final Var getMouseRelXFromPath_ = clojure.lang.RT.var("flatgui.access", "get-mouse-rel-x-from-path");
     private static final Var getMouseRelYFromPath_ = clojure.lang.RT.var("flatgui.access", "get-mouse-rel-y-from-path");
 
+    private static final Var getFocusedPath_ = clojure.lang.RT.var("flatgui.access", "get-focused-path");
+
     private static final int STRING_POOL_PER_COMPONENT_CAPACITY = 16;
 
     private static final Keyword CHANGED_PATHS_KEY = Keyword.intern("_changed-paths");
@@ -136,6 +138,13 @@ class FGModule implements IFGModule
     {
         return getContainer();
     }
+
+    @Override
+    public List<Keyword> getFocusedPath()
+    {
+        return (List<Keyword>) getFocusedPath_.invoke(getContainer());
+    }
+
 
     //
     // New painting approach optimized for web

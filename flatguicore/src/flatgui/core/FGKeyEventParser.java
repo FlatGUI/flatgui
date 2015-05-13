@@ -24,12 +24,9 @@ public class FGKeyEventParser implements IFGInputEventParser<KeyEvent>
 
     public static final String FOCUS_OWNER_GENERAL_PROPERTY = "FocusOwner";
 
-    private IFGModule fgModule_;
-
     @Override
     public Map<String, Object> initialize(IFGModule fgModule)
     {
-        fgModule_ = fgModule;
         return null;
     }
 
@@ -44,28 +41,12 @@ public class FGKeyEventParser implements IFGInputEventParser<KeyEvent>
     @Override
     public Map<KeyEvent, Collection<Object>> getTargetCellIds(KeyEvent keyEvent, IFGModule fgModule, Map<String, Object> generalPropertyMap)
     {
-//        Set<Object> targetCellIds = new HashSet<>();
-//        Object focusOwnerId = fgModule_.getFocusOwnerId();
-//        if (focusOwnerId != null)
-//        {
-//            targetCellIds.add(fgModule_.getFocusOwnerId());
-//        }
-//        return targetCellIds;
-
-
-        // temporary for debug
-//        if (FGMouseEventParser.latestPressedTargetCellIds_ != null)
-//        {
-//            System.out.println("-DLTEMP- FGKeyEventParser.getTargetCellIds: " + FGMouseEventParser.latestPressedTargetCellIds_.size());
-//        }
-//        else
-//        {
-//            System.out.println("-DLTEMP- FGKeyEventParser.getTargetCellIds: no letest cells");
-//        }
-
         Map<KeyEvent, Collection<Object>> map = new HashMap<>();
-        map.put(keyEvent, FGMouseEventParser.latestPressedTargetCellIds_);
+        List focusedPath = fgModule.getFocusedPath();
+        if (focusedPath != null)
+        {
+            map.put(keyEvent, focusedPath);
+        }
         return map;
     }
-
 }

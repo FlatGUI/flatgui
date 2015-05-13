@@ -21,11 +21,14 @@
             [flatgui.inputchannels.mouse :as mouse]))
 
 
-(fgp/deflookfn window-look (:theme :header-h :text)
+(defn draw-focused? [focus-state]
+  (#{:parent-of-focused :has-focus} (:mode focus-state)))
+
+(fgp/deflookfn window-look (:theme :header-h :text :focus-state)
   [(fgp/call-look flatgui.widgets.component/component-look)
-   (awt/setColor (:prime-4 theme))
+   (awt/setColor (if (draw-focused? focus-state) (:prime-4 theme) (:prime-2 theme)))
    (awt/fillRect 0 0 w header-h)
-   (flatgui.widgets.label/label-look-impl (:prime-1 theme) text :left :center 0 0 w header-h)])
+   (flatgui.widgets.label/label-look-impl (if (draw-focused? focus-state) (:prime-1 theme) (:prime-4 theme)) text :left :center 0 0 w header-h)])
 
 (fg/defevolverfn window-capture-area-evolver :capture-area
   (let [ content-size (get-property component [:this] :content-size)]
