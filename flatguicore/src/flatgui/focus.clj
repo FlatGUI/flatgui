@@ -37,7 +37,6 @@
   ([component dir c-id]
     (let [child-count (count (:children component))
           child-ids (mapv (fn [[k _]] k) (:children component))
-          _ (println " get-in-cycle c-id " c-id "; child-ids " child-ids)
           closed (:closed-focus-root component)
           cycle-keeper (fn [i]
                          (cond
@@ -49,8 +48,8 @@
         (= child-count 0) nil
         (= child-count 1) (nth child-ids 0)
         :else (case dir
-                :next (nth child-ids (cycle-keeper (inc index-of-c)))
-                :prev (nth child-ids (cycle-keeper (dec index-of-c)))
+                :next (nth child-ids (cycle-keeper (inc index-of-c))) ; If cycle-keeper returns nil here then we escalated
+                :prev (nth child-ids (cycle-keeper (dec index-of-c))) ; to the root and root is not a closed cycle
                 :first (nth child-ids 0)
                 :last (nth child-ids (dec child-count))))))
   ([component dir] (get-in-cycle component dir nil)))
@@ -62,10 +61,7 @@
         this-mode (:mode old-focus-state)
         parent-focus-state (get-property [] :focus-state)
         parent-focused-child (:focused-child parent-focus-state)
-        parent-mode (:mode parent-focus-state)
-        ;_ (println "FOCUS EVOLVER CALLED - " (:id component) " -- " reason)
-        ;_ (println " old-focus-state = " old-focus-state)
-        ]
+        parent-mode (:mode parent-focus-state)]
     (cond
 
       (keyboard/key-event? component)
@@ -83,25 +79,30 @@
         old-focus-state)
 
       (mouse/mouse-left? component)
-      (if (and (:focusable component) (#{:none :parent-of-focused :throws-focus} this-mode))
+      (cond
+        (and (:focusable component) (#{:none :parent-of-focused :throws-focus} this-mode))
         {:mode :requests-focus
          :focused-child this-focused-child}
-        old-focus-state)
+        (and (:closed-focus-root component) (#{:none :throws-focus :requests-focus} this-mode))
+        {:mode :has-focus
+         :focused-child nil}
+        :else old-focus-state)
 
       (fgc/parent-reason? reason)
       (case parent-mode
         :has-focus clean-state
         :none clean-state
         :parent-of-focused (if (= parent-focused-child (:id component))
-                             ;; My parent is ready to give me focus. If I have any child requesting focus then I
-                             ;; give focus to it. Otherwise I leave focus with myself. (*1)
-                             ;(if (= child-mode :requests-focus)
-                             ;  (focus-child child-id)
-                             ;  {:mode :has-focus
-                             ;   :focused-child nil})
-                             (if-let [child-id (:id (first (filter
-                                                             #(= :requests-focus (:mode (:focus-state %)))
-                                                             (for [[_ c] (:children component)] c))))]
+                             ;; My parent is ready to give me focus.
+                             ;;   a) If I have any child requesting focus then I give focus to it.
+                             ;;      Otherwise I leave focus with myself. (*1)
+                             ;;   b) If I am acutally not focusable then I pass focus to the first
+                             ;;      child in my cycle
+                             (if-let [child-id (if (:focusable component)
+                                                 (:id (first (filter
+                                                               #(= :requests-focus (:mode (:focus-state %)))
+                                                               (for [[_ c] (:children component)] c))))
+                                                 (get-in-cycle component :first))]
                                (focus-child child-id)
                                {:mode :has-focus
                                 :focused-child nil})

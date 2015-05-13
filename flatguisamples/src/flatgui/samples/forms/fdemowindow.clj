@@ -138,7 +138,10 @@
     :main
     {:clip-size (m/defpoint 40 25)
      :background (awt/color 9 17 26)
+
+     :closed-focus-root true
      :focus-state {:mode :has-focus
                    :focused-child nil}}
+
     focus-window
     focus-window-2))
