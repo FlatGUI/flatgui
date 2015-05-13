@@ -142,6 +142,7 @@
    :model {:text "" :caret-pos 0 :selection-mark 0}
    :text ""
    :first-visible-symbol 0
+   :focusable true
    :skin-key [:textfield]
    ;; TODO move out
    :foreground :prime-1

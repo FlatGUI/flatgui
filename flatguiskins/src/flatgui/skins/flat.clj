@@ -6,14 +6,15 @@
 ; the terms of this license.
 ; You must not remove this notice, or any other, from this software.
 
-(ns ^{:doc "Default 'flat' skin"
+(ns ^{:doc    "Default 'flat' skin"
       :author "Denys Lebediev"}
-    flatgui.skins.flat
+flatgui.skins.flat
   ; TODO get rid of use
   (:use flatgui.awt
         flatgui.skins.skinbase
         flatgui.comlogic
-        flatgui.paint))
+        flatgui.paint)
+  (:require [flatgui.awt :as awt]))
 
 ;;;; TODO
 (defn label-look-impl [foreground text h-alignment v-alignment left top w h]
@@ -348,13 +349,29 @@
 ;;; Text Field
 ;;;
 
-(deflookfn textfield-look (:has-mouse :has-focus :theme)
+(defmacro has-focus [] `(= :has-focus (:mode ~'focus-state)))
+
+(deflookfn textfield-look (:has-mouse :focus-state :theme)
            ;(call-look panel-look)
            ;(set-component-color)
            ;(draw-component-rect)
            (setColor (:prime-4 theme))
            (fillRect 0 0 w h)
-           (draw-component-rect w h (:prime-3 theme) (:prime-2 theme))
+
+           ;(draw-component-rect w h (:prime-3 theme) (if (= :has-focus (:mode focus-state)) (:focused theme) (:prime-2 theme)))
+
+           ;(if (= :has-focus (:mode focus-state))
+           ;  [(setColor (:focused theme))
+           ;   (drawRect 0 0 w- h-)
+           ;   (drawRect (awt/px) (awt/px) (awt/-px w 3) (awt/-px h 3))]
+           ;  (draw-component-rect w h (:prime-3 theme) (:prime-2 theme)))
+
+           (if (= :has-focus (:mode focus-state))
+             [(draw-component-rect w h (:prime-3 theme) (:prime-2 theme))
+              (setColor (:focused theme))
+              (drawRect (awt/px) (awt/px) (awt/-px w 3) (awt/-px h 3))]
+             (draw-component-rect w h (:prime-3 theme) (:prime-2 theme)))
+
 
            (call-look textfield-look-impl))
 
@@ -362,7 +379,7 @@
 ;;; Check Box
 ;;;
 
-(deflookfn checkbox-look (:theme :has-mouse :pressed :has-focus :foreground :v-alignment :h-alignment :text)
+(deflookfn checkbox-look (:theme :has-mouse :pressed :focus-state :foreground :v-alignment :h-alignment :text)
            ;(call-look component-look)
            [(fill-component-rect h- h- (:prime-3 theme) (if pressed (:engaged theme) (:prime-1 theme)))
             (if pressed

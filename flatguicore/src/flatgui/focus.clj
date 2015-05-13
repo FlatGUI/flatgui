@@ -7,32 +7,37 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns flatgui.focus
-  (:require [flatgui.base :as fg]
-            [flatgui.comlogic :as fgc]
-            [flatgui.inputchannels.awtbase :as inputbase]
-            [flatgui.inputchannels.mouse :as mouse]
-            [flatgui.inputchannels.keyboard :as keyboard])
+    (:require [flatgui.base :as fg]
+      [flatgui.comlogic :as fgc]
+      [flatgui.inputchannels.awtbase :as inputbase]
+      [flatgui.inputchannels.mouse :as mouse]
+      [flatgui.inputchannels.keyboard :as keyboard])
   (:import (java.awt.event KeyEvent)))
 
 
 (def clean-state {:mode :none
                   :focused-child nil})
 
-(defn focus-child [child-id] {:mode :parent-of-focused
-                              :focused-child child-id})
+(defn focus-child [child-id]
+  (if (keyword? child-id)
+    {:mode :parent-of-focused
+     :focused-child child-id}
+    (throw (IllegalArgumentException. (str "child-id must be a keyword but is: " child-id)))))
 
 
-(defn accepts-focus? [component]
-  (or
-    ;; If the component is focusable itself
-    (:focusable component)
-    ;; If the component has :focus-policy and therefore is a focus cycle root
-    (:focus-policy component)))
+; TODO
+;(defn accepts-focus? [component]
+;  (or
+;    ;; If the component is focusable itself
+;    (:focusable component)
+;    ;; If the component has :focus-policy and therefore is a focus cycle root
+;    (:focus-policy component)))
 
 (defn get-in-cycle
   ([component dir c-id]
     (let [child-count (count (:children component))
           child-ids (mapv (fn [[k _]] k) (:children component))
+          _ (println " get-in-cycle c-id " c-id "; child-ids " child-ids)
           closed (:closed-focus-root component)
           cycle-keeper (fn [i]
                          (cond
@@ -44,8 +49,8 @@
         (= child-count 0) nil
         (= child-count 1) (nth child-ids 0)
         :else (case dir
-                :next (cycle-keeper (inc index-of-c))
-                :prev (cycle-keeper (dec index-of-c))
+                :next (nth child-ids (cycle-keeper (inc index-of-c)))
+                :prev (nth child-ids (cycle-keeper (dec index-of-c)))
                 :first (nth child-ids 0)
                 :last (nth child-ids (dec child-count))))))
   ([component dir] (get-in-cycle component dir nil)))
@@ -58,9 +63,9 @@
         parent-focus-state (get-property [] :focus-state)
         parent-focused-child (:focused-child parent-focus-state)
         parent-mode (:mode parent-focus-state)
-        child-focus-state (get-property [:this :*] :focus-state)
-        child-mode (:mode child-focus-state)
-        child-throw-mode (:throw-mode child-focus-state)]
+        ;_ (println "FOCUS EVOLVER CALLED - " (:id component) " -- " reason)
+        ;_ (println " old-focus-state = " old-focus-state)
+        ]
     (cond
 
       (keyboard/key-event? component)
@@ -90,7 +95,13 @@
         :parent-of-focused (if (= parent-focused-child (:id component))
                              ;; My parent is ready to give me focus. If I have any child requesting focus then I
                              ;; give focus to it. Otherwise I leave focus with myself. (*1)
-                             (if (= child-mode :requests-focus)
+                             ;(if (= child-mode :requests-focus)
+                             ;  (focus-child child-id)
+                             ;  {:mode :has-focus
+                             ;   :focused-child nil})
+                             (if-let [child-id (:id (first (filter
+                                                             #(= :requests-focus (:mode (:focus-state %)))
+                                                             (for [[_ c] (:children component)] c))))]
                                (focus-child child-id)
                                {:mode :has-focus
                                 :focused-child nil})
@@ -105,8 +116,13 @@
         :throws-focus old-focus-state)
 
       (fgc/child-reason? reason)
-      (let [child-id (nth reason 1)]
+      (let [child-id (nth reason 1)
+            child-focus-state (get-property [:this child-id] :focus-state)
+            child-mode (:mode child-focus-state)
+            child-throw-mode (:throw-mode child-focus-state)]
         (case child-mode
+          ;; Nothing to change in this case
+          :none old-focus-state
 
           ;; If my child is the parent of focused component (or parent of parent ...)
           ;; then I'm :parent-of-focused as well
