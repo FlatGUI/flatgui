@@ -14,6 +14,10 @@
       [flatgui.inputchannels.keyboard :as keyboard])
   (:import (java.awt.event KeyEvent)))
 
+; TODO - Known issues
+; 1. When window is clicked it receives focus - this is correct. But should it give focus exactly to clicked component?
+; 2. Should ctrl-tab from open cycle container added to window, quit to another window, not to controls of the same window?
+
 
 (def clean-state {:mode :none
                   :focused-child nil})
@@ -25,19 +29,21 @@
     (throw (IllegalArgumentException. (str "child-id must be a keyword but is: " child-id)))))
 
 
-; TODO
-;(defn accepts-focus? [component]
-;  (or
-;    ;; If the component is focusable itself
-;    (:focusable component)
-;    ;; If the component has :focus-policy and therefore is a focus cycle root
-;    (:focus-policy component)))
+
+(defn accepts-focus? [component]
+  (or
+    ;; If the component is focusable itself
+    (:focusable component)
+    ;; If the component has any child to which it can pass focus
+    (some (fn [[_ c]] (accepts-focus? c)) (:children component))))
 
 (defn get-in-cycle
   ([component dir c-id]
-    (let [child-count (count (:children component))
-          child-ids (mapv (fn [[k _]] k) (:children component))
+    (let [accepting-children (filter accepts-focus? (for [[_ v] (:children component)] v))
+          child-count (count accepting-children)
+          child-ids (mapv :id accepting-children)
           closed (:closed-focus-root component)
+          _ (println "get-in-cycle for " (:id component) " dir " dir " child-ids " child-ids " c-id " c-id)
           cycle-keeper (fn [i]
                          (cond
                            (>= i child-count) (if closed 0)
@@ -46,10 +52,10 @@
           index-of-c (if c-id (.indexOf child-ids c-id))]
       (cond
         (= child-count 0) nil
-        (= child-count 1) (nth child-ids 0)
+        (and (= child-count 1) closed) (nth child-ids 0)
         :else (case dir
-                :next (nth child-ids (cycle-keeper (inc index-of-c))) ; If cycle-keeper returns nil here then we escalated
-                :prev (nth child-ids (cycle-keeper (dec index-of-c))) ; to the root and root is not a closed cycle
+                :next (if-let [new-index (cycle-keeper (inc index-of-c))] (nth child-ids new-index))
+                :prev (if-let [new-index (cycle-keeper (dec index-of-c))] (nth child-ids new-index))
                 :first (nth child-ids 0)
                 :last (nth child-ids (dec child-count))))))
   ([component dir] (get-in-cycle component dir nil)))
