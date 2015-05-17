@@ -17,13 +17,17 @@
 (def clean-state {:mode :none
                   :focused-child nil})
 
+(def having-focus-state {:mode :has-focus
+                         :focused-child nil})
+
+(defn temporarily-taken-from-state [permanent-owner-child] {:mode :has-focus
+                                                            :focused-child permanent-owner-child})
+
 (defn focus-child [child-id]
   (if (keyword? child-id)
     {:mode :parent-of-focused
      :focused-child child-id}
     (throw (IllegalArgumentException. (str "child-id must be a keyword but is: " child-id)))))
-
-
 
 (defn accepts-focus? [component]
   (or
@@ -54,7 +58,6 @@
                 :last (nth child-ids (dec child-count))))))
   ([component dir] (get-in-cycle component dir nil)))
 
-
 (fg/defevolverfn :focus-state
   (let [reason (fg/get-reason)
         this-focused-child (:focused-child old-focus-state)
@@ -84,13 +87,17 @@
         {:mode :requests-focus
          :focused-child this-focused-child}
         (and (:closed-focus-root component) (#{:none :throws-focus :requests-focus} this-mode))
-        {:mode :has-focus
-         :focused-child nil}
+        having-focus-state
         :else old-focus-state)
 
       (fgc/parent-reason? reason)
-      (case parent-mode
-        :has-focus clean-state
+      (case (do (println "Parent event into " (:id component) " parent-mode " parent-mode " this-mode " this-mode) parent-mode)
+        ;; If parent has focus temporarily, I take focus back (*2)
+        ;; Otherwise my parent has focus permanently and my state is clean
+        :has-focus (if (= parent-focused-child (:id component)) ; This condition means that parent has focus temporarily
+                     having-focus-state
+                     clean-state)
+        ;:has-focus clean-state
         :none clean-state
         :parent-of-focused (if (= parent-focused-child (:id component))
                              ;; If my parent is :parent-of-focused and I am :parent-of-focused,
@@ -109,8 +116,7 @@
                                                    (if (not (:focusable component))
                                                      (get-in-cycle component :first)))]
                                  (focus-child child-id)
-                                 {:mode :has-focus
-                                  :focused-child nil})
+                                 having-focus-state)
                                old-focus-state)
 
                              ;; Another component next to me has focus, therefore my state is clean
@@ -126,7 +132,8 @@
       (let [child-id (nth reason 1)
             child-focus-state (get-property [:this child-id] :focus-state)
             child-mode (:mode child-focus-state)
-            child-throw-mode (:throw-mode child-focus-state)]
+            child-throw-mode (:throw-mode child-focus-state)
+            _ (println "Child even into " (:id component) " child " child-id " mode " child-mode " thm " child-throw-mode)]
         (case child-mode
           ;; Nothing to change in this case
           :none old-focus-state
@@ -155,14 +162,18 @@
                             ;; changed about this
                             :requests-focus old-focus-state
 
-                            ;; My child request focus and I thow focus - then I let this child get focus
+                            ;; My child request focus and I throw focus - then I let this child get focus
                             :throws-focus (focus-child child-id))
           :throws-focus (case child-throw-mode
                           ;; My child throws focus in :prev direction. Give focus to previous child.
                           ;; But if I'm not a closed root then there may be no previous child,
                           ;; get-in-cycle returns nil in this case. Rethrow it out in this case
                           :prev (if-let [prev-child (get-in-cycle component :prev this-focused-child)]
-                                  (focus-child prev-child)
+                                  (if (= prev-child this-focused-child)
+                                    ;; My child throws focus, but there is no other component to take it.
+                                    ;; So I take it temporarily and child will take back within the next step. (*2)
+                                    (temporarily-taken-from-state this-focused-child)
+                                    (focus-child prev-child))
                                   {:mode :throws-focus
                                    :throw-mode :prev
                                    :focused-child this-focused-child})
@@ -171,7 +182,11 @@
                           ;; But if I'm not a closed root then there may be no next child,
                           ;; get-in-cycle returns nil in this case. Rethrow it out in this case
                           :next (if-let [next-child (get-in-cycle component :next this-focused-child)]
-                                  (focus-child next-child)
+                                  (if (= next-child this-focused-child)
+                                    ;; My child throws focus, but there is no other component to take it.
+                                    ;; So I take it temporarily and child will take back within the next step. (*2)
+                                    (temporarily-taken-from-state this-focused-child)
+                                    (focus-child next-child))
                                   {:mode :throws-focus
                                    :throw-mode :next
                                    :focused-child this-focused-child})
