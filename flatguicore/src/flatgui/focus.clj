@@ -14,11 +14,6 @@
       [flatgui.inputchannels.keyboard :as keyboard])
   (:import (java.awt.event KeyEvent)))
 
-; TODO - Known issues
-; 1. When window is clicked it receives focus - this is correct. But should it give focus exactly to clicked component?
-; 2. Should ctrl-tab from open cycle container added to window, quit to another window, not to controls of the same window?
-
-
 (def clean-state {:mode :none
                   :focused-child nil})
 
@@ -43,7 +38,6 @@
           child-count (count accepting-children)
           child-ids (mapv :id accepting-children)
           closed (:closed-focus-root component)
-          _ (println "get-in-cycle for " (:id component) " dir " dir " child-ids " child-ids " c-id " c-id)
           cycle-keeper (fn [i]
                          (cond
                            (>= i child-count) (if closed 0)
@@ -99,19 +93,25 @@
         :has-focus clean-state
         :none clean-state
         :parent-of-focused (if (= parent-focused-child (:id component))
-                             ;; My parent is ready to give me focus.
-                             ;;   a) If I have any child requesting focus then I give focus to it.
-                             ;;      Otherwise I leave focus with myself. (*1)
-                             ;;   b) If I am acutally not focusable then I pass focus to the first
-                             ;;      child in my cycle
-                             (if-let [child-id (if (:focusable component)
-                                                 (:id (first (filter
-                                                               #(= :requests-focus (:mode (:focus-state %)))
-                                                               (for [[_ c] (:children component)] c))))
-                                                 (get-in-cycle component :first))]
-                               (focus-child child-id)
-                               {:mode :has-focus
-                                :focused-child nil})
+                             ;; If my parent is :parent-of-focused and I am :parent-of-focused,
+                             ;; then no changes needed here.
+                             (if (not= this-mode :parent-of-focused)
+                               ;; My parent is ready to give me focus.
+                               ;;   If I have any child requesting focus then I give focus to it.
+                               ;;   Otherwise I leave focus with myself. (*1)
+                               ;;   Else, if I am acutally not focusable then I pass focus to the first
+                               ;;   child in my cycle
+                               (if-let [child-id (if-let [requesting-child-id
+                                                          (:id (first (filter
+                                                                        #(= :requests-focus (:mode (:focus-state %)))
+                                                                        (for [[_ c] (:children component)] c))))]
+                                                   requesting-child-id
+                                                   (if (not (:focusable component))
+                                                     (get-in-cycle component :first)))]
+                                 (focus-child child-id)
+                                 {:mode :has-focus
+                                  :focused-child nil})
+                               old-focus-state)
 
                              ;; Another component next to me has focus, therefore my state is clean
                              clean-state)

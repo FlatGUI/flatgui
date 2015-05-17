@@ -168,12 +168,12 @@
        :position-matrix (m/translation 0.25 2.5)
        :look container-look}
 
-      (fg/defcomponent textfield/textfield :entry1
+      (fg/defcomponent textfield/textfield :entry1-1
         {:clip-size (m/defpoint 1.5 0.375)
          :position-matrix (m/translation 0.125 0.5)
          :evolvers {:model tf-model-evolver}})
 
-      (fg/defcomponent textfield/textfield :entry2
+      (fg/defcomponent textfield/textfield :entry1-2
         {:clip-size (m/defpoint 1.5 0.375)
          :position-matrix (m/translation 1.75 0.5)
          :evolvers {:model tf-model-evolver}})
@@ -198,7 +198,7 @@
                   :position-matrix (m/translation 0.125 0.5)
                   :look container-look}
 
-               (fg/defcomponent textfield/textfield :entry1
+               (fg/defcomponent textfield/textfield :entry1-1-2-1
                  {:clip-size (m/defpoint 1.5 0.375)
                   :position-matrix (m/translation 0.125 0.5)
                   :evolvers {:model tf-model-evolver}})))))))
