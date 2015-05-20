@@ -20,14 +20,19 @@
 (def having-focus-state {:mode :has-focus
                          :focused-child nil})
 
-(defn temporarily-taken-from-state [permanent-owner-child] {:mode :has-focus
-                                                            :focused-child permanent-owner-child})
+(defn temporarily-taken-from-state [permanent-owner-child dir] {:mode :has-focus
+                                                                :focused-child permanent-owner-child
+                                                                :throw-mode dir})
 
 (defn focus-child [child-id]
   (if (keyword? child-id)
     {:mode :parent-of-focused
      :focused-child child-id}
     (throw (IllegalArgumentException. (str "child-id must be a keyword but is: " child-id)))))
+
+;; For :parent-of-focused and :has-focus the latest focus movent direction (if any) is tracked in :throw-mode
+(defn focus-child-by-direction [child-id dir]
+  (assoc (focus-child child-id) :throw-mode dir))
 
 (defn accepts-focus? [component]
   (or
@@ -91,11 +96,12 @@
         :else old-focus-state)
 
       (fgc/parent-reason? reason)
-      (case (do (println "Parent event into " (:id component) " parent-mode " parent-mode " this-mode " this-mode) parent-mode)
+      (case parent-mode
         ;; If parent has focus temporarily, I take focus back (*2)
         ;; Otherwise my parent has focus permanently and my state is clean
         :has-focus (if (= parent-focused-child (:id component)) ; This condition means that parent has focus temporarily
-                     having-focus-state
+                     ;; Parent keeps latest throwing direction in :throw-mode in this case. Track it for further use
+                     (assoc having-focus-state :throw-mode (:throw-mode parent-focus-state))
                      clean-state)
         ;:has-focus clean-state
         :none clean-state
@@ -114,10 +120,17 @@
                                                                         (for [[_ c] (:children component)] c))))]
                                                    requesting-child-id
                                                    (if (not (:focusable component))
-                                                     (get-in-cycle component :first)))]
-                                 (focus-child child-id)
+                                                     (get-in-cycle
+                                                       component
+                                                       ;; In case latest focus movent direction is tracked
+                                                       ;; in :throw-mode - use it to determine firt or last
+                                                       (if (= :prev (:throw-mode parent-focus-state))
+                                                         :last
+                                                         :first))))]
+                                 (focus-child-by-direction child-id (:throw-mode parent-focus-state))
                                  having-focus-state)
-                               old-focus-state)
+                               ;; No change in state but track focus movent direction
+                               (assoc old-focus-state :throw-mode (:throw-mode parent-focus-state)))
 
                              ;; Another component next to me has focus, therefore my state is clean
                              clean-state)
@@ -132,23 +145,22 @@
       (let [child-id (nth reason 1)
             child-focus-state (get-property [:this child-id] :focus-state)
             child-mode (:mode child-focus-state)
-            child-throw-mode (:throw-mode child-focus-state)
-            _ (println "Child even into " (:id component) " child " child-id " mode " child-mode " thm " child-throw-mode)]
+            child-throw-mode (:throw-mode child-focus-state)]
         (case child-mode
           ;; Nothing to change in this case
           :none old-focus-state
 
           ;; If my child is the parent of focused component (or parent of parent ...)
           ;; then I'm :parent-of-focused as well
-          :parent-of-focused (focus-child child-id)
+          :parent-of-focused (focus-child-by-direction child-id child-throw-mode)
 
           ;; My child has focus itself - same thing
-          :has-focus (focus-child child-id)
+          :has-focus (focus-child-by-direction child-id child-throw-mode)
 
           :requests-focus (case this-mode
                             ;; I'm the parent of focused component (no matter which exactly) and my child requests
                             ;; focus - then I note that this child becomes the new focus owner. My :mode stays the same
-                            :parent-of-focused (focus-child child-id)
+                            :parent-of-focused (focus-child-by-direction child-id (:throw-mode old-focus-state))
 
                             ;; If I have focus and my child requests it - I give focus to it
                             :has-focus (focus-child child-id)
@@ -172,8 +184,9 @@
                                   (if (= prev-child this-focused-child)
                                     ;; My child throws focus, but there is no other component to take it.
                                     ;; So I take it temporarily and child will take back within the next step. (*2)
-                                    (temporarily-taken-from-state this-focused-child)
-                                    (focus-child prev-child))
+                                    ;; Latest movement direction is tracked to be used within the next step
+                                    (temporarily-taken-from-state this-focused-child :prev)
+                                    (focus-child-by-direction prev-child :prev))
                                   {:mode :throws-focus
                                    :throw-mode :prev
                                    :focused-child this-focused-child})
@@ -185,20 +198,25 @@
                                   (if (= next-child this-focused-child)
                                     ;; My child throws focus, but there is no other component to take it.
                                     ;; So I take it temporarily and child will take back within the next step. (*2)
-                                    (temporarily-taken-from-state this-focused-child)
-                                    (focus-child next-child))
+                                    ;; Latest movement direction is tracked to be used within the next step
+                                    (temporarily-taken-from-state this-focused-child :next)
+                                    (focus-child-by-direction next-child :next))
                                   {:mode :throws-focus
                                    :throw-mode :next
                                    :focused-child this-focused-child})
 
-                          ;; Just rethrow out in :prev direction
+                          ;; Rethrow up to nearest closed cycle root
                           :out-of-cycle-prev {:mode :throws-focus
-                                              :throw-mode :prev
+                                              :throw-mode (if (:closed-focus-root component)
+                                                            :prev
+                                                            :out-of-cycle-prev)
                                               :focused-child this-focused-child}
 
-                          ;; Just rethrow out in :next direction
+                          ;; Rethrow up to nearest closed cycle root
                           :out-of-cycle-next {:mode :throws-focus
-                                              :throw-mode :next
+                                              :throw-mode (if (:closed-focus-root component)
+                                                            :next
+                                                            :out-of-cycle-next)
                                               :focused-child this-focused-child})))
 
       :else ; Neither event type - ignore
