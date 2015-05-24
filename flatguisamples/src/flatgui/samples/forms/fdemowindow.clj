@@ -65,44 +65,42 @@
        :evolvers {:model tf-model-evolver}})))
 
 
-(def title-1 "Focus Example - 1 - ")
+(def title-1 "Focus 1 - ")
 
 (fg/defevolverfn window-text-evolver :text
   (let [focus-state (get-property [:this] :focus-state)]
     (str title-1 (:mode focus-state) "/" (:focused-child focus-state))))
 
-(def title-2 "Focus Example - 2 - ")
+(def title-2 "Focus 2 - ")
 
 (fg/defevolverfn window-text-evolver-2 :text
   (let [focus-state (get-property [:this] :focus-state)]
     (str title-2 (:mode focus-state) "/" (:focused-child focus-state))))
 
-(def title-3 "Focus Example - 3 - ")
+(def title-3 "Focus 3 - ")
 
 (fg/defevolverfn window-text-evolver-3 :text
   (let [focus-state (get-property [:this] :focus-state)]
     (str title-3 (:mode focus-state) "/" (:focused-child focus-state))))
 
-(def title-4 "Focus Example - 4 - ")
+(def title-4 "Focus 4 - ")
 
 (fg/defevolverfn window-text-evolver-4 :text
   (let [focus-state (get-property [:this] :focus-state)]
     (str title-4 (:mode focus-state) "/" (:focused-child focus-state))))
 
-(def title-5 "Focus Example - 5 - ")
+(def title-5 "Focus 5 - ")
 
 (fg/defevolverfn window-text-evolver-5 :text
   (let [focus-state (get-property [:this] :focus-state)]
     (str title-5 (:mode focus-state) "/" (:focused-child focus-state))))
 
-(def title-6 "Focus Example - 6 - ")
+(def title-6 "Focus 6 - ")
 
 (fg/defevolverfn window-text-evolver-6 :text
   (let [focus-state (get-property [:this] :focus-state)]
     (str title-6 (:mode focus-state) "/" (:focused-child focus-state))))
 
-
-;; Window 1
 
 (def focus-window
   (fg/defcomponent
@@ -269,9 +267,7 @@
       (fg/defcomponent textfield/textfield :entry3
         {:clip-size (m/defpoint 1.5 0.375)
          :position-matrix (m/translation 3.375 1.75)
-         :evolvers {:model tf-model-evolver}})
-     )
-    ))
+         :evolvers {:model tf-model-evolver}}))))
 
 (def focus-window-4
   (fg/defcomponent
@@ -295,9 +291,7 @@
                                       (fg/defcomponent textfield/textfield :entry1-1
                                                        {:clip-size (m/defpoint 2.5 0.375)
                                                         :position-matrix (m/translation 0.125 0.375)
-                                                        :evolvers {:model tf-model-evolver}}))
-                     )
-    ))
+                                                        :evolvers {:model tf-model-evolver}})))))
 
 (def focus-window-5
   (fg/defcomponent
@@ -316,8 +310,7 @@
                      (fg/defcomponent textfield/textfield :entry1-1
                                       {:clip-size (m/defpoint 2.5 0.375)
                                        :position-matrix (m/translation 0.125 0.375)
-                                       :evolvers {:model tf-model-evolver}}))
-    ))
+                                       :evolvers {:model tf-model-evolver}}))))
 
 (def focus-window-6
   (fg/defcomponent
@@ -331,7 +324,7 @@
     (fg/defcomponent textfield/textfield :entry1-1
                      {:clip-size (m/defpoint 2.5 0.375)
                       :position-matrix (m/translation 0.125 0.5)
-                      :evolvers {:model tf-model-evolver}})    ))
+                      :evolvers {:model tf-model-evolver}})))
 
 
 (def root-panel

@@ -173,6 +173,7 @@
 ;     :consumes? (fn [cmpnt] true)
       :has-mouse false
 
+    :focus-traversal-order nil
     :focus-state focus/clean-state
 
      :evolvers (array-map
@@ -185,6 +186,8 @@
                  :content-size default-content-size-evolver
 
                  :focus-state focus/focus-state-evolver
+
+                 :focus-traversal-order focus/focus-traversal-order-evolver
 
                  ; Nov 26 2014 moving this to componentbase since table cells will also need this as an optimization for web
                  ; It was previosly moved out of there for performance reasons. Though now it does not seem to hurt performance

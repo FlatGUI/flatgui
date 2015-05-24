@@ -7,12 +7,92 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns flatgui.focus
-    (:require [flatgui.base :as fg]
-      [flatgui.comlogic :as fgc]
-      [flatgui.inputchannels.awtbase :as inputbase]
-      [flatgui.inputchannels.mouse :as mouse]
-      [flatgui.inputchannels.keyboard :as keyboard])
-  (:import (java.awt.event KeyEvent)))
+  (:require [flatgui.base :as fg]
+            [flatgui.comlogic :as fgc]
+            [flatgui.inputchannels.awtbase :as inputbase]
+            [flatgui.inputchannels.mouse :as mouse]
+            [flatgui.inputchannels.keyboard :as keyboard]
+            [flatgui.util.matrix :as m])
+  (:import (java.awt.event KeyEvent)
+           (java.util Comparator)))
+
+
+(defn accepts-focus? [component]
+  (or
+    ;; If the component is focusable itself
+    (:focusable component)
+    ;; If the component has any child to which it can pass focus
+    (some (fn [[_ c]] (accepts-focus? c)) (:children component))))
+
+(defn- get-accepting-children [child-map] (filter accepts-focus? (for [[_ v] child-map] v)))
+
+(def component-comparator
+  (reify Comparator
+    (compare [_this o1 o2]
+      (let [by-x (- (m/mx-x (:position-matrix o1)) (m/mx-x (:position-matrix o2)))]
+        (if (= by-x 0)
+          (- (m/mx-y (:position-matrix o1)) (m/mx-y (:position-matrix o2)))
+          by-x)))))
+
+(defn- sort-lines [lines] (map (fn [l] (sort component-comparator l)) lines))
+
+(defn- group-by-lines [accepting-children]
+  (let [cnt (count accepting-children)]
+    (loop [line-y1 []
+           line-y2 []
+           lines []
+           i 0]
+      (if (< i cnt)
+        (let [c (nth accepting-children i)
+              cy (m/mx-y (:position-matrix c))
+              line-index (if-let [matching (some
+                                             #(if (<= (nth line-y1 %) cy (nth line-y2 %)) %)
+                                             (range 0 (count lines)))]
+                           matching
+                           (count lines))
+              existing-line (< line-index (count lines))
+              line (if existing-line (nth lines line-index) #{})
+              cy2 (+ cy (m/y (:clip-size c)))]
+          (recur
+            (if existing-line line-y1 (assoc line-y1 line-index cy))
+            (assoc line-y2 line-index (if existing-line (max cy2 (nth line-y2 line-index)) cy2))
+            (assoc lines line-index (conj line c))
+            (inc i)))
+        (sort-lines lines)))))
+
+(fg/defevolverfn :focus-traversal-order
+  (let [accepting-children (get-accepting-children (get-property [:this] :children))]
+    (if (pos? (count accepting-children))
+      (let [lines (group-by-lines accepting-children)]
+        (mapcat (fn [i] (map :id (nth lines i))) (range 0 (count lines))))
+      [])))
+
+(defn get-child-ids-in-traversal-order [component]
+  (if-let [focus-traversal-order (:focus-traversal-order component)]
+    focus-traversal-order
+    (let [accepting-children (get-accepting-children (:children component))]
+      (mapv :id accepting-children))))
+
+(defn get-in-cycle
+  ([component dir c-id]
+    (let [child-ids (get-child-ids-in-traversal-order component)
+          child-count (count child-ids)
+          closed (:closed-focus-root component)
+          cycle-keeper (fn [i]
+                         (cond
+                           (>= i child-count) (if closed 0)
+                           (< i 0) (if closed (dec child-count))
+                           :else i))
+          index-of-c (if c-id (.indexOf child-ids c-id))]
+      (cond
+        (= child-count 0) nil
+        (and (= child-count 1) closed) (nth child-ids 0)
+        :else (case dir
+                :next (if-let [new-index (cycle-keeper (inc index-of-c))] (nth child-ids new-index))
+                :prev (if-let [new-index (cycle-keeper (dec index-of-c))] (nth child-ids new-index))
+                :first (nth child-ids 0)
+                :last (nth child-ids (dec child-count))))))
+  ([component dir] (get-in-cycle component dir nil)))
 
 (def clean-state {:mode :none
                   :focused-child nil})
@@ -33,35 +113,6 @@
 ;; For :parent-of-focused and :has-focus the latest focus movent direction (if any) is tracked in :throw-mode
 (defn focus-child-by-direction [child-id dir]
   (assoc (focus-child child-id) :throw-mode dir))
-
-(defn accepts-focus? [component]
-  (or
-    ;; If the component is focusable itself
-    (:focusable component)
-    ;; If the component has any child to which it can pass focus
-    (some (fn [[_ c]] (accepts-focus? c)) (:children component))))
-
-(defn get-in-cycle
-  ([component dir c-id]
-    (let [accepting-children (filter accepts-focus? (for [[_ v] (:children component)] v))
-          child-count (count accepting-children)
-          child-ids (mapv :id accepting-children)
-          closed (:closed-focus-root component)
-          cycle-keeper (fn [i]
-                         (cond
-                           (>= i child-count) (if closed 0)
-                           (< i 0) (if closed (dec child-count))
-                           :else i))
-          index-of-c (if c-id (.indexOf child-ids c-id))]
-      (cond
-        (= child-count 0) nil
-        (and (= child-count 1) closed) (nth child-ids 0)
-        :else (case dir
-                :next (if-let [new-index (cycle-keeper (inc index-of-c))] (nth child-ids new-index))
-                :prev (if-let [new-index (cycle-keeper (dec index-of-c))] (nth child-ids new-index))
-                :first (nth child-ids 0)
-                :last (nth child-ids (dec child-count))))))
-  ([component dir] (get-in-cycle component dir nil)))
 
 (fg/defevolverfn :focus-state
   (let [reason (fg/get-reason)
