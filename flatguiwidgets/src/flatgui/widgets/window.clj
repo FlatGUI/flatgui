@@ -26,6 +26,9 @@
 
 (fgp/deflookfn window-look (:theme :header-h :text :focus-state)
   [(fgp/call-look flatgui.widgets.component/component-look)
+   (if (draw-focused? focus-state)
+     [(awt/setColor (:prime-2 theme))
+      (awt/drawRect 0 0 w- h-)])
    (awt/setColor (if (draw-focused? focus-state) (:prime-4 theme) (:prime-2 theme)))
    (awt/fillRect 0 0 w header-h)
    (flatgui.widgets.label/label-look-impl (if (draw-focused? focus-state) (:prime-1 theme) (:prime-4 theme)) text :left :center 0 0 w header-h)])

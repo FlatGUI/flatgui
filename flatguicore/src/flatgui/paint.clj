@@ -258,15 +258,15 @@
     (:clip-size container)
     (:look-vec container)))
 
-;;;
-;;; TODO sort by z-order here?
-;;;
+;;; TODO investigate sorting impact on performance
 (defn get-paint-all-sequence
   ([id-path container]
     (if (ready-for-paint? container)
       (apply concat
              [(conj id-path (:id container))]
-             (for [[_ v] (:children container)] (get-paint-all-sequence (conj id-path (:id container)) v)))
+             (map
+               #(get-paint-all-sequence (conj id-path (:id container)) %)
+               (sort-by :z-position (for [[_ v] (:children container)] v))))
      []))
   ([container] (get-paint-all-sequence [] container)))
 

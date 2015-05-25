@@ -56,7 +56,9 @@
 
 ;; TODO implement proper z-position evovler after focus manager is initialized
 (fg/defevolverfn :z-position
-  (if (get-property component [:this] :popup)
+  (if (or
+        (get-property component [:this] :popup)
+        (#{:has-focus :parent-of-focused} (:mode (get-property component [:this] :focus-state))))
     (Integer/MAX_VALUE)
     0))
 
@@ -188,6 +190,8 @@
                  :focus-state focus/focus-state-evolver
 
                  :focus-traversal-order focus/focus-traversal-order-evolver
+
+                 :z-position z-position-evolver
 
                  ; Nov 26 2014 moving this to componentbase since table cells will also need this as an optimization for web
                  ; It was previosly moved out of there for performance reasons. Though now it does not seem to hurt performance
