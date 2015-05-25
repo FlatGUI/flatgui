@@ -67,6 +67,8 @@ flatgui.skins.flat
 
 ;;;;
 
+(defmacro has-focus [] `(= :has-focus (:mode ~'focus-state)))
+
 (defmacro set-component-color []
   `(setColor (:prime-1 ~'theme)))
 
@@ -152,6 +154,22 @@ flatgui.skins.flat
      (drawLine 0 (-px h 1) (-px w 3) (-px h 1))
      (fillRect 0 (+px 0 2) w (-px h 4))]))
 
+(defn draw-leftsmoothbutton-component-rect [w h panel-color component-color]
+  (let [mc (mix-colors component-color panel-color)]
+    [(setColor mc)
+     (drawLine 0 0 (-px w 2) 0)
+     (drawLine 0 (px) (-px w 1) (px))
+     (drawLine 0 (-px h 2) (-px w 1) (-px h 2))
+     (drawLine 0 (-px h 1) (-px w 2) (-px h 1))
+     (setColor component-color)
+     (drawLine 0 0 (-px w 3) 0)
+     (drawLine 0 (px) (-px w 2) (px))
+     (drawLine 0 (-px h 2) (-px w 2) (-px h 2))
+     (drawLine 0 (-px h 1) (-px w 3) (-px h 1))
+     (drawLine 0 (px) 0 (-px h 2))
+     (drawLine (-px w 1) (px) (-px w 1) (-px h 2))
+     (drawLine w (+px 0 2) w (-px h 3))]))
+
 (defn fill-leftsmooth-btm-component-rect [w h panel-color component-color]
   (let [mc (mix-colors component-color panel-color)]
     [(setColor mc)
@@ -166,6 +184,23 @@ flatgui.skins.flat
      (drawLine 0 (-px h 1) (-px w 3) (-px h 1))
      (fillRect 0 0 w (-px h 2))]))
 
+(defn draw-leftsmoothbutton-btm-component-rect [w h panel-color component-color]
+  (let [mc (mix-colors component-color panel-color)]
+    [(setColor mc)
+     ;(drawLine 0 0 (-px w 2) 0)
+     ;(drawLine 0 (px) (-px w 1) (px))
+     (drawLine 0 (-px h 2) (-px w 1) (-px h 2))
+     (drawLine 0 (-px h 1) (-px w 2) (-px h 1))
+     (setColor component-color)
+     ;(drawLine 0 0 w 0)
+     ;(drawLine 0 (px) (-px w 2) (px))
+     (drawLine 0 (-px h 2) (-px w 2) (-px h 2))
+     (drawLine 0 (-px h 1) (-px w 3) (-px h 1))
+
+     (drawLine 0 0 0 (-px h 2))
+     (drawLine (-px w 1) 0 (-px w 1) (-px h 2))
+     (drawLine w 0 w (-px h 3))]))
+
 (defn fill-leftsmooth-top-component-rect [w h panel-color component-color]
   (let [mc (mix-colors component-color panel-color)]
     [(setColor mc)
@@ -179,6 +214,24 @@ flatgui.skins.flat
      ;(drawLine 0 (-px h 2) (-px w 2) (-px h 2))
      ;(drawLine 0 (-px h 1) (-px w 3) (-px h 1))
      (fillRect 0 (+px 0 2) w (-px h 2))]))
+
+(defn draw-leftsmoothbutton-top-component-rect [w h panel-color component-color]
+  (let [mc (mix-colors component-color panel-color)]
+    [(setColor mc)
+     (drawLine 0 0 (-px w 2) 0)
+     (drawLine 0 (px) (-px w 1) (px))
+     ;(drawLine 0 (-px h 2) (-px w 1) (-px h 2))
+     ;(drawLine 0 (-px h 1) (-px w 2) (-px h 1))
+     (setColor component-color)
+     (drawLine 0 0 (-px w 3) 0)
+     (drawLine 0 (px) (-px w 2) (px))
+     ;(drawLine 0 (-px h 2) (-px w 2) (-px h 2))
+     ;(drawLine 0 (-px h 1) w (-px h 1))
+
+     (drawLine 0 (px) 0 (-px h 1))
+     (drawLine (-px w 1) (px) (-px w 1) h)
+     (drawLine w (+px 0 2) w h)]))
+
 
 ;;;
 ;;; Panel
@@ -251,41 +304,51 @@ flatgui.skins.flat
    (drawLine lx2 (-px ly2 3) (-px lx3 3) ly3)])
 
 
-(deflookfn spinner-up-look (:pressed :has-mouse :theme)
+(deflookfn spinner-up-look (:pressed :has-mouse :theme :belongs-to-focused-editor)
            (fill-leftsmooth-top-component-rect w h (:prime-3 theme) (if pressed (:prime-2 theme) (:prime-1 theme)))
+           (if belongs-to-focused-editor
+             (draw-leftsmoothbutton-top-component-rect (awt/-px w 1) h (:prime-3 theme) (:focused theme)))
            (setColor (:prime-4 theme))
            (let [lx1 (* w 0.375)
                  ly1 (- h (* w 0.0625))
                  lx2 (* w 0.5)
                  ly2 (- h (* w 0.25))
                  lx3 (+px (* w 0.625))
-                 ly3 (- h (* w 0.0625))]
+                 ly3 ly1]
              (arrow-up lx1 ly1 lx2 ly2 lx3 ly3 theme (:prime-4 theme) (:prime-1 theme))))
 
-(deflookfn spinner-down-look (:pressed :has-mouse :theme)
+(deflookfn spinner-down-look (:pressed :has-mouse :theme :belongs-to-focused-editor)
            (fill-leftsmooth-btm-component-rect w h (:prime-3 theme) (if pressed (:prime-2 theme) (:prime-1 theme)))
+           (if belongs-to-focused-editor
+             (draw-leftsmoothbutton-btm-component-rect (awt/-px w 1) h (:prime-3 theme) (:focused theme)))
            (setColor (:prime-4 theme))
            (let [lx1 (* w 0.375)
                  ly1 (* w 0.0625)
                  lx2 (* w 0.5)
                  ly2 (* w 0.25)
                  lx3 (+px (* w 0.625))
-                 ly3 (* w 0.0625)]
+                 ly3 ly1]
              (arrow-down lx1 ly1 lx2 ly2 lx3 ly3 theme (:prime-4 theme) (:prime-1 theme))))
 
-(deflookfn leftsmooth-editor-look (:has-mouse :theme)
+(deflookfn leftsmooth-editor-look (:has-mouse :theme :focus-state)
            ;(call-look panel-look)
            (setColor (:prime-4 theme))
            (fillRect 0 0 w h)
-           (draw-leftsmooth-component-rect w h (:prime-3 theme) (:prime-2 theme))
+           (if (has-focus)
+             [(draw-leftsmooth-component-rect w h (:prime-3 theme) (:focused theme))
+              (setColor (:focused theme))
+              (drawRect (awt/px) (awt/px) (awt/-px w 2) (awt/-px h 3))]
+             (draw-leftsmooth-component-rect w h (:prime-3 theme) (:prime-2 theme)))
            (call-look textfield-look-impl))
 
 ;;;
 ;;; Combo Box
 ;;;
 
-(deflookfn combobox-arrow-button-look (:has-mouse :pressed :theme)
+(deflookfn combobox-arrow-button-look (:has-mouse :pressed :theme :belongs-to-focused-editor)
            (fill-leftsmooth-component-rect w h (:prime-3 theme) (if pressed (:prime-2 theme) (:prime-1 theme)))
+           (if belongs-to-focused-editor
+             (draw-leftsmoothbutton-component-rect (awt/-px w 1) h (:prime-3 theme) (:focused theme)))
            (setColor (:prime-4 theme))
            (let [lx1 (* w 0.375)
                  ly1 (* w 0.375)
@@ -349,30 +412,17 @@ flatgui.skins.flat
 ;;; Text Field
 ;;;
 
-(defmacro has-focus [] `(= :has-focus (:mode ~'focus-state)))
-
 (deflookfn textfield-look (:has-mouse :focus-state :theme)
            ;(call-look panel-look)
            ;(set-component-color)
            ;(draw-component-rect)
            (setColor (:prime-4 theme))
            (fillRect 0 0 w h)
-
-           ;(draw-component-rect w h (:prime-3 theme) (if (= :has-focus (:mode focus-state)) (:focused theme) (:prime-2 theme)))
-
-           ;(if (= :has-focus (:mode focus-state))
-           ;  [(setColor (:focused theme))
-           ;   (drawRect 0 0 w- h-)
-           ;   (drawRect (awt/px) (awt/px) (awt/-px w 3) (awt/-px h 3))]
-           ;  (draw-component-rect w h (:prime-3 theme) (:prime-2 theme)))
-
-           (if (= :has-focus (:mode focus-state))
-             [(draw-component-rect w h (:prime-3 theme) (:prime-2 theme))
+           (if (has-focus)
+             [(draw-component-rect w h (:prime-3 theme) (:focused theme))
               (setColor (:focused theme))
               (drawRect (awt/px) (awt/px) (awt/-px w 3) (awt/-px h 3))]
              (draw-component-rect w h (:prime-3 theme) (:prime-2 theme)))
-
-
            (call-look textfield-look-impl))
 
 ;;;
@@ -381,7 +431,11 @@ flatgui.skins.flat
 
 (deflookfn checkbox-look (:theme :has-mouse :pressed :focus-state :foreground :v-alignment :h-alignment :text)
            ;(call-look component-look)
-           [(fill-component-rect h- h- (:prime-3 theme) (if pressed (:engaged theme) (:prime-1 theme)))
+           [(fill-component-rect h- h- (:prime-3 theme) (:prime-1 theme))
+            (if (has-focus)
+              [(draw-component-rect h h (:prime-3 theme) (:focused theme))
+               (setColor (:focused theme))
+               (drawRect (awt/px) (awt/px) (awt/-px h 3) (awt/-px h 3))])
             (if pressed
               (let [lx1 (* h 0.25)
                     ly1 (* h 0.375)
@@ -419,9 +473,14 @@ flatgui.skins.flat
                 (fillOval side-gap top side-gap side-gap)
                 (fillRect (+ (/ side-gap 2) side-gap) top hx side-gap)])))
 
-(deflookfn sliderhandle-look (:has-mouse :theme)
-           (setColor (:prime-1 theme))
-           (fillOval 0 0 w h)
+(deflookfn sliderhandle-look (:has-mouse :theme :belongs-to-focused-editor)
+           (if belongs-to-focused-editor
+             [(setColor (:focused theme))
+              (fillOval 0 0 w h)
+              (setColor (:prime-1 theme))
+              (fillOval (awt/+px 0 2) (awt/+px 0 2) (awt/-px w 4) (awt/-px h 4))]
+             [(setColor (:prime-1 theme))
+              (fillOval 0 0 w h)])
            (setColor (:prime-4 theme))
            (let [d (* w 0.46875)]
              (fillOval (+px (- (/ w 2) (/ d 2))) (+px (- (/ h 2) (/ d 2))) (-px d) (-px d))))
@@ -451,16 +510,17 @@ flatgui.skins.flat
 ;;; Radio Button
 ;;;
 
-(deflookfn radiobutton-look (:theme :pressed :foreground :v-alignment :h-alignment :text)
-           (let [c (if pressed (:engaged theme) (:prime-6 theme))
+(deflookfn radiobutton-look (:theme :pressed :focus-state :foreground :v-alignment :h-alignment :text)
+           (let [cout (if (has-focus) (:focused theme) (:prime-6 theme))
+                 cin (if pressed (:engaged theme) (:prime-6 theme))
                  r h]
-             [(setColor c)
+             [(setColor cout)
               (fillOval 0 0 r r)
               (setColor (:prime-4 theme))
               (let [d (* r 0.75)]
                 (fillOval (- (/ r 2) (/ d 2)) (- (/ r 2) (/ d 2)) d d))
               (if pressed
-                [(setColor c)
+                [(setColor cin)
                  (let [d (* r 0.5)]
                    (fillOval (- (/ r 2) (/ d 2)) (- (/ r 2) (/ d 2)) d d))])
               (label-look-impl foreground text h-alignment v-alignment h 0 w h)]))

@@ -15,6 +15,7 @@
             [flatgui.widgets.textfield]
             [flatgui.widgets.abstractbutton]
             [flatgui.widgets.button]
+            [flatgui.widgets.compoundcommons :as compoundcommons]
             [flatgui.comlogic :as fgc])
   (:import [java.text DecimalFormat]))
 
@@ -86,9 +87,11 @@
   { :step 1.0
     :children {:editor (fg/defcomponent spinnereditor :editor {})
                :up (fg/defcomponent flatgui.widgets.button/button :up {:skin-key [:spinner :up]
-                                                                    :evolvers {:position-matrix spinner-up-pm-evolver
-                                                                    :clip-size spinner-button-clip-size-evolver}})
+                                                                    :evolvers {:belongs-to-focused-editor compoundcommons/belongs-to-focused-editor-evolver
+                                                                               :position-matrix spinner-up-pm-evolver
+                                                                               :clip-size spinner-button-clip-size-evolver}})
                :down (fg/defcomponent flatgui.widgets.button/button :down {:skin-key [:spinner :down]
-                                                                        :evolvers {:position-matrix spinner-down-pm-evolver
-                                                                        :clip-size spinner-button-clip-size-evolver}})}}
+                                                                        :evolvers {:belongs-to-focused-editor compoundcommons/belongs-to-focused-editor-evolver
+                                                                                   :position-matrix spinner-down-pm-evolver
+                                                                                   :clip-size spinner-button-clip-size-evolver}})}}
   flatgui.widgets.component/component)

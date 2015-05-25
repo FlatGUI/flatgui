@@ -87,7 +87,7 @@
   :extra-1 (flatgui.awt/color 199 199 199) ; Foreground extra
   :extra-2 (flatgui.awt/color 234 237 236) ; Background extra
   :engaged (flatgui.awt/color 34 168 108)  ; Engaged checkable (radiobutton, checkbox, etc)
-  :focused (flatgui.awt/color 72 90 255)
+  :focused (flatgui.awt/color 34 168 108)
   })
 
 (def dark
@@ -102,5 +102,5 @@
   :extra-1 (flatgui.awt/color 145 145 145) ; Foreground extra
   :extra-2 (flatgui.awt/color 234 237 236) ; Background extra
   :engaged (flatgui.awt/color 34 168 108)  ; Engaged checkable (radiobutton, checkbox, etc)
-  :focused (flatgui.awt/color 72 90 255)
+  :focused (flatgui.awt/color 34 168 108)
   })

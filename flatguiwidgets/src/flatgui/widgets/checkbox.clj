@@ -13,8 +13,9 @@
             [flatgui.widgets.abstractbutton]))
 
 (fg/defwidget "checkbox"
-  { :v-alignment :center
-    :h-alignment :left
-    :skin-key [:checkbox]
-    :evolvers {:pressed flatgui.widgets.abstractbutton/check-pressed-evolver}}
+  {:v-alignment :center
+   :h-alignment :left
+   :focusable true
+   :skin-key [:checkbox]
+   :evolvers {:pressed flatgui.widgets.abstractbutton/check-pressed-evolver}}
   flatgui.widgets.abstractbutton/abstractbutton)

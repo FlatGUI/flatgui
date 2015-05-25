@@ -14,7 +14,8 @@
             [flatgui.inputchannels.mouse :as mouse]
             [flatgui.inputchannels.keyboard :as keyboard]
             [flatgui.widgets.component]
-            [flatgui.widgets.floatingbar])
+            [flatgui.widgets.floatingbar]
+            [flatgui.widgets.compoundcommons :as compoundcommons])
   (:import (java.awt.event KeyEvent)))
 
 (def default-slider-bar-thikness 0.3125)
@@ -45,8 +46,9 @@
 (fg/defwidget "sliderhandle"
   { :focusable false
     :skin-key [:slider :handle]
-    :evolvers { :position-matrix sliderhandle-position-matrix-evolver
-                :clip-size sliderhandle-clip-size-evolver}}
+    :evolvers {:belongs-to-focused-editor compoundcommons/grandchild-of-focused-evolver
+               :position-matrix sliderhandle-position-matrix-evolver
+               :clip-size sliderhandle-clip-size-evolver}}
   flatgui.widgets.floatingbar/floatingbar)
 
 (fg/defevolverfn sliderhandlebase-clip-size-evolver :clip-size

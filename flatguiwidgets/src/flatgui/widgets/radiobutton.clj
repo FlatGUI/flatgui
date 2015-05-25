@@ -52,6 +52,7 @@
 (fg/defwidget "radiobutton"
   {:v-alignment :center
    :h-alignment :left
+   :focusable true
    :skin-key [:radiobutton]
    :evolvers {:pressed radio-pressed-evolver}}
   flatgui.widgets.abstractbutton/abstractbutton)

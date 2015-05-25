@@ -16,6 +16,7 @@
             [flatgui.widgets.abstractbutton]
             [flatgui.widgets.button]
             [flatgui.widgets.combobox.dropdown]
+            [flatgui.widgets.compoundcommons :as compoundcommons]
             [flatgui.util.matrix :as m]
             [flatgui.comlogic :as fgc]))
 
@@ -79,7 +80,8 @@
                                         :first-visible-symbol combo-editor-shift-evolver}})
                :arrow-button (fg/defcomponent flatgui.widgets.button/button :arrow-button
                                              {:skin-key [:combobox :arrow-button]
-                                              :evolvers {:position-matrix combo-button-pm-evolver
+                                              :evolvers {:belongs-to-focused-editor compoundcommons/belongs-to-focused-editor-evolver
+                                                         :position-matrix combo-button-pm-evolver
                                                          :clip-size combo-button-clip-size-evolver}})
                :dropdown (fg/defcomponent flatgui.widgets.combobox.dropdown/dropdown :dropdown {:visible false})}}
   flatgui.widgets.component/component)
