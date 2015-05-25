@@ -60,6 +60,8 @@
             (inc i)))
         (sort-lines lines)))))
 
+;;; Sorts focusable components so that they are traversed in left->right, up->down direction.
+;;; To make such ad order, arranges components in a vector of horizontal "lines"
 (fg/defevolverfn :focus-traversal-order
   (let [accepting-children (get-accepting-children (get-property [:this] :children))]
     (if (pos? (count accepting-children))
@@ -110,7 +112,7 @@
      :focused-child child-id}
     (throw (IllegalArgumentException. (str "child-id must be a keyword but is: " child-id)))))
 
-;; For :parent-of-focused and :has-focus the latest focus movent direction (if any) is tracked in :throw-mode
+;;; For :parent-of-focused and :has-focus the latest focus movent direction (if any) is tracked in :throw-mode
 (defn focus-child-by-direction [child-id dir]
   (assoc (focus-child child-id) :throw-mode dir))
 
