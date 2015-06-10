@@ -11,6 +11,7 @@
             [flatgui.skins.flat]
             [flatgui.base :as fg]
             [flatgui.awt :as awt]
+            [flatgui.focus :as ff]
             [flatgui.util.matrix :as m]
             [flatgui.widgets.label :as label]
             [flatgui.widgets.panel :as panel]
@@ -33,7 +34,9 @@
   (fg/defcomponent panel/panel :header-panel
     {:clip-size (m/defpoint 16 0.5)
      :position-matrix (m/translation 0 0)
-     :background :prime-3}
+     :background :prime-3
+     :closed-focus-root true
+     :focus-state ff/clean-state}
 
     (fg/defcomponent label/label :theme-label
       {:text "Theme:"
@@ -44,7 +47,7 @@
     (fg/defcomponent radiobutton/radiobutton :dark
       {:text "Dark"
        :pressed true
-       :clip-size (m/defpoint 1.25 0.25)
+       :clip-size (m/defpoint 0.75 0.25)
        :position-matrix (m/translation 1.0 0.125)
        :evolvers {:pressed theme-group}})
 
@@ -89,7 +92,10 @@
   (fg/defcomponent panel/panel :app-panel
     {:clip-size (m/defpoint 16 11.25)
      :position-matrix (m/translation 0 0.75)
-     :background (awt/color 0 38 70)}
+     :background (awt/color 0 38 70)
+     :closed-focus-root true
+     :focus-state {:mode :has-focus
+                   :focused-child nil}}
 
     (fg/defcomponent ticket/orderticket-window :ticket
       {:evolvers {:visible book-visible-evolver}})
@@ -109,6 +115,10 @@
     (fg/defcomponent panel/panel :main
       {:clip-size (m/defpoint 16 12)
        :background (awt/color 0 38 70)
+
+       :closed-focus-root true
+       :focus-state ff/clean-state
+
        :evolvers {:theme main-theme-evolver}}
       header-panel
       app-panel)))

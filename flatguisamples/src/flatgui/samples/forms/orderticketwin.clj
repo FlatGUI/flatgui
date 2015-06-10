@@ -201,6 +201,7 @@
   (fg/defcomponent table/table :bids
     {:clip-size (m/defpoint 3.5 2.5)
      :position-matrix (m/translation 0.125 0.375)
+     :focusable false
      :header-ids bid-columns
      :header-aliases {:bidsource "BidSrc" :bidsize "BidSize" :bidpx "BidPx"}
      :value-provider (fn [model-row model-col] (let [ col-id (name (nth bid-columns model-col))] (.getValue simulator model-row col-id)))}
@@ -220,6 +221,7 @@
   (fg/defcomponent table/table :asks
     {:clip-size (m/defpoint 3.5 2.5)
      :position-matrix (m/translation 3.625 0.375)
+     :focusable false
      :header-ids ask-columns
      :header-aliases {:asksource "AskSrc" :asksize "AskSize" :askpx "AskPx"}
      :value-provider (fn [model-row model-col] (let [ col-id (name (nth ask-columns model-col))] (.getValue simulator model-row col-id)))}

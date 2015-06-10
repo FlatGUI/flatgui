@@ -17,14 +17,23 @@
            (java.util Comparator)))
 
 
-(defn accepts-focus? [component]
-  (or
-    ;; If the component is focusable itself
-    (:focusable component)
-    ;; If the component has any child to which it can pass focus
-    (some (fn [[_ c]] (accepts-focus? c)) (:children component))))
+(fg/defevolverfn accepts-focus-evolver :accepts-focus?
+  (and
+    (get-property component [:this] :visible)
+    (get-property component [:this] :enabled)
+    (or
+      ;; If the component is focusable itself
+      (get-property component [:this] :focusable)
+      ;; If the component has any child to which it can pass focus
+      (some
+        (fn [[_ c]] (get-property component [:this (:id c)] :accepts-focus?))
+        (get-property component [:this] :children)))))
 
-(defn- get-accepting-children [child-map] (filter accepts-focus? (for [[_ v] child-map] v)))
+(fg/defaccessorfn get-accepting-children [component]
+  (let [child-map (get-property component [:this] :children)]
+    (filter
+      (fn [c] (get-property component [:this (:id c)] :accepts-focus?))
+      (for [[_ v] child-map] v))))
 
 (def component-comparator
   (reify Comparator
@@ -36,7 +45,7 @@
 
 (defn- sort-lines [lines] (map (fn [l] (sort component-comparator l)) lines))
 
-(defn- group-by-lines [accepting-children]
+(fg/defaccessorfn group-by-lines [component accepting-children]
   (let [cnt (count accepting-children)]
     (loop [line-y1 []
            line-y2 []
@@ -44,7 +53,7 @@
            i 0]
       (if (< i cnt)
         (let [c (nth accepting-children i)
-              cy (m/mx-y (:position-matrix c))
+              cy (m/mx-y (get-property component [:this (:id c)] :position-matrix))
               line-index (if-let [matching (some
                                              #(if (<= (nth line-y1 %) cy (nth line-y2 %)) %)
                                              (range 0 (count lines)))]
@@ -52,7 +61,7 @@
                            (count lines))
               existing-line (< line-index (count lines))
               line (if existing-line (nth lines line-index) #{})
-              cy2 (+ cy (m/y (:clip-size c)))]
+              cy2 (+ cy (m/y (get-property component [:this (:id c)] :clip-size)))]
           (recur
             (if existing-line line-y1 (assoc line-y1 line-index cy))
             (assoc line-y2 line-index (if existing-line (max cy2 (nth line-y2 line-index)) cy2))
@@ -63,38 +72,37 @@
 ;;; Sorts focusable components so that they are traversed in left->right, up->down direction.
 ;;; To make such ad order, arranges components in a vector of horizontal "lines"
 (fg/defevolverfn :focus-traversal-order
-  (let [accepting-children (get-accepting-children (get-property [:this] :children))]
+  (let [accepting-children (get-accepting-children component)]
     (if (pos? (count accepting-children))
-      (let [lines (group-by-lines accepting-children)]
-        (mapcat (fn [i] (map :id (nth lines i))) (range 0 (count lines))))
+      (let [lines (group-by-lines component accepting-children)
+            result (mapcat (fn [i] (map :id (nth lines i))) (range 0 (count lines)))]
+        result)
       [])))
 
-(defn get-child-ids-in-traversal-order [component]
-  (if-let [focus-traversal-order (:focus-traversal-order component)]
+(fg/defaccessorfn get-child-ids-in-traversal-order [component]
+  (if-let [focus-traversal-order (get-property component [:this] :focus-traversal-order)]
     focus-traversal-order
-    (let [accepting-children (get-accepting-children (:children component))]
+    (let [accepting-children (get-accepting-children component)]
       (mapv :id accepting-children))))
 
-(defn get-in-cycle
-  ([component dir c-id]
-    (let [child-ids (get-child-ids-in-traversal-order component)
-          child-count (count child-ids)
-          closed (:closed-focus-root component)
-          cycle-keeper (fn [i]
-                         (cond
-                           (>= i child-count) (if closed 0)
-                           (< i 0) (if closed (dec child-count))
-                           :else i))
-          index-of-c (if c-id (.indexOf child-ids c-id))]
-      (cond
-        (= child-count 0) nil
-        (and (= child-count 1) closed) (nth child-ids 0)
-        :else (case dir
-                :next (if-let [new-index (cycle-keeper (inc index-of-c))] (nth child-ids new-index))
-                :prev (if-let [new-index (cycle-keeper (dec index-of-c))] (nth child-ids new-index))
-                :first (nth child-ids 0)
-                :last (nth child-ids (dec child-count))))))
-  ([component dir] (get-in-cycle component dir nil)))
+(fg/defaccessorfn get-in-cycle [component dir c-id]
+  (let [child-ids (get-child-ids-in-traversal-order component)
+        child-count (count child-ids)
+        closed (:closed-focus-root component)
+        cycle-keeper (fn [i]
+                       (cond
+                         (>= i child-count) (if closed 0)
+                         (< i 0) (if closed (dec child-count))
+                         :else i))
+        index-of-c (if c-id (.indexOf child-ids c-id))]
+    (cond
+      (= child-count 0) nil
+      (and (= child-count 1) closed) (nth child-ids 0)
+      :else (case dir
+              :next (if-let [new-index (cycle-keeper (inc index-of-c))] (nth child-ids new-index))
+              :prev (if-let [new-index (cycle-keeper (dec index-of-c))] (nth child-ids new-index))
+              :first (nth child-ids 0)
+              :last (nth child-ids (dec child-count))))))
 
 (def clean-state {:mode :none
                   :focused-child nil})
@@ -179,7 +187,8 @@
                                                        ;; in :throw-mode - use it to determine firt or last
                                                        (if (= :prev (:throw-mode parent-focus-state))
                                                          :last
-                                                         :first))))]
+                                                         :first)
+                                                       nil)))]
                                  (focus-child-by-direction child-id (:throw-mode parent-focus-state))
                                  having-focus-state)
                                ;; No change in state but track focus movent direction

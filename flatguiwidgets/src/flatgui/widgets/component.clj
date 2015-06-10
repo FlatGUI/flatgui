@@ -175,6 +175,11 @@
 ;     :consumes? (fn [cmpnt] true)
       :has-mouse false
 
+    ;; - TODO -
+    ;; I had to make this true by default for Focus sample where it does not seem to initialize properly
+    ;; and stays false until the first opportunity to evolve. This should not be normally needed.
+    :accepts-focus? true
+
     :focus-traversal-order nil
     :focus-state focus/clean-state
 
@@ -187,8 +192,8 @@
 
                  :content-size default-content-size-evolver
 
+                 :accepts-focus? focus/accepts-focus-evolver
                  :focus-state focus/focus-state-evolver
-
                  :focus-traversal-order focus/focus-traversal-order-evolver
 
                  :z-position z-position-evolver

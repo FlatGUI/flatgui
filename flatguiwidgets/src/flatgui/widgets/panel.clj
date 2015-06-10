@@ -17,5 +17,6 @@
   (fgp/call-look flatgui.widgets.component/component-look))
 
 (fg/defwidget "panel"
-  {:look panel-look}
+  {:look panel-look
+   :consumes? (fn [_] false)}
   flatgui.widgets.component/component)
