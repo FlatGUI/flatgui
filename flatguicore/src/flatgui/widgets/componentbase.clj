@@ -13,9 +13,7 @@
             [flatgui.base :as fg]
             [flatgui.ids :as ids]
             [flatgui.comlogic :as fgc]
-            [flatgui.util.matrix :as m])
-  ;(:use flatgui.comlogic flatgui.access flatgui.util.matrix)
-  )
+            [flatgui.util.matrix :as m]))
 
 
 (defn- get-evolver [component property]

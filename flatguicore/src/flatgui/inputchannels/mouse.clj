@@ -37,6 +37,7 @@
 
 (definputparser mouse-pressed? java.awt.event.MouseEvent (= MouseEvent/MOUSE_PRESSED (.getID repaint-reason)))
 (definputparser mouse-released? java.awt.event.MouseEvent (= MouseEvent/MOUSE_RELEASED (.getID repaint-reason)))
+(definputparser mouse-clicked? java.awt.event.MouseEvent (= MouseEvent/MOUSE_CLICKED (.getID repaint-reason)))
 (definputparser mouse-entered? java.awt.event.MouseEvent (= MouseEvent/MOUSE_ENTERED (.getID repaint-reason)))
 (definputparser mouse-moved? java.awt.event.MouseEvent (= MouseEvent/MOUSE_MOVED (.getID repaint-reason)))
 (definputparser mouse-exited? java.awt.event.MouseEvent (= MouseEvent/MOUSE_EXITED (.getID repaint-reason)))
