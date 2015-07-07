@@ -70,6 +70,10 @@
 (fg/defwidget "dropdown"
   { :header-ids dropdown-menu-columns
     :value-provider (fn [model-row model-col] (str model-row "-" model-col))
+
+   ;; TODO Decide: either non-focusable dropdown, or maybe focusable (accepts-focus? will be true) when open
+   :focusable false
+
     :evolvers { :position-matrix dropdown-position-matrix-evolver
                 :clip-size dropdown-clip-size-evolver
                 :visible dropdown-visible-evolver}

@@ -120,6 +120,10 @@
      :focused-child permanent-owner-child
      :throw-mode dir}))
 
+(defn got-trigger []
+  {:mode :got-trigger
+   :focused-child nil})
+
 (defn focus-child [child-id]
   (if (keyword? child-id)
     {:mode :parent-of-focused
@@ -164,9 +168,10 @@
          :focused-child this-focused-child}
         (and (:closed-focus-root component) (#{:none :throws-focus :requests-focus} this-mode))
         (having-focus-state component "closed root by mouse")
-        (focus-uninterested? component)
-        {:mode :got-trigger
-         :focused-child nil}
+        (and (focus-uninterested? component) (not= :parent-of-focused this-mode))
+        (do
+          (fg/log-debug "Trigger received by focus-uninterested" (:id component))
+          (got-trigger))
         :else old-focus-state)
 
       (fgc/parent-reason? reason)
@@ -209,7 +214,10 @@
                                                          :first)
                                                        nil)))]
                                  (focus-child-by-direction child-id (:throw-mode parent-focus-state))
-                                 (having-focus-state component (str "from parent " parent-id " that requested")))
+                                 (if (:accepts-focus? component)
+                                   (having-focus-state component (str "from parent " parent-id " that requested"))
+                                   {:mode :throws-focus
+                                    :throw-mode :out-of-cycle-next}))
                                ;; No change in state but track focus movent direction
                                (assoc old-focus-state :throw-mode (:throw-mode parent-focus-state)))
 
@@ -302,19 +310,19 @@
                                               :focused-child this-focused-child})
 
           :got-trigger (cond
-                         (:focusable component)
+                         ;; Trigger finally made it to focusable
+                         (and (:focusable component) (not= :parent-of-focused this-mode)) ;maybe accepts-focus? instead of focusable
                          (having-focus-state component "trigger")
+                         ;; Trigger reached non focusable, but one that possibly has where to give focus
                          (or
                            (:closed-focus-root component)
                            (get-in-cycle component :first nil))
-                         (temporarily-taken-from-state component "trigger"      ;TODO This worked nicely even with tester widged but broke slider
-                           (if-let [first-to-give (get-in-cycle component :first nil)]
-                              first-to-give
-                              child-id)
-                           nil)
+                         (if-let [first-to-give (get-in-cycle component :first nil)]
+                           (temporarily-taken-from-state component "trigger" first-to-give nil)
+                           (got-trigger))
+                         ;; Just give chance further
                          :else
-                         {:mode :got-trigger
-                          :focused-child nil})))
+                         (got-trigger))))
 
       :else ; Neither event type - ignore
       old-focus-state)))
