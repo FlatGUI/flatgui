@@ -12,7 +12,8 @@
             [flatgui.inputchannels.awtbase :as inputbase]
             [flatgui.inputchannels.mouse :as mouse]
             [flatgui.inputchannels.keyboard :as keyboard]
-            [flatgui.util.matrix :as m])
+            [flatgui.util.matrix :as m]
+            [flatgui.util.rectmath :as rect])
   (:import (java.awt.event KeyEvent)
            (java.util Comparator)))
 
@@ -38,12 +39,28 @@
 (def component-comparator
   (reify Comparator
     (compare [_this o1 o2]
-      (let [by-x (- (m/mx-x (:position-matrix o1)) (m/mx-x (:position-matrix o2)))]
-        (if (= by-x 0)
-          (- (m/mx-y (:position-matrix o1)) (m/mx-y (:position-matrix o2)))
-          by-x)))))
+      (let [x1 (m/mx-x (:position-matrix o1))
+            x2 (m/mx-x (:position-matrix o2))]
+        (if (< x1 x2)
+          -1
+          (if (> x1 x2)
+            1
+            (let [y1 (m/mx-y (:position-matrix o1))
+                  y2 (m/mx-y (:position-matrix o2))]
+              (if (< y1 y2) -1 (if (> y1 y2) 1 0)))))))))
 
-(defn- sort-lines [lines] (map (fn [l] (sort component-comparator l)) lines))
+(defn- sort-each-line-by-x [lines] (mapv (fn [l] (sort component-comparator l)) lines))
+
+(def line-comparator
+  (reify Comparator
+    (compare [_this o1 o2]
+      (if (< (:line-y1 o1) (:line-y1 o2))
+        -1
+        (if (> (:line-y1 o1) (:line-y1 o2)) 1 0)))))
+
+(defn- sort-lines-by-y [lines line-y1]
+  (let [line-maps (map (fn [i] {:line (nth lines i) :line-y1 (nth line-y1 i)}) (range 0 (count lines)))]
+    (mapv #(:line %) (sort line-comparator line-maps))))
 
 (fg/defaccessorfn group-by-lines [component accepting-children]
   (let [cnt (count accepting-children)]
@@ -53,21 +70,21 @@
            i 0]
       (if (< i cnt)
         (let [c (nth accepting-children i)
-              cy (m/mx-y (get-property component [:this (:id c)] :position-matrix))
+              cy1 (m/mx-y (get-property component [:this (:id c)] :position-matrix))
+              cy2 (+ cy1 (m/y (get-property component [:this (:id c)] :clip-size)))
               line-index (if-let [matching (some
-                                             #(if (<= (nth line-y1 %) cy (nth line-y2 %)) %)
+                                             (fn [j] (if (rect/line& cy1 cy2 (nth line-y1 j) (nth line-y2 j)) j))
                                              (range 0 (count lines)))]
                            matching
                            (count lines))
               existing-line (< line-index (count lines))
-              line (if existing-line (nth lines line-index) #{})
-              cy2 (+ cy (m/y (get-property component [:this (:id c)] :clip-size)))]
+              line (if existing-line (nth lines line-index) #{})]
           (recur
-            (if existing-line line-y1 (assoc line-y1 line-index cy))
+            (assoc line-y1 line-index (if existing-line (min cy1 (nth line-y1 line-index)) cy1))
             (assoc line-y2 line-index (if existing-line (max cy2 (nth line-y2 line-index)) cy2))
             (assoc lines line-index (conj line c))
             (inc i)))
-        (sort-lines lines)))))
+        (sort-lines-by-y (sort-each-line-by-x lines) line-y1)))))
 
 ;;; Sorts focusable components so that they are traversed in left->right, up->down direction.
 ;;; To make such ad order, arranges components in a vector of horizontal "lines"
