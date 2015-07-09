@@ -53,14 +53,13 @@
   (awt/setColor background)
   (awt/fillRect 0 0 (m/x content-size) (m/y content-size)))
 
-
-;; TODO implement proper z-position evovler after focus manager is initialized
 (fg/defevolverfn :z-position
-  (if (or
-        (get-property component [:this] :popup)
-        (#{:has-focus :parent-of-focused} (:mode (get-property component [:this] :focus-state))))
+  (if (get-property component [:this] :popup)
     (Integer/MAX_VALUE)
-    0))
+    (let [parent-z (if-let [p (get-property component [] :z-position)] p 0)]
+      (if (#{:has-focus :parent-of-focused} (:mode (get-property component [:this] :focus-state)))
+        (+ parent-z 1024)
+        parent-z))))
 
 ;; True there is no parent (get-property returns nil) or parent is visible (true)
 (fg/defevolverfn :visible
@@ -135,7 +134,9 @@
     :evolvers {:theme theme-evolver
                :skin skin-evolver
                :look flatgui.skins.skinbase/skin-look-evolver
-               :abs-position-matrix abs-position-matrix-evolver}))
+               :abs-position-matrix abs-position-matrix-evolver
+
+               :z-position z-position-evolver}))
 
 ;[:main :tiket :ticket-panel :aggr-slider]
 
@@ -196,7 +197,7 @@
                  :focus-state focus/focus-state-evolver
                  :focus-traversal-order focus/focus-traversal-order-evolver
 
-                 :z-position z-position-evolver
+
 
                  ; Nov 26 2014 moving this to componentbase since table cells will also need this as an optimization for web
                  ; It was previosly moved out of there for performance reasons. Though now it does not seem to hurt performance
