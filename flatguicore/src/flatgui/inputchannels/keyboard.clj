@@ -21,6 +21,8 @@
 
 (definputparser key-pressed? java.awt.event.KeyEvent (= java.awt.event.KeyEvent/KEY_PRESSED (key-id repaint-reason)))
 
+(definputparser key-released? java.awt.event.KeyEvent (= java.awt.event.KeyEvent/KEY_RELEASED (key-id repaint-reason)))
+
 (definputparser get-key-char java.awt.event.KeyEvent (int (.getKeyChar repaint-reason)))
 
 (definputparser get-key-str java.awt.event.KeyEvent (str (.getKeyChar repaint-reason)))

@@ -6,14 +6,16 @@
 ; the terms of this license.
 ; You must not remove this notice, or any other, from this software.
 
-(ns ^{:doc "Abstract button widget"
+(ns ^{:doc    "Abstract button widget"
       :author "Denys Lebediev"}
-  flatgui.widgets.abstractbutton
+flatgui.widgets.abstractbutton
   (:require [flatgui.base :as fg]
             [flatgui.paint :as fgp]
             [flatgui.awt :as awt]
             [flatgui.inputchannels.mouse :as mouse]
-            [flatgui.widgets.label]))
+            [flatgui.inputchannels.keyboard :as keyboard]
+            [flatgui.widgets.label])
+  (:import (java.awt.event KeyEvent)))
 
 
 (fgp/deflookfn deprecated-regular-button-look (:theme :has-mouse :pressed)
@@ -33,14 +35,27 @@
     (mouse/mouse-exited? component) false
     :else old-pressed))
 
-(fg/defevolverfn :mouse-pressed-trigger
-  (if (and (mouse/mouse-released? component) (mouse/left-mouse-button? component))
-    (not old-mouse-pressed-trigger)
-    old-mouse-pressed-trigger))
+(fg/defaccessorfn selection-trigger-key? [component]
+  (and (keyboard/key-pressed? component) (= (keyboard/get-key component) KeyEvent/VK_SPACE)))
+
+(fg/defevolverfn :input-pressed-trigger
+  (if (or
+        (and (mouse/mouse-released? component) (mouse/left-mouse-button? component))
+        (selection-trigger-key? component))
+    (not old-input-pressed-trigger)
+    old-input-pressed-trigger))
 
 (fg/defevolverfn check-pressed-evolver :pressed
-  ; Do not return nil
-  (if (or (mouse/mouse-left? component) (get-property component [:this] :mouse-pressed-trigger)) true false))
+  (cond
+
+    (keyboard/key-event? component)
+    (get-property component [:this] :input-pressed-trigger)
+
+    (mouse/is-mouse-event? component)
+    (or (and (mouse/mouse-left? component) (mouse/mouse-pressed? component))
+        (get-property component [:this] :input-pressed-trigger))
+
+    :else old-pressed))
 
 (fg/defevolverfn :pressed-trigger
   (let [ pressed (get-property component [:this] :pressed)]
@@ -53,6 +68,6 @@
 
 (fg/defwidget "abstractbutton"
   { :pressed false
-    :evolvers {:mouse-pressed-trigger mouse-pressed-trigger-evolver
+    :evolvers {:input-pressed-trigger input-pressed-trigger-evolver
                :pressed-trigger pressed-trigger-evolver}}
   flatgui.widgets.label/label)

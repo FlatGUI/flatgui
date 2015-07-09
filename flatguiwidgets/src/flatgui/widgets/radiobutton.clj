@@ -15,7 +15,9 @@
 
 
 (fg/defevolverfn radio-pressed-evolver :pressed
-  (if (and (mouse/mouse-pressed? component) (mouse/left-mouse-button? component))
+  (if (or
+        (and (mouse/mouse-pressed? component) (mouse/left-mouse-button? component))
+        (flatgui.widgets.abstractbutton/selection-trigger-key? component))
     true
     old-pressed))
 
