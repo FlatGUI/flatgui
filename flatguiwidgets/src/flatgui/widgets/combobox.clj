@@ -71,8 +71,6 @@
 
 (fg/defwidget "combobox"
   { :model []
-    ;; TODO this is temporary just to get combo's dropdown painted on top. Need generic solution.
-    :z-position Integer/MAX_VALUE
     :children {:editor (fg/defcomponent flatgui.widgets.textfield/textfield :editor
                                        {:skin-key [:combobox :editor]
                                         :evolvers {:model combo-text-model-evolver
