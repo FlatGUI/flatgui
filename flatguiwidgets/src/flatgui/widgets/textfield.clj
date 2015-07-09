@@ -119,9 +119,7 @@
 ;;;TODO listen to timer
 ;;;
 (fg/defevolverfn :caret-visible
-              (and
-                (:has-focus component)
-                (> (rem (System/currentTimeMillis) 1000) 500)))
+  (= :has-focus (:mode (get-property [:this] :focus-state))))
 
 (defn textfield-dflt-text-suplier [component]
   (if (not
@@ -138,7 +136,7 @@
   {:v-alignment :center
    :h-alignment :left
    :text-supplier textfield-dflt-text-suplier
-   :caret-visible true
+   :caret-visible false
    :model {:text "" :caret-pos 0 :selection-mark 0}
    :text ""
    :first-visible-symbol 0
@@ -148,5 +146,6 @@
    :foreground :prime-1
    :evolvers {:model text-model-evolver
               :text text-evolver
-              :first-visible-symbol first-visible-symbol-evolver}}
+              :first-visible-symbol first-visible-symbol-evolver
+              :caret-visible caret-visible-evolver}}
   flatgui.widgets.component/component)

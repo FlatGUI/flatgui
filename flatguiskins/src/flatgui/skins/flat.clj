@@ -61,7 +61,7 @@ flatgui.skins.flat
                           x1 (get-caret-x trunk-text sstart)
                           x2 (get-caret-x trunk-text send)]
                       (fillRect (+ hgap x1) hgap (- x2 x1) (- h (* 2 hgap))))]))
-              ;(if caret-visible (call-look caret-look))
+              (if caret-visible (call-look caret-look))
               (label-look-impl foreground trunk-text h-alignment v-alignment 0 0 w h)]))
 
 
