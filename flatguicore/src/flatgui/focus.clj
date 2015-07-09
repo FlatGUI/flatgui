@@ -17,6 +17,10 @@
   (:import (java.awt.event KeyEvent)
            (java.util Comparator)))
 
+(def debug-logging-enabled false)
+
+(defn log-debug [& msg]
+  (if debug-logging-enabled (apply fg/log-debug msg)))
 
 (fg/defevolverfn accepts-focus-evolver :accepts-focus?
   (and
@@ -126,13 +130,13 @@
 
 (defn having-focus-state [component comment]
   (do
-    (fg/log-debug "Permanent focus (" comment ") received by" (:id component))
+    (log-debug "Permanent focus (" comment ") received by" (:id component))
     {:mode :has-focus
      :focused-child nil}))
 
 (defn temporarily-taken-from-state [component comment permanent-owner-child dir]
   (do
-    (fg/log-debug "Temporary focus (" comment ") from" permanent-owner-child "received by" (:id component))
+    (log-debug "Temporary focus (" comment ") from" permanent-owner-child "received by" (:id component))
     {:mode :has-focus
      :focused-child permanent-owner-child
      :throw-mode dir}))
@@ -187,7 +191,7 @@
         (having-focus-state component "closed root by mouse")
         (and (focus-uninterested? component) (not= :parent-of-focused this-mode))
         (do
-          (fg/log-debug "Trigger received by focus-uninterested" (:id component))
+          (log-debug "Trigger received by focus-uninterested" (:id component))
           (got-trigger))
         :else old-focus-state)
 
