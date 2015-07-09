@@ -123,7 +123,7 @@
                                              (m/y (get-property component [] :clip-size))
                                              (get-property component [:h-scrollbar] :scroll-bar-thickness))
                                            0))
-              :content-size (fg/accessorfn (:clip-size component))
+              :content-size (fg/accessorfn (get-property component [:this] :clip-size))
               :position-matrix (fg/accessorfn (m/mx-set
                                                 m/IDENTITY-MATRIX
                                                 0 3
