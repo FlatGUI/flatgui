@@ -62,6 +62,10 @@
         (= reason [:arrow-button])
         (flatgui.widgets.abstractbutton/button-pressed? (get-property component [:arrow-button] :pressed-trigger)))
       true
+      (and
+        (= reason [:editor])
+        (not= :has-focus (:mode (get-property component [:editor] :focus-state))))
+      false
       :else old-visible)))
 
 (fg/defevolverfn dropdown-row-order-evolver :row-order
