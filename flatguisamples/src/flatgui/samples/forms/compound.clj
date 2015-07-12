@@ -80,18 +80,18 @@
        :position-matrix (m/translation 9.0 0.125)})))
 
 (fg/defevolverfn helloworld-visible-evolver :visible
-  (get-property [:_ :header-panel :hello-world] :pressed))
+  (true? (get-property [:_ :header-panel :hello-world] :pressed)))
 
 (fg/defevolverfn colorchooser-visible-evolver :visible
-  (get-property [:_ :header-panel :color-chooser] :pressed))
+  (true? (get-property [:_ :header-panel :color-chooser] :pressed)))
 
 (fg/defevolverfn book-visible-evolver :visible
-  (get-property [:_ :header-panel :book] :pressed))
+  (true? (get-property [:_ :header-panel :book] :pressed)))
 
 (def app-panel
   (fg/defcomponent panel/panel :app-panel
-    {:clip-size (m/defpoint 16 11.25)
-     :position-matrix (m/translation 0 0.75)
+    {:clip-size (m/defpoint 16 11.5)
+     :position-matrix (m/translation 0 0.5)
      :background (awt/color 0 38 70)
      :closed-focus-root true
      :focus-state {:mode :has-focus

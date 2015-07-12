@@ -145,7 +145,7 @@
   (fg/defcomponent slider/slider :b-slider
     {:clip-size (m/defpoint 0.5 3.0 0)
      :orientation :vertical
-     :position-matrix (m/translation 2.5 3.5)
+     :position-matrix (m/translation 2.46875 3.5)
      :evolvers {:position b-slider-evolver}})
 
   (fg/defcomponent spinner/spinner :r-spinner

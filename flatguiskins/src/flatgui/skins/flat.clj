@@ -464,7 +464,7 @@ flatgui.skins.flat
                 (fillRect left (+ (/ side-gap 2) side-gap) side-gap (- h (* 3 side-gap)))
                 (setColor (:prime-2 theme))
                 (fillOval left (- h side-gap side-gap) side-gap side-gap)
-                (fillRect left (+ hy side-gap) side-gap (- h (* 2.5 side-gap) hy))])
+                (fillRect left (+ hy side-gap) side-gap (- h (* 2.25 side-gap) hy))])
              (let [top (/ (- h side-gap) 2)
                    hx (flatgui.util.matrix/mx-x sliderhandle-position)]
                [(fillRect (+ (/ side-gap 2) side-gap) top (- w (* 3 side-gap)) side-gap)

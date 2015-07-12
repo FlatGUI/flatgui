@@ -908,7 +908,7 @@ function sendMouseMoveEventToServer(evt)
         if (mouseDown)
         {
             var nowTime = Date.now();
-            if (nowTime - lastMouseDragTime > 5)
+            if (nowTime - lastMouseDragTime > 15)
             {
                 lastUnprocessedMouseDrag = null;
                 sendEventToServer(storeMouseEventAndGetEncoded(evt, 506));
