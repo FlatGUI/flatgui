@@ -36,7 +36,7 @@ public class FGFocusDemo
                 Image logoIcon = ImageIO.read(ClassLoader.getSystemResource("flatgui/samples/images/icon_FlatGUI_32x32.png"));
 
                 Frame frame = new Frame("FlatGUI Demo - Focus management");
-                frame.setSize(1200, 800);
+                frame.setSize(600, 700);
                 frame.setLocation(10, 10);
                 frame.setLayout(new BorderLayout());
                 if (logoIcon != null)
