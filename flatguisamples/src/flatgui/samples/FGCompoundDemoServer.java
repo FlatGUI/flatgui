@@ -26,15 +26,25 @@ public class FGCompoundDemoServer
     public static final String CONTAINER_VAR_NAME = "compoundpanel";
     private static final int PORT = 13100;
 
+    private static final String FOCUS_CONTAINER_NS = "fdemo";
+    private static final String FOCUS_CONTAINER_VAR_NAME = "fdemopanel";
+    private static final String FOCUS_MAPPING = "focus_sample";
 
     public static void main(String[] args) throws Exception
     {
-        InputStream is = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/compound.clj");
-        String sourceCode = new Scanner(is).useDelimiter("\\Z").next();
+        InputStream compoundSampleIs = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/compound.clj");
+        String compoundSampleSourceCode = new Scanner(compoundSampleIs).useDelimiter("\\Z").next();
+        IFGTemplate compondSampleTemplate = new FGTemplate(compoundSampleSourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
 
-        IFGTemplate bookPanelTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
+        FGAppServer server = new FGAppServer(compondSampleTemplate, PORT);
 
-        FGAppServer server = new FGAppServer(bookPanelTemplate, PORT);
+
+        InputStream focusSampleIs = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/fdemo.clj");
+        String focusSampleSourceCode = new Scanner(focusSampleIs).useDelimiter("\\Z").next();
+        IFGTemplate focusSampleTemplate = new FGTemplate(focusSampleSourceCode, FOCUS_CONTAINER_NS, FOCUS_CONTAINER_VAR_NAME);
+        server.addApplication(FOCUS_MAPPING, focusSampleTemplate);
+
+
         server.start();
         server.join();
     }
