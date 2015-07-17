@@ -42,29 +42,6 @@
 
 ;; Panel 1 for win 1
 
-(def panel-1
-  (fg/defcomponent
-    panel/panel
-    :hello
-    {:clip-size (m/defpoint 4 4)
-     :position-matrix (m/translation 1 2)}
-
-    (fg/defcomponent textfield/textfield :entry1
-      {:clip-size (m/defpoint 3.0 0.375)
-       :position-matrix (m/translation 0.25 0.75)
-       :evolvers {:model tf-model-evolver}})
-
-    (fg/defcomponent textfield/textfield :entry2
-      {:clip-size (m/defpoint 3.0 0.375)
-       :position-matrix (m/translation 0.25 1.25)
-       :evolvers {:model tf-model-evolver}})
-
-    (fg/defcomponent textfield/textfield :entry3
-      {:clip-size (m/defpoint 3.0 0.375)
-       :position-matrix (m/translation 0.25 1.75)
-       :evolvers {:model tf-model-evolver}})))
-
-
 (def title-1 "Focus 1 - ")
 
 (fg/defevolverfn window-text-evolver :text
@@ -106,147 +83,147 @@
   (fg/defcomponent
     window/window
     :hello
-    {:clip-size (m/defpoint 7 7)
-     :position-matrix (m/translation 1 0.25)
+    {:clip-size (m/defpoint 4 4.5)
+     :position-matrix (m/translation 0.125 0.125)
      :text title-1
      :evolvers {:text window-text-evolver}}
 
     (fg/defcomponent textfield/textfield :entry1
-      {:clip-size (m/defpoint 3.0 0.375)
-       :position-matrix (m/translation 0.25 0.75)
+      {:clip-size (m/defpoint 1.0 0.375)
+       :position-matrix (m/translation 0.125 0.5)
        :evolvers {:model tf-model-evolver}})
 
     (fg/defcomponent textfield/textfield :entry2
-      {:clip-size (m/defpoint 3.0 0.375)
-       :position-matrix (m/translation 0.25 1.25)
+      {:clip-size (m/defpoint 1.0 0.375)
+       :position-matrix (m/translation 0.125 1.0)
        :evolvers {:model tf-model-evolver}})
 
     (fg/defcomponent textfield/textfield :entry3
-      {:clip-size (m/defpoint 3.0 0.375)
-       :position-matrix (m/translation 0.25 1.75)
+      {:clip-size (m/defpoint 1.0 0.375)
+       :position-matrix (m/translation 0.125 1.5)
        :evolvers {:model tf-model-evolver}})
 
     (fg/defcomponent panel/panel :panel1
-      {:clip-size (m/defpoint 3.0 3.0)
-       :position-matrix (m/translation 0.25 2.5)
+      {:clip-size (m/defpoint 1.0 2.375)
+       :position-matrix (m/translation 0.125 2.0)
        :look container-look})
 
     (fg/defcomponent panel/panel :panel2
-      {:clip-size (m/defpoint 3.0 3.0)
-       :position-matrix (m/translation 3.5 2.5)
+      {:clip-size (m/defpoint 2.625 2.375)
+       :position-matrix (m/translation 1.25 2.0)
        :look container-look}
 
          (fg/defcomponent panel/panel :panel2-1
-           {:clip-size (m/defpoint 2.75 1.0)
-            :position-matrix (m/translation 0.125 0.5)
+           {:clip-size (m/defpoint 2.375 0.875)
+            :position-matrix (m/translation 0.125 0.375)
             :look container-look}
 
            (fg/defcomponent textfield/textfield :entry1
-             {:clip-size (m/defpoint 1.125 0.375)
-              :position-matrix (m/translation 0.125 0.5)
+             {:clip-size (m/defpoint 1.0 0.375)
+              :position-matrix (m/translation 0.125 0.375)
               :evolvers {:model tf-model-evolver}})
 
            (fg/defcomponent textfield/textfield :entry2
-             {:clip-size (m/defpoint 1.125 0.375)
-              :position-matrix (m/translation 1.5 0.5)
+             {:clip-size (m/defpoint 1.0 0.375)
+              :position-matrix (m/translation 1.25 0.375)
               :evolvers {:model tf-model-evolver}}))
 
          (fg/defcomponent panel/panel :panel2-2
-           {:clip-size (m/defpoint 2.75 1.0)
-            :position-matrix (m/translation 0.125 1.625)
+           {:clip-size (m/defpoint 2.375 0.875)
+            :position-matrix (m/translation 0.125 1.375)
             :look container-look}
 
            (fg/defcomponent textfield/textfield :entry1
-             {:clip-size (m/defpoint 1.125 0.375)
-              :position-matrix (m/translation 0.125 0.5)
+             {:clip-size (m/defpoint 1.0 0.375)
+              :position-matrix (m/translation 0.125 0.375)
               :evolvers {:model tf-model-evolver}})
 
            (fg/defcomponent textfield/textfield :entry2
-             {:clip-size (m/defpoint 1.125 0.375)
-              :position-matrix (m/translation 1.5 0.5)
+             {:clip-size (m/defpoint 1.0 0.375)
+              :position-matrix (m/translation 1.25 0.375)
               :evolvers {:model tf-model-evolver}})))))
 
 (def focus-window-2
   (fg/defcomponent
     window/window
     :hello2
-    {:clip-size (m/defpoint 7 7)
-     :position-matrix (m/translation 9 0.25)
+    {:clip-size (m/defpoint 3.375 5)
+     :position-matrix (m/translation 4.25 0.125)
      :text title-2
      :evolvers {:text window-text-evolver-2}}
 
     (fg/defcomponent textfield/textfield :entry1
-      {:clip-size (m/defpoint 3.0 0.375)
-       :position-matrix (m/translation 0.25 0.75)
+      {:clip-size (m/defpoint 1.0 0.375)
+       :position-matrix (m/translation 0.125 0.5)
        :evolvers {:model tf-model-evolver}})
 
     (fg/defcomponent textfield/textfield :entry2
-      {:clip-size (m/defpoint 3.0 0.375)
-       :position-matrix (m/translation 0.25 1.25)
+      {:clip-size (m/defpoint 1.0 0.375)
+       :position-matrix (m/translation 0.125 1.0)
        :evolvers {:model tf-model-evolver}})
 
     (fg/defcomponent textfield/textfield :entry3
-      {:clip-size (m/defpoint 3.0 0.375)
-       :position-matrix (m/translation 0.25 1.75)
+      {:clip-size (m/defpoint 1.0 0.375)
+       :position-matrix (m/translation 0.125 1.5)
        :evolvers {:model tf-model-evolver}})
 
     (fg/defcomponent panel/panel :panel1
-      {:clip-size (m/defpoint 6.5 4.0)
-       :position-matrix (m/translation 0.25 2.5)
+      {:clip-size (m/defpoint 3.125 2.875)
+       :position-matrix (m/translation 0.125 2.0)
        :look container-look}
 
       (fg/defcomponent textfield/textfield :entry1-1
-        {:clip-size (m/defpoint 1.5 0.375)
-         :position-matrix (m/translation 0.125 0.5)
+        {:clip-size (m/defpoint 1.0 0.375)
+         :position-matrix (m/translation 0.125 0.375)
          :evolvers {:model tf-model-evolver}})
 
       (fg/defcomponent textfield/textfield :entry1-2
-        {:clip-size (m/defpoint 1.5 0.375)
-         :position-matrix (m/translation 1.75 0.5)
+        {:clip-size (m/defpoint 1.0 0.375)
+         :position-matrix (m/translation 1.25 0.375)
          :evolvers {:model tf-model-evolver}})
 
-           (fg/defcomponent panel/panel :panel1-1
-             {:clip-size (m/defpoint 6.25 2.75)
-              :position-matrix (m/translation 0.125 1.125)
-              :look container-look}
+      (fg/defcomponent panel/panel :panel1-1
+        {:clip-size (m/defpoint 2.875 1.875)
+         :position-matrix (m/translation 0.125 0.875)
+         :look container-look}
 
-             (fg/defcomponent panel/panel :panel1-1-1
-               {:clip-size (m/defpoint 3.0 2.25)
-                :position-matrix (m/translation 0.125 0.375)
-                :look container-look})
+        (fg/defcomponent panel/panel :panel1-1-1
+          {:clip-size (m/defpoint 1.0 1.375)
+           :position-matrix (m/translation 0.125 0.375)
+           :look container-look})
 
-             (fg/defcomponent panel/panel :panel1-1-2
-               {:clip-size (m/defpoint 2.875 2.25)
-                :position-matrix (m/translation 3.25 0.375)
-                :look container-look}
+        (fg/defcomponent panel/panel :panel1-1-2
+          {:clip-size (m/defpoint 1.5 1.375)
+           :position-matrix (m/translation 1.25 0.375)
+           :look container-look}
 
-               (fg/defcomponent panel/panel :panel1-1-2-1
-                 {:clip-size (m/defpoint 2.625 1.5)
-                  :position-matrix (m/translation 0.125 0.5)
-                  :look container-look}
+          (fg/defcomponent panel/panel :panel1-1-2-1
+            {:clip-size (m/defpoint 1.25 0.875)
+             :position-matrix (m/translation 0.125 0.375)
+             :look container-look}
 
-               (fg/defcomponent textfield/textfield :entry1-1-2-1
-                 {:clip-size (m/defpoint 1.5 0.375)
-                  :position-matrix (m/translation 0.125 0.5)
-                  :evolvers {:model tf-model-evolver}})))))))
+          (fg/defcomponent textfield/textfield :entry1-1-2-1
+            {:clip-size (m/defpoint 1.0 0.375)
+             :position-matrix (m/translation 0.125 0.375)
+             :evolvers {:model tf-model-evolver}})))))))
 
 (def focus-window-3
   (fg/defcomponent
     window/window
     :hello3
-    {:clip-size (m/defpoint 7 3.25)
-     :position-matrix (m/translation 1 7.5)
+    {:clip-size (m/defpoint 4 2.5)
+     :position-matrix (m/translation 0.125 5.25)
      :text title-3
      :evolvers {:text window-text-evolver-3}}
 
     (fg/defcomponent panel/panel :panel
-      {:clip-size (m/defpoint 6.75 2.5)
+      {:clip-size (m/defpoint 3.5 1.875)
        :position-matrix (m/translation 0.125 0.5)
        :look container-look}
 
       (fg/defcomponent panel/panel :panel1
-        {:clip-size (m/defpoint 3.0 0.875)
-         :position-matrix (m/translation 0.25 0.75)
+        {:clip-size (m/defpoint 3.25 0.875)
+         :position-matrix (m/translation 0.125 0.375)
          :look container-look}
 
         (fg/defcomponent textfield/textfield :entry1-1
@@ -255,26 +232,26 @@
                           :evolvers {:model tf-model-evolver}}))
 
       (fg/defcomponent textfield/textfield :entry1
-        {:clip-size (m/defpoint 1.5 0.375)
-         :position-matrix (m/translation 0.125 1.75)
+        {:clip-size (m/defpoint 1.0 0.375)
+         :position-matrix (m/translation 0.125 1.375)
          :evolvers {:model tf-model-evolver}})
 
       (fg/defcomponent textfield/textfield :entry2
-        {:clip-size (m/defpoint 1.5 0.375)
-         :position-matrix (m/translation 1.75 1.75)
+        {:clip-size (m/defpoint 1.0 0.375)
+         :position-matrix (m/translation 1.25 1.375)
          :evolvers {:model tf-model-evolver}})
 
       (fg/defcomponent textfield/textfield :entry3
-        {:clip-size (m/defpoint 1.5 0.375)
-         :position-matrix (m/translation 3.375 1.75)
+        {:clip-size (m/defpoint 1.0 0.375)
+         :position-matrix (m/translation 2.375 1.375)
          :evolvers {:model tf-model-evolver}}))))
 
 (def focus-window-4
   (fg/defcomponent
     window/window
     :hello4
-    {:clip-size (m/defpoint 7.0 2.0)
-     :position-matrix (m/translation 9 7.5)
+    {:clip-size (m/defpoint 3.375 2.0)
+     :position-matrix (m/translation 4.25 5.25)
      :text title-4
      :evolvers {:text window-text-evolver-4}}
 
@@ -297,8 +274,8 @@
   (fg/defcomponent
     window/window
     :hello5
-    {:clip-size (m/defpoint 4.25 1.625)
-     :position-matrix (m/translation 9 9.75)
+    {:clip-size (m/defpoint 4 1.5)
+     :position-matrix (m/translation 0.125 7.875)
      :text title-5
      :evolvers {:text window-text-evolver-5}}
 
@@ -316,8 +293,8 @@
   (fg/defcomponent
     window/window
     :hello6
-    {:clip-size (m/defpoint 4.25 1.625)
-     :position-matrix (m/translation 13.5 9.75)
+    {:clip-size (m/defpoint 3.375 1.0)
+     :position-matrix (m/translation 4.25 7.875)
      :text title-6
      :evolvers {:text window-text-evolver-6}}
 
@@ -331,7 +308,7 @@
   (fg/defcomponent
     panel/panel
     :main
-    {:clip-size (m/defpoint 40 25)
+    {:clip-size (m/defpoint 7.75 9.5)
      :background (awt/color 9 17 26)
 
      ;; TODO this should be a part defroot probably
