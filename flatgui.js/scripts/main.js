@@ -51,7 +51,7 @@ var uriToImage = {}
 // TODO handle loading delay properly
 function getImage(uri)
 {
-    var img = uriToImage.uri;
+    var img = uriToImage[uri];
     if (img)
     {
         return img;
@@ -60,7 +60,8 @@ function getImage(uri)
     {
         img = new Image;
         img.src = uri;
-        uriToImage.uri = img;
+        img.onload = function(){repaintWholeCache();}
+        uriToImage[uri] = img;
         return img;
     }
 }
@@ -275,8 +276,13 @@ function decodeLookVector(componentIndex, stream, byteLength)
             {
                 case CODE_DRAW_IMAGE_STRPOOL:
                     codeObj = decodeImageURIStrPool(stream, c);
-                    var img = getImage(stringPools[componentIndex][codeObj.i]);
-                    ctx.drawImage(img, codeObj.x, codeObj.y);
+                    var imageUrl = stringPools[componentIndex][codeObj.i];
+                    // This is ok, look vector update with new image may arrive before string pool update, just need to check
+                    if (imageUrl)
+                    {
+                        var img = getImage(imageUrl);
+                        ctx.drawImage(img, codeObj.x, codeObj.y);
+                    }
                     c += codeObj.len;
                     break;
                 case CODE_FIT_IMAGE_STRPOOL:
@@ -602,6 +608,11 @@ function paintComponent(stream, c)
     }
 }
 
+function repaintWholeCache()
+{
+    paintComponent(paintAllSequence, 1)
+}
+
 function decodeCommandVector(stream, byteLength)
 {
     if (byteLength == 0)
@@ -717,7 +728,7 @@ function decodeCommandVector(stream, byteLength)
             }
             break;
         case REPAINT_CACHED_COMMAND_CODE:
-            paintComponent(paintAllSequence, 1);
+            repaintWholeCache();
             break;
         default:
            throw new Error("Unknown command code: " + stream[0]);
@@ -1026,11 +1037,25 @@ function getEncodedKeyEvent(evt, id)
 function sendKeyDownEventToServer(evt)
 {
     sendEventToServer(getEncodedKeyEvent(evt, 401));
+    if (evt.preventDefault && (evt.keyCode == 9 || evt.keyCode == 8 || evt.keyCode == 36 || evt.keyCode == 35)) // Do not let browser process TAB, Backspace, Home, End
+    {
+        evt.preventDefault();
+        evt.stopPropagation();
+    }
 }
 
 function sendKeyUpEventToServer(evt)
 {
+//    if (evt.keyCode == 9 && evt.ctrlKey) // This may be used for emulating Ctrl+Tab
+//    {
+//        sendEventToServer(getEncodedKeyEvent(evt, 401));
+//    }
     sendEventToServer(getEncodedKeyEvent(evt, 402));
+    if (evt.preventDefault && (evt.keyCode == 9 || evt.keyCode == 8 || evt.keyCode == 36 || evt.keyCode == 35)) // Do not let browser process TAB, Backspace, Home, End
+    {
+        evt.preventDefault();
+        evt.stopPropagation();
+    }
 }
 
 function sendKeyPressEventToServer(evt)

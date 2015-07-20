@@ -13,6 +13,7 @@
             [flatgui.widgets.component :as component]
             [flatgui.widgets.window :as window]
             [flatgui.widgets.radiobutton :as radiobutton]
+            [flatgui.widgets.button :as button]
             [flatgui.widgets.panel :as panel]
             [flatgui.paint :as fgp]))
 
@@ -33,6 +34,11 @@
     (get-property [:fill] :pressed) :fill
     :else nil))
 
+(fg/defevolverfn :image-url
+  (if (get-property [:this] :pressed)
+    (get-property [:this] :pressed-image-url)
+    (get-property [:this] :regular-image-url)))
+
 (def image-window
   (fg/defcomponent
     window/window
@@ -44,7 +50,7 @@
     (fg/defcomponent
       radiobutton/radiobutton
       :draw
-      {:clip-size (m/defpoint 1.75 0.25)
+      {:clip-size (m/defpoint 0.875 0.25)
        :text "Draw"
        :position-matrix (m/translation 0.125 0.75)
        :evolvers {:pressed radio-group}})
@@ -52,7 +58,7 @@
     (fg/defcomponent
       radiobutton/radiobutton
       :fit
-      {:clip-size (m/defpoint 1.75 0.25)
+      {:clip-size (m/defpoint 0.875 0.25)
        :text "Fit"
        :position-matrix (m/translation 0.125 1.25)
        :evolvers {:pressed radio-group}})
@@ -60,21 +66,24 @@
     (fg/defcomponent
       radiobutton/radiobutton
       :fill
-      {:clip-size (m/defpoint 1.75 0.25)
+      {:clip-size (m/defpoint 0.875 0.25)
        :text "Fill"
        :position-matrix (m/translation 0.125 1.75)
        :evolvers {:pressed radio-group}})
 
     (fg/defcomponent
-      panel/panel
+      button/button
       :img-holder
-      {:image-url "classpath://flatgui/samples/images/icon_FlatGUI_32x32.png"
+      {:regular-image-url "classpath://flatgui/samples/images/icon_FlatGUI_32x32.png"
+       :pressed-image-url "classpath://flatgui/samples/images/smile_32x32.png"
+       :image-url "classpath://flatgui/samples/images/icon_FlatGUI_32x32.png"
        :method nil
        :background (awt/color 0 0 0)
        :clip-size (m/defpoint 4.0 4.0)
        :position-matrix (m/translation 1.0 0.5)
        :look img-look
-       :evolvers {:method method-evolver}})))
+       :evolvers {:method method-evolver
+                  :image-url image-url-evolver}})))
 
 (def root-panel
   (fg/defcomponent
