@@ -275,7 +275,12 @@ function decodeLookVector(componentIndex, stream, byteLength)
             {
                 case CODE_DRAW_IMAGE_STRPOOL:
                     codeObj = decodeImageURIStrPool(stream, c);
-                    var imageUrl = stringPools[componentIndex][codeObj.i];
+                    var imageUrl;
+                    // This is ok, draw image command may arrive before string pool update, just need to check
+                    if (stringPools[componentIndex])
+                    {
+                        imageUrl = stringPools[componentIndex][codeObj.i];
+                    }
                     // This is ok, look vector update with new image may arrive before string pool update, just need to check
                     if (imageUrl)
                     {
