@@ -156,8 +156,10 @@ public class FGInputEventDecoder
 
     public static class KeyBinaryParser extends AbstractBinaryParser<KeyEvent>
     {
-        public static final String C = "c";
-        public static final String S = "s";
+        private boolean ctrlPressed_ = false;
+        private boolean shiftPressed_ = false;
+        private boolean altPressed_ = false;
+        private boolean escPressed_ = false;
 
         @Override
         protected KeyEvent parseImpl(BinaryInput binaryData, int id) throws Exception
@@ -193,7 +195,49 @@ public class FGInputEventDecoder
                 }
                 charCode = (char)(charCodeHi*256+charCodeLo);
 
-                KeyEvent e = new KeyEvent(dummySourceComponent_, id, 0, 0,
+                boolean modifierKey = false;
+//                if (keyCode == KeyEvent.VK_CONTROL)
+//                {
+//                    modifierKey = true;
+//                    if (id == KeyEvent.KEY_PRESSED) ctrlPressed_ = true;
+//                    if (id == KeyEvent.KEY_RELEASED) ctrlPressed_ = false;
+//                }
+                if (keyCode == KeyEvent.VK_SHIFT)
+                {
+                    modifierKey = true;
+                    if (id == KeyEvent.KEY_PRESSED) shiftPressed_ = true;
+                    if (id == KeyEvent.KEY_RELEASED) shiftPressed_ = false;
+                }
+//                if (keyCode == KeyEvent.VK_ALT)
+//                {
+//                    modifierKey = true;
+//                    if (id == KeyEvent.KEY_PRESSED) altPressed_ = true;
+//                    if (id == KeyEvent.KEY_RELEASED) altPressed_ = false;
+//                }
+                // Esc to use in place of Ctrl in browser where OS does not let us Ctrl+Tab
+                if (keyCode == KeyEvent.VK_ESCAPE)
+                {
+                    modifierKey = true;
+                    if (id == KeyEvent.KEY_PRESSED) escPressed_ = true;
+                    if (id == KeyEvent.KEY_RELEASED) escPressed_ = false;
+                }
+
+                int modifiers = 0;
+                if (ctrlPressed_ || (escPressed_ && keyCode == KeyEvent.VK_TAB))
+                {
+                    modifiers |= InputEvent.CTRL_MASK;
+                }
+                if (shiftPressed_)
+                {
+                    modifiers |= InputEvent.SHIFT_MASK;
+                }
+                if (altPressed_)
+                {
+                    modifiers |= InputEvent.ALT_MASK;
+                }
+
+                KeyEvent e = new KeyEvent(dummySourceComponent_, id, 0,
+                        modifierKey ? 0 : modifiers,
                         id == KeyEvent.KEY_TYPED ? KeyEvent.VK_UNDEFINED : keyCode,
                         charCode);
                 return e;
