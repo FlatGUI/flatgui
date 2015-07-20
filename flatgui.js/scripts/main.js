@@ -48,7 +48,6 @@ var clipRectStack = [];
 
 var uriToImage = {}
 
-// TODO handle loading delay properly
 function getImage(uri)
 {
     var img = uriToImage[uri];
