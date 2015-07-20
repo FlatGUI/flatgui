@@ -93,6 +93,12 @@ public class FGWebContainerWrapper
         return changedPathsFuture;
     }
 
+    public synchronized Future<Set<List<Keyword>>> feedTargetedEvent(Collection<Object> targetCellIdPath, Object repaintReason)
+    {
+        Future<Set<List<Keyword>>> changedPathsFuture = fgContainer_.feedTargetedEvent(targetCellIdPath, repaintReason);
+        return changedPathsFuture;
+    }
+
     public synchronized Collection<ByteBuffer> getResponseForClient(Future<Set<List<Keyword>>> changedPathsFuture)
     {
         Future<Collection<ByteBuffer>> responseFuture =
@@ -283,6 +289,20 @@ public class FGWebContainerWrapper
             return a.equals(b);
         }
     }
+
+// May be useful for troubleshooting
+//    private static String map2str(Map<Object, Object> map, String keyStr)
+//    {
+//        StringBuilder sb = new StringBuilder();
+//        for (Object k : map.keySet())
+//        {
+//            if (keyStr == null || k.toString().equals(keyStr))
+//            {
+//                sb.append(k.toString() + "=" + map.get(k) + " ");
+//            }
+//        }
+//        return sb.toString();
+//    }
 
     interface IDataTransmitter<S>
     {

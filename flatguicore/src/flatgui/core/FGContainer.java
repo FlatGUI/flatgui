@@ -244,16 +244,22 @@ public class FGContainer implements IFGContainer
         return changedPaths;
     }
 
-    private void cycleTargeted(Collection<Object> targetIdPath, Object repaintReason)
+    private Set<List<Keyword>> cycleTargeted(Collection<Object> targetIdPath, Object repaintReason)
     {
         try
         {
             module_.evolve(targetIdPath, repaintReason);
+            Set<List<Keyword>> changed = module_.getChangedComponentIdPaths();
+            if (changed != null)
+            {
+                return changed;
+            }
         }
         catch (Throwable ex)
         {
             ex.printStackTrace();
         }
+        return Collections.EMPTY_SET;
     }
 
     @Override
@@ -263,9 +269,14 @@ public class FGContainer implements IFGContainer
             try
             {
                 Set<List<Keyword>> changedPaths = cycle(repaintReason);
+
                 evolveConsumers_.stream()
                         .filter(this::shouldInvokeEvolveConsumer)
-                        .forEach(consumer -> consumer.acceptEvolveResult(null, module_.getContainerObject()));
+                        .forEach(consumer ->
+                                new Thread(() ->
+                                    consumer.acceptEvolveResult(null, module_.getContainerObject()),
+                                    "Evolver consumer notifier").start());
+
                 return changedPaths;
             }
             catch (Throwable ex)
@@ -281,23 +292,32 @@ public class FGContainer implements IFGContainer
     }
 
     @Override
-    public void feedTargetedEvent(Collection<Object> targetCellIdPath, Object repaintReason)
+    public synchronized Future<Set<List<Keyword>>> feedTargetedEvent(Collection<Object> targetCellIdPath, Object repaintReason)
     {
-        evolverExecutorService_.submit(() -> {
+        Future<Set<List<Keyword>>> resultFuture = evolverExecutorService_.submit(() -> {
             try
             {
-                cycleTargeted(targetCellIdPath, repaintReason);
+                Set<List<Keyword>> changedPaths = cycleTargeted(targetCellIdPath, repaintReason);
+
                 evolveConsumers_.stream()
                         .filter(this::shouldInvokeEvolveConsumer)
-                        .forEach(consumer -> consumer.acceptEvolveResult(null, module_.getContainerObject()));
+                        .forEach(consumer ->
+                                new Thread(() ->
+                                        consumer.acceptEvolveResult(null, module_.getContainerObject()),
+                                        "Evolver consumer notifier").start());
+
+                return changedPaths;
             }
             catch(Throwable ex)
             {
                 ex.printStackTrace();
+                return Collections.EMPTY_SET;
             }
         });
 
         eventFedCallback_.actionPerformed(null);
+
+        return resultFuture;
     }
 
     private boolean shouldInvokeEvolveConsumer(IFGEvolveConsumer consumer)

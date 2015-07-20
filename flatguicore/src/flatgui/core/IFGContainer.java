@@ -47,7 +47,7 @@ public interface IFGContainer
 
     public Future<Set<List<Keyword>>> feedEvent(Object repaintReason);
 
-    public void feedTargetedEvent(Collection<Object> targetCellIdPath, Object repaintReason);
+    public Future<Set<List<Keyword>>> feedTargetedEvent(Collection<Object> targetCellIdPath, Object repaintReason);
 
     // TODO following methods do not belong to here
 

@@ -11,20 +11,20 @@
 package flatgui.core.websocket;
 
 import clojure.lang.Keyword;
-import flatgui.core.FGHostStateEvent;
-import flatgui.core.FGWebContainerWrapper;
-import flatgui.core.IFGContainer;
-import flatgui.core.IFGTemplate;
+import flatgui.core.*;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 
+import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * @author Denis Lebedev
@@ -41,6 +41,8 @@ public class FGContainerWebSocket implements WebSocketListener
     private volatile FGInputEventDecoder parser_;
     private volatile FGContainerSession fgSession_;
 
+    private final ContainerAccessor containerAccessor_;
+
     public FGContainerWebSocket(IFGTemplate template, FGContainerSessionHolder sessionHolder)
     {
         this (template, sessionHolder, null);
@@ -51,6 +53,8 @@ public class FGContainerWebSocket implements WebSocketListener
         template_ = template;
         sessionHolder_ = sessionHolder;
         containerConsumer_ = containerConsumer;
+
+        containerAccessor_ = new ContainerAccessor();
 
         FGAppServer.getFGLogger().info("WS Listener created " + System.identityHashCode(this));
     }
@@ -92,7 +96,7 @@ public class FGContainerWebSocket implements WebSocketListener
         container_.initialize();
         if (containerConsumer_ != null)
         {
-            containerConsumer_.accept(container_.getContainer());
+            containerConsumer_.accept(containerAccessor_);
         }
 
         statusMessage.append("|initialized app");
@@ -186,6 +190,68 @@ public class FGContainerWebSocket implements WebSocketListener
         catch (IOException e)
         {
             e.printStackTrace();
+        }
+    }
+
+    // TODO Refactor. Probably it does not have to accept IFGContainer type
+    public class ContainerAccessor implements IFGContainer
+    {
+        @Override
+        public Future<Set<List<Keyword>>> feedTargetedEvent(Collection<Object> targetCellIdPath, Object repaintReason)
+        {
+            Future <Set<List<Keyword>>> changedPathsFuture = container_.feedTargetedEvent(targetCellIdPath, repaintReason);
+            collectAndSendResponse(changedPathsFuture, false);
+            return null;
+        }
+
+        @Override
+        public String getId() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void initialize() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void unInitialize() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void addEvolveConsumer(IFGEvolveConsumer consumer) {
+            container_.getContainer().addEvolveConsumer(consumer);
+        }
+
+        @Override
+        public IFGModule getFGModule() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Function<Object, Future<Set<List<Keyword>>>> connect(ActionListener eventFedCallback, Object hostContext) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <T> Future<T> submitTask(Callable<T> callable) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Future<Set<List<Keyword>>> feedEvent(Object repaintReason) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Object getGeneralProperty(String propertyName) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Object getAWTUtil() {
+            throw new UnsupportedOperationException();
         }
     }
 }
