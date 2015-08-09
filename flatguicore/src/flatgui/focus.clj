@@ -195,7 +195,7 @@
           (got-trigger))
         :else old-focus-state)
 
-      (fgc/parent-reason? reason)
+      (and (fgc/parent-reason? reason) parent-mode)
       (case parent-mode
         ;; If parent has focus temporarily, I take focus back (*2)
         ;; Otherwise my parent has focus permanently and my state is clean
