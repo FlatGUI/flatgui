@@ -19,6 +19,7 @@
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.eclipse.jetty/jetty-server ~jetty-version]
                  [org.eclipse.jetty/jetty-servlet ~jetty-version]
+                 [org.eclipse.jetty/jetty-servlets ~jetty-version]
                  [org.eclipse.jetty.websocket/websocket-servlet ~jetty-version]
                  [org.eclipse.jetty/jetty-util ~jetty-version]
                  [junit/junit "4.12"]]

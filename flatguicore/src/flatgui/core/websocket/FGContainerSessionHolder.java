@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /**
  * @author Denis Lebedev
@@ -42,13 +43,16 @@ class FGContainerSessionHolder
             @Override
             public void run()
             {
-                int sessionCount = sessionMap_.size();
-                sessionMap_.entrySet().removeIf(e -> e.getValue().isIdle(IDLE_SESSION_TIMEOUT));
-                int newSessionCount = sessionMap_.size();
-                if (newSessionCount != sessionCount)
+                synchronized (FGContainerSessionHolder.this)
                 {
-                    FGAppServer.getFGLogger().info(toString() +
+                    int sessionCount = sessionMap_.size();
+                    sessionMap_.entrySet().removeIf(e -> e.getValue().isIdle(IDLE_SESSION_TIMEOUT));
+                    int newSessionCount = sessionMap_.size();
+                    if (newSessionCount != sessionCount)
+                    {
+                        FGAppServer.getFGLogger().info(toString() +
                             " cleaned sessions. Before: " + sessionCount + "; after: " + newSessionCount + ".");
+                    }
                 }
             }
         }, IDLE_SESSION_TIMEOUT, IDLE_SESSION_TIMEOUT);
@@ -65,11 +69,17 @@ class FGContainerSessionHolder
         FGAppServer.getFGLogger().debug(toString() + " state:");
         FGAppServer.getFGLogger().debug(sessionMap_.toString());
         FGAppServer.getFGLogger().debug(toString() +
-                " returning for remoteAddress=" + remoteAddress + " session: " + s);
+            " returning for remoteAddress=" + remoteAddress + " session: " + s);
 
         return s;
     }
 
+    synchronized void forEachSession(Consumer<FGContainerSession> sessionConsumer)
+    {
+        sessionMap_.values().forEach(sessionConsumer);
+    }
+
+    // TODO turn off counter - string pool is broken
     private static long counter_ = 0;
     private static Object getSessionId(IFGTemplate template, InetAddress remoteAddress)
     {

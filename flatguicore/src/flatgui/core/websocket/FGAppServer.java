@@ -10,16 +10,28 @@
 
 package flatgui.core.websocket;
 
+import clojure.lang.IPersistentMap;
+import clojure.lang.Keyword;
+import clojure.lang.PersistentHashMap;
 import flatgui.core.*;
 import flatgui.core.IFGTemplate;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.servlet.ServletHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.servlet.*;
+import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketServlet;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -30,6 +42,11 @@ import java.util.function.Consumer;
 public class FGAppServer
 {
     private static final String DEFAULT_MAPPING = "/*";
+    private static final String API_MAPPING = "/api";
+
+    private static final String API_PARAM_UID = "uid";
+    private static final String API_PARAM_SERVICE_NAME = "service";
+    private static final String API_PARAM_PATH = "path";
 
     private static FGLogger logger_ = new FGLogger();
 
@@ -37,6 +54,10 @@ public class FGAppServer
     private final ServletHandler handler_;
 
     private final Map<String, FGWebSocketServlet> mappingToAppTemplateMap_;
+
+    private final Map<String, TextHtmlServlet> mappingToTextHtmlServletMap_;
+
+    private final Map<String, IFGCustomServlet> mappingToCustomServletMap_;
 
     public FGAppServer(IFGTemplate template, int port) throws Exception
     {
@@ -48,11 +69,30 @@ public class FGAppServer
         server_ = new Server(port);
 
         handler_ = new ServletHandler();
+
+        // Enable CORS for API
+        FilterHolder holder = new FilterHolder(CrossOriginFilter.class);
+        holder.setInitParameter(CrossOriginFilter.ALLOWED_ORIGINS_PARAM, "*");
+        holder.setInitParameter(CrossOriginFilter.ACCESS_CONTROL_ALLOW_ORIGIN_HEADER, "*");
+        holder.setInitParameter(CrossOriginFilter.ALLOWED_METHODS_PARAM, "GET,POST,HEAD");
+        holder.setInitParameter(CrossOriginFilter.ALLOWED_HEADERS_PARAM, "X-Requested-With,Content-Type,Accept,Origin");
+        holder.setName("cross-origin");
+        FilterMapping fm = new FilterMapping();
+        fm.setFilterName("cross-origin");
+        fm.setPathSpec("*");
+        handler_.addFilter(holder, fm);
+
         server_.setHandler(handler_);
 
         mappingToAppTemplateMap_ = new HashMap<>();
+        mappingToTextHtmlServletMap_ = new HashMap<>();
+        mappingToCustomServletMap_ = new HashMap<>();
 
         addApplication(mapping, template, containerConsumer);
+
+        Servlet apiServlet = new ApiServlet();
+        ServletHolder h = new ServletHolder(apiServlet);
+        handler_.addServletWithMapping(h, API_MAPPING);
     }
 
     public synchronized void addApplication(String mapping, IFGTemplate template)
@@ -87,6 +127,29 @@ public class FGAppServer
         }
     }
 
+    public synchronized void setTextHtmlServerByMapping(String mapping, Consumer<OutputStream> writer)
+    {
+        mapping = ensureMapping(mapping);
+
+        System.out.println("-DLTEMP- FGAppServer.setTextHtmlServerByMapping |" + mapping);
+
+        TextHtmlServlet servlet = mappingToTextHtmlServletMap_.get(mapping);
+        if (servlet == null)
+        {
+            servlet = new TextHtmlServlet();
+            ServletHolder h = new ServletHolder(servlet);
+            handler_.addServletWithMapping(h, mapping);
+        }
+        servlet.setWriter(writer);
+    }
+
+    public synchronized <E> void setCustomServlet(String mapping, IFGCustomServlet servlet)
+    {
+        mappingToCustomServletMap_.put(mapping, servlet);
+        ServletHolder h = new ServletHolder(servlet);
+        handler_.addServletWithMapping(h, mapping);
+    }
+
     public void start() throws Exception
     {
         server_.start();
@@ -106,6 +169,10 @@ public class FGAppServer
 
     private static String ensureMapping(String mapping)
     {
+        if (API_MAPPING.equals(mapping))
+        {
+            throw new IllegalArgumentException(API_MAPPING + " mapping is reserved for internal use.");
+        }
         if (mapping != null && !mapping.startsWith("/"))
         {
             mapping = "/"+mapping;
@@ -149,9 +216,118 @@ public class FGAppServer
             containerConsumer_ = containerConsumer;
         }
 
+        void feedEventToAllInstances(Collection<Object> targetCellIdPath, Object inputEvent)
+        {
+            sessionHolder_.forEachSession(s -> s.getContainer().feedTargetedEvent(targetCellIdPath, inputEvent));
+        }
+
         private Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp)
         {
             return new FGContainerWebSocket(template_, sessionHolder_, containerConsumer_);
         }
+    }
+
+    private static class TextHtmlServlet extends HttpServlet
+    {
+        private Consumer<OutputStream> writer_;
+
+        void setWriter(Consumer<OutputStream> writer)
+        {
+            writer_ = writer;
+        }
+
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
+        {
+            resp.setContentType("text/html");
+            OutputStream o=resp.getOutputStream();
+            writer_.accept(o);
+            o.flush();
+            o.close();
+        }
+    }
+
+    private class ApiServlet extends HttpServlet
+    {
+        @Override
+        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
+        {
+            System.out.println("-DLTEMP- ApiServlet.doPost================================ ");
+            System.out.println(req.getParameterMap());
+
+            Map<String, String[]> paramMap = new HashMap<>(req.getParameterMap());
+
+            String[] uidArr = paramMap.get(API_PARAM_UID);
+            if (uidArr == null || uidArr.length != 1)
+            {
+                throw new IllegalArgumentException("Param map must contain '" + API_PARAM_UID + "' params with single value");
+            }
+            String uid = uidArr[0];
+
+            String[] serviceArr = paramMap.get(API_PARAM_SERVICE_NAME);
+            if (serviceArr == null || serviceArr.length != 1)
+            {
+                throw new IllegalArgumentException("Param map must contain '" + API_PARAM_SERVICE_NAME + "' params with single value");
+            }
+            String mapping = "/" + serviceArr[0];
+
+            FGWebSocketServlet fgWebSocketServlet = mappingToAppTemplateMap_.get(mapping);
+            if (fgWebSocketServlet != null)
+            {
+                String[] pathParam = paramMap.get(API_PARAM_PATH);
+                if (pathParam == null || pathParam.length == 0)
+                {
+                    throw new IllegalArgumentException("'" + API_PARAM_PATH + "' " +
+                        "param with at least one value must be defined in case of passing event to a FlatGUI container");
+                }
+
+                paramMap.remove(API_PARAM_UID);
+                paramMap.remove(API_PARAM_SERVICE_NAME);
+                paramMap.remove(API_PARAM_PATH);
+
+                fgWebSocketServlet.feedEventToAllInstances(toTargetIdPath(pathParam), toClojureMap(paramMap));
+            }
+            else
+            {
+                IFGCustomServlet customServlet = mappingToCustomServletMap_.get(mapping);
+                if (customServlet != null)
+                {
+                    paramMap.remove(API_PARAM_UID);
+                    paramMap.remove(API_PARAM_SERVICE_NAME);
+
+                    customServlet.acceptInputEvent(paramMap);
+                }
+                else
+                {
+                    throw new IllegalArgumentException("Service '" + serviceArr[0] + " cannot be identified");
+                }
+            }
+        }
+
+        private IPersistentMap toClojureMap(Map<String, String[]> params)
+        {
+            Map<String, String> m = new HashMap<>();
+            for (String k : params.keySet())
+            {
+                String[] vArr = params.get(k);
+                if (vArr.length != 1)
+                {
+                    throw new IllegalArgumentException("Parameters must have single values in case of passing event to a FlatGUI container");
+                }
+                m.put(k, vArr[0]);
+            }
+            return PersistentHashMap.create(m);
+        }
+
+        private Collection<Object> toTargetIdPath(String[] param)
+        {
+            Collection<Object> result = new ArrayList<>(param.length);
+            for (String p : param)
+            {
+                result.add(Keyword.intern(p));
+            }
+            return result;
+        }
+
     }
 }
