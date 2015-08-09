@@ -523,7 +523,7 @@ flatgui.skins.flat
                 [(setColor cin)
                  (let [d (* r 0.5)]
                    (fillOval (- (/ r 2) (/ d 2)) (- (/ r 2) (/ d 2)) d d))])
-              (label-look-impl foreground text h-alignment v-alignment h 0 w h)]))
+              (label-look-impl foreground text h-alignment v-alignment (if (= h-alignment :left) h 0) 0 w h)]))
 
 ;;;
 ;;; skin-map
