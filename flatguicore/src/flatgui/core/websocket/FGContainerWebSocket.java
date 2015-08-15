@@ -80,6 +80,7 @@ public class FGContainerWebSocket implements WebSocketListener
         setTextToRemote(statusMessage.toString());
 
         fgSession_ = sessionHolder_.getSession(template_, session_.getRemoteAddress().getAddress());
+        fgSession_.setAccosiatedWebSocket(this);
 
         statusMessage.append("|created session");
         setTextToRemote(statusMessage.toString());
@@ -152,7 +153,7 @@ public class FGContainerWebSocket implements WebSocketListener
         //debugMessageCount_++;
     }
 
-    private void collectAndSendResponse(Future<Set<List<Keyword>>> changedPathsFuture, boolean forceRepaint)
+    void collectAndSendResponse(Future<Set<List<Keyword>>> changedPathsFuture, boolean forceRepaint)
     {
         Collection<ByteBuffer> response = container_.getResponseForClient(changedPathsFuture);
 
@@ -217,6 +218,12 @@ public class FGContainerWebSocket implements WebSocketListener
         @Override
         public void unInitialize() {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean isActive()
+        {
+            return container_.getContainer().isActive();
         }
 
         @Override

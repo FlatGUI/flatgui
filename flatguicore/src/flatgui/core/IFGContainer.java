@@ -37,6 +37,8 @@ public interface IFGContainer
 
     public void unInitialize();
 
+    public boolean isActive();
+
     public void addEvolveConsumer(IFGEvolveConsumer consumer);
 
     public IFGModule getFGModule();

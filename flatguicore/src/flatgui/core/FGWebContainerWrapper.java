@@ -77,14 +77,19 @@ public class FGWebContainerWrapper
     }
     //
 
-    public void initialize()
+    public synchronized void initialize()
     {
         fgContainer_.initialize();
     }
 
-    public void unInitialize()
+    public synchronized void unInitialize()
     {
         fgContainer_.unInitialize();
+    }
+
+    public synchronized boolean isActive()
+    {
+        return fgContainer_.isActive();
     }
 
     public synchronized Future<Set<List<Keyword>>> feedEvent(Object repaintReason)
@@ -119,6 +124,14 @@ public class FGWebContainerWrapper
     public synchronized void resetCache()
     {
         stateTransmitter_.resetDataCache();
+    }
+
+    private void ensureActive()
+    {
+        if (!fgContainer_.isActive())
+        {
+            throw new IllegalStateException("Container is not active");
+        }
     }
 
     private java.util.List<Object> compressPaintVector(java.util.List<Object> commandVector)

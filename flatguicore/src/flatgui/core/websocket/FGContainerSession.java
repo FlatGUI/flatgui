@@ -17,6 +17,9 @@ import java.util.concurrent.atomic.LongAccumulator;
 
 /**
  * @author Denis Lebedev
+ *
+ * // TODO synchronization here?
+ *
  */
 public class FGContainerSession
 {
@@ -26,6 +29,8 @@ public class FGContainerSession
     private final FGWebContainerWrapper containerWrapper_;
     private final FGInputEventDecoder parser_;
     private final LongAccumulator lastAccessTime_;
+
+    private volatile FGContainerWebSocket accosiatedWebSocket_;
 
     public FGContainerSession(IFGContainer container)
     {
@@ -77,10 +82,30 @@ public class FGContainerSession
         return idle;
     }
 
+    public boolean isActive()
+    {
+        return containerWrapper_.isActive();
+    }
+
     @Override
     public String toString()
     {
         return getClass().getSimpleName() + "[id=" + sessionId_ + "]";
+    }
+
+    Object getContainerLock()
+    {
+        return containerWrapper_;
+    }
+
+    void setAccosiatedWebSocket(FGContainerWebSocket accosiatedWebSocket)
+    {
+        accosiatedWebSocket_ = accosiatedWebSocket;
+    }
+
+    public FGContainerWebSocket getAccosiatedWebSocket()
+    {
+        return accosiatedWebSocket_;
     }
 
     private boolean isMarkedIdle()

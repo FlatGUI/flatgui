@@ -20,6 +20,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 /**
  * @author Denis Lebedev
@@ -74,9 +76,27 @@ class FGContainerSessionHolder
         return s;
     }
 
-    synchronized void forEachSession(Consumer<FGContainerSession> sessionConsumer)
+    synchronized int getActiveSessionCount()
     {
-        sessionMap_.values().forEach(sessionConsumer);
+        return sessionMap_.size();
+    }
+
+    synchronized void forEachActiveSession(Consumer<FGContainerSession> sessionConsumer)
+    {
+        sessionMap_.values().forEach(s -> {
+            synchronized (s.getContainerLock())
+            {
+                if (s.isActive())
+                {
+                    sessionConsumer.accept(s);
+                }
+            }
+        });
+    }
+
+    synchronized <R> Stream<R> mapSessions(Function<FGContainerSession, R> sessionProcessor)
+    {
+        return sessionMap_.values().stream().map(sessionProcessor);
     }
 
     // TODO turn off counter - string pool is broken

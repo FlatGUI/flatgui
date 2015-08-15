@@ -30,10 +30,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 
 /**
@@ -143,8 +140,10 @@ public class FGAppServer
         servlet.setWriter(writer);
     }
 
-    public synchronized <E> void setCustomServlet(String mapping, IFGCustomServlet servlet)
+    public synchronized void setCustomServlet(String mapping, IFGCustomServlet servlet)
     {
+        mapping = ensureMapping(mapping);
+
         mappingToCustomServletMap_.put(mapping, servlet);
         ServletHolder h = new ServletHolder(servlet);
         handler_.addServletWithMapping(h, mapping);
@@ -216,9 +215,16 @@ public class FGAppServer
             containerConsumer_ = containerConsumer;
         }
 
-        void feedEventToAllInstances(Collection<Object> targetCellIdPath, Object inputEvent)
+        void feedEventToAllInstancesAndSendUpdates(Collection<Object> targetCellIdPath, Object inputEvent)
         {
-            sessionHolder_.forEachSession(s -> s.getContainer().feedTargetedEvent(targetCellIdPath, inputEvent));
+            FGAppServer.getFGLogger().debug("Started feeding event to all(" + sessionHolder_.getActiveSessionCount()
+                +  " at the moment) active sessions. Event: " + inputEvent);
+            sessionHolder_.forEachActiveSession(s -> {
+                FGAppServer.getFGLogger().debug(" session " + s.toString());
+                s.getAccosiatedWebSocket().collectAndSendResponse(
+                    s.getContainer().feedTargetedEvent(targetCellIdPath, inputEvent), false);
+            });
+            FGAppServer.getFGLogger().debug("Done feeding event.");
         }
 
         private Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp)
@@ -254,6 +260,7 @@ public class FGAppServer
         {
             System.out.println("-DLTEMP- ApiServlet.doPost================================ ");
             System.out.println(req.getParameterMap());
+            System.out.println("Apps: " + mappingToAppTemplateMap_.keySet());
 
             Map<String, String[]> paramMap = new HashMap<>(req.getParameterMap());
 
@@ -269,9 +276,8 @@ public class FGAppServer
             {
                 throw new IllegalArgumentException("Param map must contain '" + API_PARAM_SERVICE_NAME + "' params with single value");
             }
-            String mapping = "/" + serviceArr[0];
 
-            FGWebSocketServlet fgWebSocketServlet = mappingToAppTemplateMap_.get(mapping);
+            FGWebSocketServlet fgWebSocketServlet = mappingToAppTemplateMap_.get("/" + uid + "/" + serviceArr[0]);
             if (fgWebSocketServlet != null)
             {
                 String[] pathParam = paramMap.get(API_PARAM_PATH);
@@ -285,11 +291,13 @@ public class FGAppServer
                 paramMap.remove(API_PARAM_SERVICE_NAME);
                 paramMap.remove(API_PARAM_PATH);
 
-                fgWebSocketServlet.feedEventToAllInstances(toTargetIdPath(pathParam), toClojureMap(paramMap));
+                fgWebSocketServlet.feedEventToAllInstancesAndSendUpdates(toTargetIdPath(pathParam), toClojureMap(paramMap));
             }
             else
             {
-                IFGCustomServlet customServlet = mappingToCustomServletMap_.get(mapping);
+                // TODO uid here?
+
+                IFGCustomServlet customServlet = mappingToCustomServletMap_.get("/" + serviceArr[0]);
                 if (customServlet != null)
                 {
                     paramMap.remove(API_PARAM_UID);
@@ -299,7 +307,7 @@ public class FGAppServer
                 }
                 else
                 {
-                    throw new IllegalArgumentException("Service '" + serviceArr[0] + " cannot be identified");
+                    throw new IllegalArgumentException("Service '" + serviceArr[0] + "' cannot be identified");
                 }
             }
         }

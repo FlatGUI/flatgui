@@ -19,6 +19,9 @@ import java.util.function.Function;
 
 /**
  * @author Denis Lebedev
+ *
+ * // TODO synchronization here?
+ *
  */
 public class FGContainer implements IFGContainer
 {
@@ -40,6 +43,8 @@ public class FGContainer implements IFGContainer
 
     private final String containerId_;
     private final IFGModule module_;
+
+    private boolean active_ = false;
 
     private ExecutorService evolverExecutorService_;
 
@@ -136,12 +141,20 @@ public class FGContainer implements IFGContainer
     public void initialize()
     {
         evolverExecutorService_ = Executors.newSingleThreadExecutor();
+        active_ = true;
     }
 
     @Override
     public void unInitialize()
     {
+        active_ = false;
         evolverExecutorService_.shutdown();
+    }
+
+    @Override
+    public boolean isActive()
+    {
+        return active_;
     }
 
     @Override
