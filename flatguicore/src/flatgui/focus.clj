@@ -343,7 +343,8 @@
                            (got-trigger))
                          ;; Just give chance further
                          :else
-                         (got-trigger))))
+                         (got-trigger)))
+        old-focus-state)
 
       :else ; Neither event type - ignore
       old-focus-state)))
