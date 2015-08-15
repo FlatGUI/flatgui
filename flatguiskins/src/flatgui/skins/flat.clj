@@ -36,33 +36,66 @@ flatgui.skins.flat
 ;;;; TODO !!!! HGAP and get-caret-x is duplicated: widget and skin. Find place for it single
 (defn get-hgap [] (flatgui.awt/halfstrh))
 (defn- get-caret-x [text caret-pos]
-  (flatgui.awt/strw (subs text 0 caret-pos)))
+  (flatgui.awt/strw (if (< caret-pos (.length text)) (subs text 0 caret-pos) text)))
+
+(defn- text-str-h [] (* (flatgui.awt/strh) 2.5))
+
+(defn- get-caret-y [caret-line] (* caret-line (text-str-h)))
+
+(defn- get-caret-h [] (* (flatgui.awt/strh) 2))
 
 (deflookfn caret-look ( :model :foreground :first-visible-symbol)
-           (let [ trunk-text (subs (:text model) first-visible-symbol)
-                 trunk-caret-pos (- (:caret-pos model) first-visible-symbol)
-                 hgap (get-hgap)
-                 xc (+ hgap (get-caret-x trunk-text trunk-caret-pos))]
-             [ (setColor foreground)
-              (drawLine xc hgap xc (- h hgap))]))
+  (let [line (:caret-line model)
+        trunk-text (subs (nth (:lines model) line) first-visible-symbol)
+        trunk-caret-pos (- (:caret-line-pos model) first-visible-symbol)
+        caret-y (+ (get-caret-y line) (get-hgap))
+        xc (+ (get-hgap) (get-caret-x trunk-text trunk-caret-pos))
+        caret-h (get-caret-h)]
+    [(setColor foreground)
+     (drawLine xc caret-y xc (+ caret-y caret-h))]))
 
+(deflookfn textfield-look-impl (:foreground :text :h-alignment :v-alignment :caret-visible :theme :model :first-visible-symbol :multiline)
+  (let [selection-start-in-line (if (> (:selection-mark model) (:caret-pos model)) (:caret-line-pos model) (:selection-mark-line-pos model))
+        selection-end-in-line (if (> (:selection-mark model) (:caret-pos model)) (:selection-mark-line-pos model) (:caret-line-pos model))
+        sstart-line (min (:selection-mark-line model) (:caret-line model))
+        send-line (max (:selection-mark-line model) (:caret-line model))
+        lines (:lines model)
+        line-infos (map
+                     (fn [i]
+                       (let [line-text (nth lines i)]
+                         {:line line-text
+                          :y (* i (text-str-h))
+                          :line-sstart (if (= i sstart-line) selection-start-in-line 0)
+                          :line-send (cond
+                                       (and (>= i sstart-line) (< i send-line)) (.length line-text)
+                                       (= i send-line) selection-end-in-line
+                                       :else 0)}))
+                     (range 0 (count lines)))
 
-(deflookfn textfield-look-impl (:foreground :text :h-alignment :v-alignment :caret-visible :theme :model :first-visible-symbol)
-           (let [ trunk-text (subs text first-visible-symbol)]
-             [ (let [ caret-pos (:caret-pos model)
-                     selection-mark (:selection-mark model)
-                     trunk-caret-pos (- caret-pos first-visible-symbol)
-                     trunk-selection-mark (if (< selection-mark first-visible-symbol) 0 (- selection-mark first-visible-symbol))]
-                 (if (not= caret-pos selection-mark)
-                   [ (setColor (:prime-5 theme))
-                    (let [ hgap (get-hgap)
-                          sstart (min trunk-caret-pos trunk-selection-mark)
-                          send (max trunk-caret-pos trunk-selection-mark)
-                          x1 (get-caret-x trunk-text sstart)
-                          x2 (get-caret-x trunk-text send)]
-                      (fillRect (+ hgap x1) hgap (- x2 x1) (- h (* 2 hgap))))]))
-              (if caret-visible (call-look caret-look))
-              (label-look-impl foreground trunk-text h-alignment v-alignment 0 0 w h)]))
+       ;_ (println (str "|" text "|" trunk-text "|"))
+       ;_ (println "lines " lines " count " (count lines) (str "|" (nth lines 0) "|") (.getClass (nth lines 0)))
+       ;_ (println "Range: " (range 0 (count lines)))
+       ;_ (println "line-infos " line-infos)
+       ]
+    (mapv
+      (fn [line-info]
+        (let [trunk-text (subs (:line line-info) first-visible-symbol)
+              caret-pos (:caret-pos model)
+              selection-mark (:selection-mark model)]
+          [(if (not= caret-pos selection-mark)
+             [(setColor (:prime-5 theme))
+              (let [hgap (get-hgap)
+                    sstart (:line-sstart line-info)
+                    send (:line-send line-info)
+                    x1 (get-caret-x trunk-text sstart)
+                    x2 (get-caret-x trunk-text send)
+                    ]
+                (fillRect (+ hgap x1) (+ hgap (:y line-info)) (- x2 x1) (get-caret-h)))])
+           (if caret-visible (call-look caret-look))
+           (if multiline
+             (label-look-impl foreground trunk-text h-alignment v-alignment 0 (:y line-info) w (text-str-h))
+             (label-look-impl foreground trunk-text h-alignment v-alignment 0 0 w h))]))
+      line-infos)))
 
 
 ;;;;
