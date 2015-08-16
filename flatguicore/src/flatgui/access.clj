@@ -156,6 +156,11 @@
     (vec (for [c path] 0.0))
     (mapv (fn [c] (fgc/masknil (:mouse-y-relative c))) path)))
 
+(defn get-pressed-coord-capture-from-path [path]
+  (if (nil? path)
+    true
+    (if (:no-mouse-press-capturing (last path)) false true)))
+
 ;;
 ;; Keyboard focus
 ;;

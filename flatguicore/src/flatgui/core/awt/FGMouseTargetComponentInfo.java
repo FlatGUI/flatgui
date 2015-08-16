@@ -20,13 +20,16 @@ public class FGMouseTargetComponentInfo
     private FGComponentPath componentPath_;
     private Object xRelativeVec_;
     private Object yRelativeVec_;
+    private boolean captureNeeded_;
 
     public FGMouseTargetComponentInfo(FGComponentPath componentPath,
-                                      Object xRelativeVec, Object yRelativeVec)
+                                      Object xRelativeVec, Object yRelativeVec,
+                                      boolean captureNeeded)
     {
         componentPath_ = componentPath;
         xRelativeVec_ = xRelativeVec;
         yRelativeVec_ = yRelativeVec;
+        captureNeeded_ = captureNeeded;
     }
 
 
@@ -43,5 +46,10 @@ public class FGMouseTargetComponentInfo
     public Object getYRelativeVec()
     {
         return yRelativeVec_;
+    }
+
+    public boolean isCaptureNeeded()
+    {
+        return captureNeeded_;
     }
 }

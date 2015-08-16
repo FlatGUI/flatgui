@@ -174,11 +174,11 @@
                           click-line-pos)
                         click-line-pos)]
         (merge old-model {:caret-pos click-pos
-                          :selection-mark click-pos
+                          :selection-mark (if (mouse/mouse-dragged? component) (:selection-mark old-model) click-pos)
                           :caret-line click-line
                           :caret-line-pos click-line-pos
-                          :selection-mark-line click-line
-                          :selection-mark-line-pos click-line-pos}))
+                          :selection-mark-line (if (mouse/mouse-dragged? component) (:selection-mark-line old-model) click-line)
+                          :selection-mark-line-pos (if (mouse/mouse-dragged? component) (:selection-mark-line-pos old-model) click-line-pos)}))
       old-model)
 
     :else
@@ -236,12 +236,19 @@
             old-first-visible-symbol))))
     0))
 
+(defn- keep-in-range [mx cs content-size]
+  (let [x (m/mx-x mx)
+        y (m/mx-y mx)]
+    (m/translation
+      (if (neg? x) (max x (- (m/x cs) (m/x content-size)))  x)
+      (if (neg? y) (max y (- (m/y cs) (m/y content-size))) y))))
+
 (fg/defevolverfn auto-scroll-evolver :viewport-matrix
   (let [text-field-id (first (first (:children component)))
         model (get-property [:this text-field-id] :model)
         lines (:lines model)
         reason (fg/get-reason)]
-    (if (and (pos? (count lines))  (or (= reason [:this text-field-id]) (= reason [:this])))
+    (if (and (pos? (count lines)) (or (= reason [:this text-field-id]) (= reason [:this])))
       (let [caret-line-pos (:caret-line-pos model)
             caret-line (:caret-line model)
             line-text (nth lines caret-line)
@@ -252,21 +259,24 @@
             vmx (- (m/mx-x old-viewport-matrix))
             vmy (- (m/mx-y old-viewport-matrix))
             cs (get-property [:this] :clip-size)]
-        (if (and
-              (>= caret-x-left vmx)
-              (< caret-x-right (+ vmx (m/x cs)))
-              (>= caret-y-top vmy)
-              (< caret-y-btm (+ vmy (m/y cs))))
-          (flatgui.widgets.scrollpanel/scrollpanelcontent-viewport-matrix-evolver component)
-          (m/translation
-            (cond
-              (< caret-x-left vmx) (- caret-x-left)
-              (>= caret-x-right (+ vmx (m/x cs))) (- (- caret-x-right (m/x cs)))
-              :else (- vmx))
-            (cond
-              (< caret-y-top vmy) (- caret-y-top)
-              (>= caret-y-btm (+ vmy (m/y cs))) (- (- caret-y-btm (m/y cs)))
-              :else (- vmy)))))
+        (keep-in-range
+          (if (and
+                (>= caret-x-left vmx)
+                (< caret-x-right (+ vmx (m/x cs)))
+                (>= caret-y-top vmy)
+                (< caret-y-btm (+ vmy (m/y cs))))
+            (flatgui.widgets.scrollpanel/scrollpanelcontent-viewport-matrix-evolver component)
+            (m/translation
+              (cond
+                (< caret-x-left vmx) (- caret-x-left)
+                (>= caret-x-right (+ vmx (m/x cs))) (- (- caret-x-right (m/x cs)))
+                :else (- vmx))
+              (cond
+                (< caret-y-top vmy) (- caret-y-top)
+                (>= caret-y-btm (+ vmy (m/y cs))) (- (- caret-y-btm (m/y cs)))
+                :else (- vmy))))
+          cs
+          (get-property [:this] :content-size)))
       (if (and
             (vector? reason)
             (= 2 (count reason))
@@ -320,6 +330,7 @@
    :skin-key [:textfield]
    ;; TODO move out
    :foreground :prime-1
+   :no-mouse-press-capturing true
    :evolvers {:model text-model-evolver
               :text text-evolver
               :first-visible-symbol first-visible-symbol-evolver

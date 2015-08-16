@@ -34,6 +34,7 @@ class FGModule implements IFGModule
     private static final Var getIdsFromPointedPath_ = clojure.lang.RT.var("flatgui.access", "get-ids-from-pointed-path");
     private static final Var getMouseRelXFromPath_ = clojure.lang.RT.var("flatgui.access", "get-mouse-rel-x-from-path");
     private static final Var getMouseRelYFromPath_ = clojure.lang.RT.var("flatgui.access", "get-mouse-rel-y-from-path");
+    private static final Var getPressedCoorCaptureNeededFromPath_ = clojure.lang.RT.var("flatgui.access", "get-pressed-coord-capture-from-path");
 
     private static final Var getFocusedPath_ = clojure.lang.RT.var("flatgui.access", "get-focused-path");
 
@@ -104,16 +105,16 @@ class FGModule implements IFGModule
     {
         Object container = getContainer();
 
-        Object targetPath;
+        Object targetPath = getMousePointedPath_.invoke(container, Double.valueOf(x), Double.valueOf(y));
+        boolean captureNeeded = ((Boolean)getPressedCoorCaptureNeededFromPath_.invoke(targetPath)).booleanValue();
         Object targetIds = null;
-        if (knownPath != null)
+        if (knownPath != null && captureNeeded)
         {
             targetPath = knownPath.getTargetComponentPath();
             targetIds = knownPath.getTargetIdPath();
         }
         else
         {
-            targetPath = getMousePointedPath_.invoke(container, Double.valueOf(x), Double.valueOf(y));
             if (targetPath != null)
             {
                 targetIds = getIdsFromPointedPath_.invoke(targetPath);
@@ -124,12 +125,11 @@ class FGModule implements IFGModule
         {
             Object xRelativeVec = getMouseRelXFromPath_.invoke(targetPath);
             Object yRelativeVec = getMouseRelYFromPath_.invoke(targetPath);
-
-            return new FGMouseTargetComponentInfo(new FGComponentPath(targetPath, targetIds), xRelativeVec, yRelativeVec);
+            return new FGMouseTargetComponentInfo(new FGComponentPath(targetPath, targetIds), xRelativeVec, yRelativeVec, captureNeeded);
         }
         else
         {
-            return new FGMouseTargetComponentInfo(null, null, null);
+            return new FGMouseTargetComponentInfo(null, null, null, captureNeeded);
         }
     }
 

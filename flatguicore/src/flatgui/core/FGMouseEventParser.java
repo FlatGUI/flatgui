@@ -88,7 +88,7 @@ class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
             {
                 pressedPath_ = targetPath;
             }
-            else
+            else if (componentInfo.isCaptureNeeded())
             {
                 targetPath = pressedPath_;
             }
