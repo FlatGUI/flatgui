@@ -14,6 +14,7 @@
             [flatgui.widgets.component]
             [flatgui.widgets.scrollpanel]
             [flatgui.inputchannels.keyboard :as keyboard]
+            [flatgui.inputchannels.mouse :as mouse]
             [flatgui.inputchannels.clipboard :as clipboard]
             [flatgui.inputchannels.awtbase :as inputbase]
             [flatgui.util.matrix :as m]
@@ -126,9 +127,61 @@
           [line (max 0 (- pos total-len-prev-lines linebreaks-to-skip))])))
     [0 pos]))
 
+;; TODO avoid duplication with skin
+(defn- text-str-h [] (* (flatgui.awt/strh) 2.5))
+
+(defn- split-to-lines [text]
+  (let [raw-lines (clojure.string/split-lines text)]
+    (if (.endsWith text "\n")
+      (fgc/conjv raw-lines "")
+      raw-lines)))
+
 (fg/defevolverfn text-model-evolver :model
-  (if (clipboard/clipboard-event? component)
-    {:text (clipboard/get-plain-text component) :caret-pos 0 :selection-mark 0}
+  (cond
+    (clipboard/clipboard-event? component)
+    (let [text (clipboard/get-plain-text component)]
+      (merge old-model {:text text
+                        :lines (if (get-property [:this] :multiline) (split-to-lines text) [text])
+                        :caret-pos 0
+                        :selection-mark 0
+                        :caret-line 0
+                        :caret-line-pos 0
+                        :selection-mark-line 0
+                        :selection-mark-line-pos 0}))
+
+    (mouse/is-mouse-event? component)
+    (if (and
+          (pos? (count (:lines old-model)))
+          (mouse/mouse-left? component))
+      (let [click-line (if (get-property [:this] :multiline)
+                         (min (int (/ (mouse/get-mouse-rel-y component) (text-str-h))) (dec (count (:lines old-model))))
+                         0)
+            click-line-text (nth (:lines old-model) click-line)
+            click-x (mouse/get-mouse-rel-x component)
+            click-line-pos (if (pos? (.length click-line-text))
+                             (max
+                               0
+                               (loop [i 0]
+                                 (if (or (= i (.length click-line-text)) (>= (awt/strw (subs click-line-text 0 i)) click-x))
+                                   (if (> click-x (awt/strw click-line-text)) i (dec i))
+                                   (recur
+                                     (inc i)))))
+                             0)
+            click-pos (if (> click-line 0)
+                        (+
+                          (apply + (map #(.length %) (take (dec click-line) (:lines old-model)))) ; All previous lines
+                          (dec click-line) ; A linebreak symbol after each previous line
+                          click-line-pos)
+                        click-line-pos)]
+        (merge old-model {:caret-pos click-pos
+                          :selection-mark click-pos
+                          :caret-line click-line
+                          :caret-line-pos click-line-pos
+                          :selection-mark-line click-line
+                          :selection-mark-line-pos click-line-pos}))
+      old-model)
+
+    :else
     (let [text-supplier (:text-supplier component)
           supplied-text (text-supplier component)
           prevcaretpos (:caret-pos old-model)
@@ -139,10 +192,7 @@
           old-lines (:lines old-model)
           caretpos (evovle-caret-pos component prevcaretpos old-caret-line-pos old-caret-line old-selection-mark old-text old-lines supplied-text)
           text (evolve-text component prevcaretpos caretpos old-selection-mark old-text supplied-text)
-          lines (let [raw-lines (clojure.string/split-lines text)]
-                  (if (.endsWith text "\n")
-                    (fgc/conjv raw-lines "")
-                    raw-lines))
+          lines (split-to-lines text)
           selection-mark (evovle-selection-mark component caretpos old-selection-mark)
           caret-coord (pos->coord component lines caretpos)
           selection-mark-coord (pos->coord component lines selection-mark)
@@ -175,19 +225,16 @@
               caret-x (get-caret-x (subs text old-first-visible-symbol) caret-pos)
               width (- (m/x (get-property component [:this] :clip-size)) (* 1 (get-hgap)) (awt/px))]
           (if (> caret-x width)
-            (let [ diff (- caret-x width)]
+            (let [diff (- caret-x width)]
               (+
                 old-first-visible-symbol
-                (loop [ i 1]
+                (loop [i 1]
                   (if (>= (awt/strw (subs text old-first-visible-symbol (+ old-first-visible-symbol i))) diff)
                     i
                     (recur
                       (inc i))))))
             old-first-visible-symbol))))
     0))
-
-;; TODO avoid duplication with skin
-(defn- text-str-h [] (* (flatgui.awt/strh) 2.5))
 
 (fg/defevolverfn auto-scroll-evolver :viewport-matrix
   (let [text-field-id (first (first (:children component)))
