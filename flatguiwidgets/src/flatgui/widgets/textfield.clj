@@ -12,6 +12,7 @@
   (:require [flatgui.awt :as awt]
             [flatgui.base :as fg]
             [flatgui.widgets.component]
+            [flatgui.widgets.scrollpanel]
             [flatgui.inputchannels.keyboard :as keyboard]
             [flatgui.inputchannels.clipboard :as clipboard]
             [flatgui.inputchannels.awtbase :as inputbase]
@@ -188,8 +189,44 @@
 ;; TODO avoid duplication with skin
 (defn- text-str-h [] (* (flatgui.awt/strh) 2.5))
 
-
-;; TODO viewport matrix evolver to use with scrollpanel: that would auto-scroll depending on caret pos
+(fg/defevolverfn auto-scroll-evolver :viewport-matrix
+  (let [text-field-id (first (first (:children component)))
+        model (get-property [:this text-field-id] :model)
+        lines (:lines model)
+        reason (fg/get-reason)]
+    (if (and (pos? (count lines))  (or (= reason [:this text-field-id]) (= reason [:this])))
+      (let [caret-line-pos (:caret-line-pos model)
+            caret-line (:caret-line model)
+            line-text (nth lines caret-line)
+            caret-x-left (awt/strw (if (< caret-line-pos (.length line-text)) (subs line-text 0 caret-line-pos) line-text))
+            caret-x-right (+ (* 2 (get-hgap)) (awt/strw (if (< caret-line-pos (.length line-text)) (subs line-text 0 caret-line-pos) line-text)))
+            caret-y-top (* caret-line (text-str-h))
+            caret-y-btm (* (inc caret-line) (text-str-h))
+            vmx (- (m/mx-x old-viewport-matrix))
+            vmy (- (m/mx-y old-viewport-matrix))
+            cs (get-property [:this] :clip-size)]
+        (if (and
+              (>= caret-x-left vmx)
+              (< caret-x-right (+ vmx (m/x cs)))
+              (>= caret-y-top vmy)
+              (< caret-y-btm (+ vmy (m/y cs))))
+          (flatgui.widgets.scrollpanel/scrollpanelcontent-viewport-matrix-evolver component)
+          (m/translation
+            (cond
+              (< caret-x-left vmx) (- caret-x-left)
+              (>= caret-x-right (+ vmx (m/x cs))) (- (- caret-x-right (m/x cs)))
+              :else (- vmx))
+            (cond
+              (< caret-y-top vmy) (- caret-y-top)
+              (>= caret-y-btm (+ vmy (m/y cs))) (- (- caret-y-btm (m/y cs)))
+              :else (- vmy)))))
+      (if (and
+            (vector? reason)
+            (= 2 (count reason))
+            (= :scroller (nth reason 1))
+            (get-property [(nth reason 0) :scroller] :mouse-capture))
+        (flatgui.widgets.scrollpanel/scrollpanelcontent-viewport-matrix-evolver component)
+        old-viewport-matrix))))
 
 (fg/defevolverfn auto-size-evolver :clip-size
   (if (:auto-size component)
@@ -198,7 +235,7 @@
           parent-h (m/y parent-size)
           lines (:lines (get-property [:this] :model))]
       (if (pos? (count lines))
-        (let [preferred-w (+ (apply max (map awt/strw lines)) (flatgui.awt/strh))  ; TODO this (flatgui.awt/strh) actually duplicates what's in skin
+        (let [preferred-w (+ (apply max (map awt/strw lines)) (* 2 (get-hgap)))
               preferred-h (* (count lines) (text-str-h))]
           (m/defpoint (max preferred-w parent-w) (max preferred-h parent-h)))
         (m/defpoint parent-w parent-h)))
@@ -226,6 +263,7 @@
    :h-alignment :left
    :multiline false
    :auto-size false
+   :paint-border true
    :text-supplier textfield-dflt-text-suplier
    :caret-visible false
    :model {:text "" :caret-pos 0 :selection-mark 0 :caret-line 0}

@@ -10,6 +10,7 @@
   (:require [flatgui.util.matrix :as m]
             [flatgui.base :as fg]
             [flatgui.awt :as awt]
+            [flatgui.theme]
             [flatgui.widgets.window :as window]
             [flatgui.widgets.textfield :as textfield]
             [flatgui.widgets.panel :as panel]
@@ -32,14 +33,16 @@
        :children {:content-pane (fg/defcomponent
                                   scrollpanel/scrollpanelcontent
                                   :content-pane
-                                  {:evolvers {:content-size (fg/accessorfn (get-property component [:this :textfield] :clip-size))}
+                                  {:evolvers {:content-size (fg/accessorfn (get-property component [:this :textfield] :clip-size))
+                                              :viewport-matrix textfield/auto-scroll-evolver}
                                    :children {:textfield (fg/defcomponent
                                                            textfield/textfield
                                                            :textfield
                                                            {:clip-size (m/defpoint 4.875 4.375)
                                                             :position-matrix (m/translation 0 0)
                                                             :multiline true
-                                                            :auto-size true})}})}})
+                                                            :auto-size true
+                                                            :paint-border false})}})}})
 
     (fg/defcomponent
       textfield/textfield
@@ -51,7 +54,8 @@
   (fg/defcomponent
     panel/panel
     :main
-    {:clip-size (m/defpoint 40 20)
+    {:theme flatgui.theme/dark
+     :clip-size (m/defpoint 40 20)
      :background (awt/color 9 17 26)
 
      ;; TODO this should be a part defroot probably

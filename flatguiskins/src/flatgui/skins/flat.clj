@@ -445,17 +445,18 @@ flatgui.skins.flat
 ;;; Text Field
 ;;;
 
-(deflookfn textfield-look (:has-mouse :focus-state :theme)
+(deflookfn textfield-look (:has-mouse :focus-state :theme :paint-border)
            ;(call-look panel-look)
            ;(set-component-color)
            ;(draw-component-rect)
            (setColor (:prime-4 theme))
            (fillRect 0 0 w h)
-           (if (has-focus)
-             [(draw-component-rect w h (:prime-3 theme) (:focused theme))
-              (setColor (:focused theme))
-              (drawRect (awt/px) (awt/px) (awt/-px w 3) (awt/-px h 3))]
-             (draw-component-rect w h (:prime-3 theme) (:prime-2 theme)))
+           (if paint-border
+             (if (has-focus)
+               [(draw-component-rect w h (:prime-3 theme) (:focused theme))
+                (setColor (:focused theme))
+                (drawRect (awt/px) (awt/px) (awt/-px w 3) (awt/-px h 3))]
+               (draw-component-rect w h (:prime-3 theme) (:prime-2 theme))))
            (call-look textfield-look-impl))
 
 ;;;
