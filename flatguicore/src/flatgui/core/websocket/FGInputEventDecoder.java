@@ -195,6 +195,12 @@ public class FGInputEventDecoder
                 }
                 charCode = (char)(charCodeHi*256+charCodeLo);
 
+                if (keyCode == 0x0D)
+                {
+                    keyCode = 0x0A;
+                    charCode = 0x0A;
+                }
+
                 boolean modifierKey = false;
 //                if (keyCode == KeyEvent.VK_CONTROL)
 //                {

@@ -663,7 +663,18 @@ public class FGPaintVectorBinaryCoder
             byte charsetIndicator = (byte)0b00000000;
 
             String s = (String)command.get(1);
-            byte sId = stringPoolIdSupplier_.getStringPoolId(s, componentId_);
+
+            if (s.isEmpty())
+            {
+                return 0;
+            }
+
+            Integer sId = stringPoolIdSupplier_.getStringPoolId(s, componentId_);
+            if (sId == null)
+            {
+                // TODO transmit actual string contents?
+                return 0;
+            }
 
             int x = coordProvider_.apply(command, 2);
             int y = coordProvider_.apply(command, 3);
@@ -671,14 +682,14 @@ public class FGPaintVectorBinaryCoder
             if (sId <= 15 && x <= 63 && y <= 63)
             {
                 stream[n] = (byte)(charsetIndicator | 0b01110000);
-                stream[n+1] = (byte)(((x & 0b00001111) << 4) | sId);
+                stream[n+1] = (byte)(((x & 0b00001111) << 4) | sId.byteValue());
                 stream[n+2] = (byte)(((x & 0b00110000) << 2) | y);
                 return 3;
             }
             else if(sId <= 255 && x <= 4095 && y <= 4095)
             {
                 stream[n] = (byte)(charsetIndicator | 0b01010000);
-                stream[n+1] = sId;
+                stream[n+1] = sId.byteValue();
                 stream[n+2] = (byte)(x & 0b11111111);
                 stream[n+3] = (byte)(y & 0b11111111);
                 stream[n+4] = (byte)(((x & 0b111100000000) >> 8) | ((y & 0b111100000000) >> 4));
@@ -959,7 +970,12 @@ public class FGPaintVectorBinaryCoder
             }
 
             String s = (String)command.get(1);
-            byte sId = stringPoolIdSupplier_.getStringPoolId(s, componentId_);
+            Integer sId = stringPoolIdSupplier_.getStringPoolId(s, componentId_);
+            if (sId == null)
+            {
+                // TODO transmit actual string contents?
+                return 0;
+            }
 
             int x = coordProvider_.apply(command, 2);
             int y = coordProvider_.apply(command, 3);
@@ -967,7 +983,7 @@ public class FGPaintVectorBinaryCoder
             if(x <= 4095 && y <= 4095)
             {
                 stream[n] = getImageCommandCode();
-                stream[n+1] = sId;
+                stream[n+1] = sId.byteValue();
                 stream[n+2] = (byte)(x & 0b11111111);
                 stream[n+3] = (byte)(y & 0b11111111);
                 stream[n+4] = (byte)(((x & 0b111100000000) >> 8) | ((y & 0b111100000000) >> 4));
@@ -1051,6 +1067,6 @@ public class FGPaintVectorBinaryCoder
 
     public interface StringPoolIdSupplier
     {
-        byte getStringPoolId(String s, Object componentId);
+        Integer getStringPoolId(String s, Object componentId);
     }
 }

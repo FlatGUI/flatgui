@@ -52,7 +52,7 @@ public interface IFGModule
 
     public Map<Object, Object> getStringPoolDiffs(Map<List<Keyword>, List<String>> idPathToStrings);
 
-    public byte getStringPoolId(String s, Object componentId);
+    public Integer getStringPoolId(String s, Object componentId);
 
     public List<Object> getPaintAllSequence2();
 }

@@ -38,7 +38,7 @@ class FGModule implements IFGModule
 
     private static final Var getFocusedPath_ = clojure.lang.RT.var("flatgui.access", "get-focused-path");
 
-    private static final int STRING_POOL_PER_COMPONENT_CAPACITY = 16;
+    private static final int STRING_POOL_PER_COMPONENT_CAPACITY = 256;
 
     private static final Keyword CHANGED_PATHS_KEY = Keyword.intern("_changed-paths");
 
@@ -180,9 +180,9 @@ class FGModule implements IFGModule
         return result;
     }
 
-    public byte getStringPoolId(String s, Object componentId)
+    public Integer getStringPoolId(String s, Object componentId)
     {
-        return (byte)(stringPoolMap_.get(componentId).getIndexOfString(s).intValue());
+        return stringPoolMap_.get(componentId).getIndexOfString(s);
     }
 
     private Map<Integer, String> putStrings(Object componentId, Collection<String> strings)

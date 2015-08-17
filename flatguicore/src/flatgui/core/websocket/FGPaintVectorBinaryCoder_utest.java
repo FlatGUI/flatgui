@@ -389,7 +389,7 @@ public class FGPaintVectorBinaryCoder_utest extends Assert
             throws Exception
     {
         FGPaintVectorBinaryCoder.DrawStringCoder stringCoder =
-                new FGPaintVectorBinaryCoder.DrawStringCoder((s, uid)->((Integer)uid).byteValue(), (l,i)->(Integer)(l.get(i)));
+                new FGPaintVectorBinaryCoder.DrawStringCoder((s, uid)->((Integer)uid), (l,i)->(Integer)(l.get(i)));
         byte[] stream = new byte[8];
         stringCoder.setCodedComponentUid(Integer.valueOf(1), -1);
         int writtenBytes = stringCoder.writeCommand(stream, 0, cmd(null, "?", 2, 0));
@@ -461,7 +461,7 @@ public class FGPaintVectorBinaryCoder_utest extends Assert
             throws Exception
     {
         FGPaintVectorBinaryCoder.DrawImageStrPoolCoder stringCoder =
-                new FGPaintVectorBinaryCoder.DrawImageStrPoolCoder((s, uid)->((Integer)uid).byteValue(), (l,i)->(Integer)(l.get(i)));
+                new FGPaintVectorBinaryCoder.DrawImageStrPoolCoder((s, uid)->((Integer)uid), (l,i)->(Integer)(l.get(i)));
         byte[] stream = new byte[10];
         stringCoder.setCodedComponentUid(Integer.valueOf(11), -1);
         int writtenBytes = stringCoder.writeCommand(stream, 0, cmd(null, "?", 2, 0));
@@ -484,7 +484,7 @@ public class FGPaintVectorBinaryCoder_utest extends Assert
             throws Exception
     {
         FGPaintVectorBinaryCoder.FitImageStrPoolCoder stringCoder =
-                new FGPaintVectorBinaryCoder.FitImageStrPoolCoder((s, uid)->((Integer)uid).byteValue(),  (l,i)->(Integer)(l.get(i)));
+                new FGPaintVectorBinaryCoder.FitImageStrPoolCoder((s, uid)->((Integer)uid),  (l,i)->(Integer)(l.get(i)));
         byte[] stream = new byte[16];
         stringCoder.setCodedComponentUid(Integer.valueOf(33), -1);
         int writtenBytes = stringCoder.writeCommand(stream, 0, cmd(null, "?", 2, 0, 10, 20));
