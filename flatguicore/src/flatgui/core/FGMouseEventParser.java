@@ -35,9 +35,6 @@ class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
 
     private boolean leftButtonDown_;
 
-    // temporary, for debug
-    static Collection<Object> latestPressedTargetCellIds_ = new HashSet<>();
-
     private FGComponentPath pressedPath_;
 
     private Object lastTargetIdPath_;
@@ -82,8 +79,6 @@ class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
 
         if (newLeftButtonDown)
         {
-            latestPressedTargetCellIds_ = (Collection<Object>)targetPath.getTargetIdPath();
-
             if (!leftButtonDown_)
             {
                 pressedPath_ = targetPath;

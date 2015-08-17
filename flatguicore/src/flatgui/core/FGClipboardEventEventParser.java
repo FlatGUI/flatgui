@@ -10,7 +10,6 @@
 
 package flatgui.core;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,7 +18,7 @@ import java.util.Map;
  *         Date: 8/15/13
  *         Time: 9:24 PM
  */
-public class FGClipboardEventEventParser implements IFGInputEventParser<FGClipboardEvent>
+public class FGClipboardEventEventParser extends FGFocusTargetedEventParser<FGClipboardEvent>
 {
     public static final String CHANNEL_NAME = "clipboard";
     public static final String FOCUS_ORDER_VECTOR_NAME = "focus-order";
@@ -39,15 +38,4 @@ public class FGClipboardEventEventParser implements IFGInputEventParser<FGClipbo
         //map.put(CHANNEL_NAME, keyEvent);
         return map;
     }
-
-    @Override
-    public Map<FGClipboardEvent, Collection<Object>> getTargetCellIds(FGClipboardEvent keyEvent, IFGModule fgModule, Map<String, Object> generalPropertyMap)
-    {
-        // TODO see key event parser
-        Map<FGClipboardEvent, Collection<Object>> map = new HashMap<>();
-        System.out.println("-DLTEMP- FGClipboardEventEventParser.getTargetCellIds " + FGMouseEventParser.latestPressedTargetCellIds_);
-        map.put(keyEvent, FGMouseEventParser.latestPressedTargetCellIds_);
-        return map;
-    }
-
 }

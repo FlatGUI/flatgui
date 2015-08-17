@@ -17,7 +17,7 @@ import java.util.*;
  *         Date: 8/15/13
  *         Time: 9:24 PM
  */
-public class FGKeyEventParser implements IFGInputEventParser<KeyEvent>
+public class FGKeyEventParser extends FGFocusTargetedEventParser<KeyEvent>
 {
     public static final String CHANNEL_NAME = "keyboard";
     public static final String FOCUS_ORDER_VECTOR_NAME = "focus-order";
@@ -35,18 +35,6 @@ public class FGKeyEventParser implements IFGInputEventParser<KeyEvent>
     {
         Map<String, Object> map = new HashMap<>();
         map.put(CHANNEL_NAME, keyEvent);
-        return map;
-    }
-
-    @Override
-    public Map<KeyEvent, Collection<Object>> getTargetCellIds(KeyEvent keyEvent, IFGModule fgModule, Map<String, Object> generalPropertyMap)
-    {
-        Map<KeyEvent, Collection<Object>> map = new HashMap<>();
-        List focusedPath = fgModule.getFocusedPath();
-        if (focusedPath != null)
-        {
-            map.put(keyEvent, focusedPath);
-        }
         return map;
     }
 }
