@@ -31,12 +31,13 @@
 
 (fg/defevolverfn tf-model-evolver :model
   (if (= (fg/get-reason) [:this])
-    {:text (let [focus-state (get-property [:this] :focus-state)]
-             (str (:mode focus-state) "/"
-                  (:focused-child focus-state)
-                  (if (= (:mode focus-state) :throws-focus) (str "/" (:throw-mode focus-state)))))
-     :caret-pos 0
-     :selection-mark 0}
+    (textfield/create-single-line-model
+      (let [focus-state (get-property [:this] :focus-state)]
+        (str (:mode focus-state) "/"
+             (:focused-child focus-state)
+             (if (= (:mode focus-state) :throws-focus) (str "/" (:throw-mode focus-state)))))
+      0
+      0)
     (textfield/text-model-evolver component)))
 
 

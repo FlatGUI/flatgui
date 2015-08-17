@@ -18,7 +18,8 @@
             [flatgui.widgets.combobox.dropdown]
             [flatgui.widgets.compoundcommons :as compoundcommons]
             [flatgui.util.matrix :as m]
-            [flatgui.comlogic :as fgc]))
+            [flatgui.comlogic :as fgc]
+            [flatgui.widgets.textfield :as textfield]))
 
 ;; TODO move to theme namespace
 ;;
@@ -57,7 +58,7 @@
   (let [text (get-clicked-item component)]
     (if text
       (let [len (awt/strlen text)]
-        {:text text :caret-pos len :selection-mark 0})
+        (textfield/create-single-line-model text len 0))
       (flatgui.widgets.textfield/text-model-evolver component))))
 
 (fg/defevolverfn combo-editor-shift-evolver :first-visible-symbol

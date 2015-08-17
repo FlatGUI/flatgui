@@ -42,7 +42,7 @@ flatgui.skins.flat
 
 (defn- get-caret-y [caret-line] (* caret-line (text-str-h)))
 
-(defn- get-caret-h [] (* (flatgui.awt/strh) 2))
+(defn- get-caret-h [] (- (* (flatgui.awt/strh) 2) (get-hgap)))
 
 (deflookfn caret-look ( :model :foreground :first-visible-symbol)
   (let [line (:caret-line model)

@@ -22,6 +22,16 @@
   (:import [java.awt.event KeyEvent]))
 
 
+(defn create-single-line-model [text caret-pos selection-mark]
+  {:text text
+   :lines [text]
+   :caret-pos caret-pos
+   :selection-mark selection-mark
+   :caret-line 0
+   :caret-line-pos caret-pos
+   :selection-mark-line 0
+   :selection-mark-line-pos selection-mark})
+
 (defn get-hgap [] (awt/halfstrh))
 
 (defn- get-caret-x [text caret-pos]

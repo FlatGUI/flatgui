@@ -14,6 +14,7 @@
             [flatgui.widgets.checkbox :as checkbox]
             [flatgui.widgets.window :as window]
             [flatgui.widgets.label :as label]
+            [flatgui.widgets.textfield :as textfield]
             [flatgui.widgets.spinner :as spinner]
             [flatgui.widgets.slider :as slider]))
 
@@ -26,21 +27,21 @@
   (if (= (fg/get-reason) [:_ :r-slider])
     (let [num->str (get-property [:this] :num->str)
           slider-val-str (num->str component (int (* 255.0 (- 1.0 (get-property [:_ :r-slider] :position)))))]
-      {:text slider-val-str :caret-pos 0 :selection-mark 0})
+      (textfield/create-single-line-model slider-val-str 0 0))
     (spinner/spinner-model-evovler component)))
 
 (fg/defevolverfn g-spinner-evolver :model
   (if (= (fg/get-reason) [:_ :g-slider])
     (let [num->str (get-property [:this] :num->str)
           slider-val-str (num->str component (int (* 255.0 (- 1.0 (get-property [:_ :g-slider] :position)))))]
-      {:text slider-val-str :caret-pos 0 :selection-mark 0})
+      (textfield/create-single-line-model slider-val-str 0 0))
     (spinner/spinner-model-evovler component)))
 
 (fg/defevolverfn b-spinner-evolver :model
  (if (= (fg/get-reason) [:_ :b-slider])
    (let [num->str (get-property [:this] :num->str)
          slider-val-str (num->str component (int (* 255.0 (- 1.0 (get-property [:_ :b-slider] :position)))))]
-     {:text slider-val-str :caret-pos 0 :selection-mark 0})
+     (textfield/create-single-line-model slider-val-str 0 0))
    (spinner/spinner-model-evovler component)))
 
 ;;;

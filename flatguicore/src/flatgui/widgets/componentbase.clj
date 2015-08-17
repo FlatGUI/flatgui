@@ -366,7 +366,12 @@
         this-container (if (or (not changed-only) (get-in aux (fgc/conjv k :changed-properties)))
                          (let [ look-fn (:look container)]
                            (if look-fn
-                             (assoc container :look-vec (look-fn container dirty-rect))
+                             (try
+                               (assoc container :look-vec (look-fn container dirty-rect))
+                               (catch Exception ex
+                                 (do
+                                   (fg/log-error "Error painting " target-id-path ":" (.getMessage ex))
+                                   (.printStackTrace ex))))
                              container))
                          container)]
     (assoc

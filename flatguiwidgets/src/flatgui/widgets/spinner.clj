@@ -16,7 +16,8 @@
             [flatgui.widgets.abstractbutton]
             [flatgui.widgets.button]
             [flatgui.widgets.compoundcommons :as compoundcommons]
-            [flatgui.comlogic :as fgc])
+            [flatgui.comlogic :as fgc]
+            [flatgui.widgets.textfield :as textfield])
   (:import [java.text DecimalFormat]))
 
 
@@ -56,7 +57,7 @@
                num-raw)
          strnum (num->str component num)
          len (.length strnum)]
-    {:text strnum :caret-pos len :selection-mark len}))
+    (textfield/create-single-line-model strnum len len)))
 
 (fg/defevolverfn spinner-model-evovler :model
   (condp = (fg/get-reason)
