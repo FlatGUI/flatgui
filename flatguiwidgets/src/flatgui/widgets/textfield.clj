@@ -37,6 +37,9 @@
 (defn- get-caret-x [text caret-pos]
   (awt/strw (subs text 0 caret-pos)))
 
+;; TODO avoid duplication with skin
+(defn- text-str-h [] (* (flatgui.awt/strh) 2.5))
+
 (defn deccaretpos [c]
   (if (> c 0) (- c 1) 0))
 
@@ -44,7 +47,7 @@
   (let [len (awt/strlen t)]
     (if (< c len) (+ c 1) len)))
 
-(defn evovle-caret-pos [component old-caret-pos old-caret-line-pos old-caret-line old-selection-mark old-text old-lines supplied-text]
+(defn evovle-caret-pos [component h old-caret-pos old-caret-line-pos old-caret-line old-selection-mark old-text old-lines supplied-text]
   (let [t old-text
         key (keyboard/get-key component)
         typed (keyboard/key-typed? component)
@@ -53,7 +56,7 @@
                             (- old-caret-pos old-selection-mark)
                             0)
         with-ctrl (inputbase/with-ctrl? component)]
-    (if typed
+    (if (or typed (clipboard/clipboard-event? component))
       (+ old-caret-pos (awt/strlen supplied-text))
       (if pressed
         (condp = key
@@ -79,6 +82,26 @@
                                                 (- (.length (nth old-lines old-caret-line)) old-caret-line-pos)
                                                 1))  ;1 for linebreak
                              old-caret-pos)
+          KeyEvent/VK_PAGE_UP (if (pos? old-caret-line)
+                               (let [lines-skip (int (/ h (text-str-h)))
+                                     first-line (max 0 (- old-caret-line lines-skip))]
+                                 (max 0 (+
+                                          (-
+                                            old-caret-pos
+                                            old-caret-line-pos
+                                            (apply + (map (fn [i] (inc (.length (nth old-lines i)))) (range first-line old-caret-line))))
+                                          (min old-caret-line-pos (.length (nth old-lines first-line))))))
+                               old-caret-pos)
+          KeyEvent/VK_PAGE_DOWN (if (< old-caret-line (dec (count old-lines)))
+                                  (let [lines-skip (int (/ h (text-str-h)))
+                                        last-line (min (dec (count old-lines)) (+ old-caret-line lines-skip))]
+                                    (max (awt/strlen t) (+
+                                                          (+
+                                                            old-caret-pos
+                                                            (- (.length (nth old-lines old-caret-line)) old-caret-line-pos)
+                                                            (apply + (map (fn [i] (inc (.length (nth old-lines i)))) (range (inc old-caret-line) (inc last-line)))))
+                                                          (min old-caret-line-pos (.length (nth old-lines last-line))))))
+                                  old-caret-pos)
           old-caret-pos)
         old-caret-pos))))
 
@@ -100,7 +123,9 @@
         backspace (= (keyboard/get-key component) KeyEvent/VK_BACK_SPACE)
         delete (= (keyboard/get-key component) KeyEvent/VK_DELETE)
         enter (and (= (keyboard/get-key component) KeyEvent/VK_ENTER) (:multiline component))]
-    (if (and (keyboard/key-typed? component) (not enter))
+    (if (or
+          (and (keyboard/key-typed? component) (not enter))
+          (clipboard/clipboard-event? component))
       ;; TODO entered text should replace selection - this does not work for some reason
       (insert-text old-text prevcaretpos has-selection sstart send supplied-text)
       (if (keyboard/key-pressed? component)
@@ -117,10 +142,13 @@
         old-text))))
 
 (defn evovle-selection-mark [component caret-pos old-selection-mark]
-  (cond
-    (keyboard/key-typed? component) caret-pos
-    (keyboard/key-pressed? component) (if (inputbase/with-shift? component) old-selection-mark caret-pos)
-    :else old-selection-mark))
+  (let [key (keyboard/get-key component)]
+    (if (or (nil? key) (= key KeyEvent/VK_CONTROL) (= key KeyEvent/VK_SHIFT)) ; Single CTRL or Shift should not affect selection
+      old-selection-mark
+      (cond
+        (keyboard/key-typed? component) caret-pos
+        (keyboard/key-pressed? component) (if (inputbase/with-shift? component) old-selection-mark caret-pos)
+        :else old-selection-mark))))
 
 (defn pos->coord [component lines pos]
   (if (and (:multiline component) (> (count lines) 1))
@@ -137,9 +165,6 @@
           [line (max 0 (- pos total-len-prev-lines linebreaks-to-skip))])))
     [0 pos]))
 
-;; TODO avoid duplication with skin
-(defn- text-str-h [] (* (flatgui.awt/strh) 2.5))
-
 (defn- split-to-lines [text]
   (let [raw-lines (clojure.string/split-lines text)]
     (if (.endsWith text "\n")
@@ -148,16 +173,6 @@
 
 (fg/defevolverfn text-model-evolver :model
   (cond
-    (clipboard/clipboard-event? component)
-    (let [text (clipboard/get-plain-text component)]
-      (merge old-model {:text text
-                        :lines (if (get-property [:this] :multiline) (split-to-lines text) [text])
-                        :caret-pos 0
-                        :selection-mark 0
-                        :caret-line 0
-                        :caret-line-pos 0
-                        :selection-mark-line 0
-                        :selection-mark-line-pos 0}))
 
     (mouse/is-mouse-event? component)
     (if (and
@@ -192,28 +207,24 @@
       old-model)
 
     :else
-    (let [text-supplier (:text-supplier component)
-          supplied-text (text-supplier component)
+    (let [supplied-text (if (clipboard/clipboard-event? component)
+                          (clipboard/get-plain-text component)
+                          ((:text-supplier component) component))
           prevcaretpos (:caret-pos old-model)
           old-caret-line (:caret-line old-model)
           old-caret-line-pos (:caret-line-pos old-model)
           old-selection-mark (:selection-mark old-model)
           old-text (:text old-model)
           old-lines (:lines old-model)
-          caretpos (evovle-caret-pos component prevcaretpos old-caret-line-pos old-caret-line old-selection-mark old-text old-lines supplied-text)
+          h (if (= (get-property [] :widget-type) "scrollpanelcontent")
+              (m/y (get-property [] :clip-size))
+              (m/y (get-property [:this] :clip-size)))
+          caretpos (evovle-caret-pos component h prevcaretpos old-caret-line-pos old-caret-line old-selection-mark old-text old-lines supplied-text)
           text (evolve-text component prevcaretpos caretpos old-selection-mark old-text supplied-text)
           lines (split-to-lines text)
           selection-mark (evovle-selection-mark component caretpos old-selection-mark)
           caret-coord (pos->coord component lines caretpos)
-          selection-mark-coord (pos->coord component lines selection-mark)
-          ;debug-text (.replace text "\n" "*")
-          ;_ (println "new lines" lines
-          ;           "count" (count lines)
-          ;           "lengths" (map count lines)
-          ;           "caretpos" caretpos
-          ;           "caret-coord" caret-coord
-          ;           (str (subs debug-text 0 caretpos) "|" (subs debug-text caretpos)))
-          ]
+          selection-mark-coord (pos->coord component lines selection-mark)]
       {:text text
        :caret-pos caretpos
        :selection-mark selection-mark

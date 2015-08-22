@@ -197,9 +197,19 @@ public class FGInputEventDecoder
 
                 if (keyCode == 0x0D)
                 {
-                    keyCode = 0x0A;
-                    charCode = 0x0A;
+                    keyCode = KeyEvent.VK_ENTER;  // 0x0A
+                    charCode = KeyEvent.VK_ENTER; // 0x0A
                 }
+                else if (keyCode == KeyEvent.VK_PERIOD) // Here we get regular Del as num keyboard period key when num lock is off
+                {
+                    keyCode = KeyEvent.VK_DELETE;
+                    charCode = KeyEvent.VK_DELETE;
+                }
+                /// TODO This does not help for typing period in num keyboard
+                //else if (keyCode == KeyEvent.VK_DECIMAL)
+                //{
+                //    charCode = '.';
+                //}
 
                 boolean modifierKey = false;
 //                if (keyCode == KeyEvent.VK_CONTROL)
