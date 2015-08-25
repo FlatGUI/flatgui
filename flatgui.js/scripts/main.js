@@ -40,6 +40,7 @@ var currentTransform = [[1, 0, 0],
                         [0, 0, 1]];
 var currentClip = {x: 0, y: 0, w: Infinity, h: Infinity};
 var clipRectStack = [];
+var currentFont;
 
 
 /*
@@ -168,6 +169,14 @@ function applyCurrentTransform()
     ctx.setTransform(currentTransform[0][0], currentTransform[1][0], currentTransform[0][1], currentTransform[1][1], currentTransform[0][2], currentTransform[1][2]);
 }
 
+function applyCurrentFont()
+{
+    if (currentFont)
+    {
+        ctx.font = currentFont;
+    }
+}
+
 function applyCurrentClip()
 {
     if (currentClip)
@@ -175,6 +184,7 @@ function applyCurrentClip()
         ctx.restore();
         ctx.save();
         applyCurrentTransform();
+        applyCurrentFont();
         currentTx = currentTransform[0][2];
         currentTy = currentTransform[1][2];
         ctx.beginPath();
@@ -317,6 +327,15 @@ function decodeLookVector(componentIndex, stream, byteLength)
                     else
                     {
                         decodeLog("Cannot fill image with zero size: w=" + w + " h=" + h);
+                    }
+                    c += codeObj.len;
+                    break;
+                case CODE_SET_FONT:
+                    codeObj = decodeFontStrPool(stream, c);
+                    if (stringPools[componentIndex] && stringPools[componentIndex][codeObj.i])
+                    {
+                       currentFont = stringPools[componentIndex][codeObj.i];
+                       applyCurrentFont();
                     }
                     c += codeObj.len;
                     break;

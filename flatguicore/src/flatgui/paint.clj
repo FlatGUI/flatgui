@@ -136,11 +136,13 @@
                y2 (if (> dw 0) (+ y dw) y)]
            (awt/drawLine x1 y1 x2 y2)))))
 
+(defn font-look [cmpnt]
+  (if-let [font (:font cmpnt)] ["setFont" font]))
+
 (defn paint-component-only [cmpnt dirty-rects]
   "Paints component, does not pait children"
   (if (:visible cmpnt)
-    (let [ look-vec (:look-vec cmpnt)]
-      (flatten-vector [ (if look-vec look-vec) (if (:has-trouble cmpnt) (trouble-look cmpnt dirty-rects))]))))
+    (:look-vec cmpnt)))
 
 (defn paint-component-with-children [component dirty-rects]
   "Paints component and its children"

@@ -10,7 +10,8 @@
   ;(:import [flatgui.core FGContainerBase])
   (:use flatgui.util.matrix)
   ; TODO temporary
-  (:import (flatgui.core FGDummyInteropUtil)))
+  (:import (flatgui.core FGDummyInteropUtil)
+           (java.awt Font)))
 
 ; TODO Further refactor
 ;(defn- container [] (FGContainerBase/getCurrentContainer))
@@ -78,6 +79,19 @@
 (defn invert [at]
   (.createInverse at))
 
+;; Converts CSS-syntax font string to AWT font
+(defn str->font [font-str]
+  (let [italic (.contains font-str "italic")
+        bold (.contains font-str "bold")
+        style (+ (if italic Font/ITALIC 0) (if bold Font/BOLD 0))
+        before-px-str (subs font-str 0 (.indexOf font-str "px"))
+        space-index-before-px (.lastIndexOf before-px-str " ")
+        size (Integer/valueOf (str (if (>= space-index-before-px 0) (subs before-px-str (inc space-index-before-px)) before-px-str)))
+        after-px-str (.replace (subs font-str (.lastIndexOf font-str "px")) "," "")
+        font-family-divider-index (.indexOf after-px-str " ")
+        name (if (> font-family-divider-index 0) (subs after-px-str 0 font-family-divider-index) after-px-str)]
+    (Font. name (int style) size)))
+
 ; Extended command codes are 2-bytes where 1st byte is 00000000
 
 ; Basic 1-byte commands
@@ -106,4 +120,5 @@
 (defn drawImage [imgUri x y] ["drawImage" imgUri x y])          ;1 (regular), 2 (cached)
 (defn fitImage [imgUri x y w h] ["fitImage" imgUri x y w h])    ;3 (regular), 4 (cached)
 (defn fillImage [imgUri x y w h] ["fillImage" imgUri x y w h])  ;5 (regular), 6 (cached)
+(defn setFont [font-str] ["setFont" (str->font font-str)])      ;7
 

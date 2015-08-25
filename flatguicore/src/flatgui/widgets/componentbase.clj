@@ -13,6 +13,7 @@
             [flatgui.base :as fg]
             [flatgui.ids :as ids]
             [flatgui.comlogic :as fgc]
+            [flatgui.paint :as fgp]
             [flatgui.util.matrix :as m]))
 
 
@@ -362,12 +363,15 @@
 
 
 (defn rebuild-look [container target-id-path aux changed-only dirty-rect]
-  (let [ k (fgc/get-access-key target-id-path)
+  (let [k (fgc/get-access-key target-id-path)
         this-container (if (or (not changed-only) (get-in aux (fgc/conjv k :changed-properties)))
-                         (let [ look-fn (:look container)]
+                         (let [look-fn (:look container)]
                            (if look-fn
                              (try
-                               (assoc container :look-vec (look-fn container dirty-rect))
+                               (assoc container :look-vec (fgp/flatten-vector
+                                                            [(fgp/font-look container)
+                                                             (look-fn container dirty-rect)
+                                                             (if (:has-trouble container) (fgp/trouble-look container dirty-rect))]))
                                (catch Exception ex
                                  (do
                                    (fg/log-error "Error painting " target-id-path ":" (.getMessage ex))

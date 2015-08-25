@@ -17,6 +17,8 @@ import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
+import clojure.lang.Var;
+
 /**
  * @author Denys Lebediev
  *         Date: 9/3/13
@@ -36,6 +38,9 @@ public class FGDefaultPrimitivePainter implements IFGPrimitivePainter
     private static final String DRAW_IMAGE = "drawImage";
     private static final String FIT_IMAGE = "fitImage";
     private static final String FILL_IMAGE = "fillImage";
+    private static final String SET_FONT = "setFont";
+
+    private static final Var strToFont_ = clojure.lang.RT.var("flatgui.awt", "str->font");
 
     private IFGImageLoader imageLoader_;
 
@@ -56,6 +61,7 @@ public class FGDefaultPrimitivePainter implements IFGPrimitivePainter
         customMethods_.put(DRAW_IMAGE, this::drawImage);
         customMethods_.put(FIT_IMAGE, this::fitImage);
         customMethods_.put(FILL_IMAGE, this::fillImage);
+        customMethods_.put(SET_FONT, this::setFont);
 
         methodByNameCache_ = new HashMap<>();
 
@@ -196,6 +202,16 @@ public class FGDefaultPrimitivePainter implements IFGPrimitivePainter
         catch (IOException ex)
         {
             ex.printStackTrace();
+        }
+    }
+
+    private void setFont(Graphics2D g, Object[] argValues)
+    {
+        String fontStr = (String)argValues[0];
+        Font font = (Font) strToFont_.invoke(fontStr);
+        if (font != null)
+        {
+            g.setFont(font);
         }
     }
 }

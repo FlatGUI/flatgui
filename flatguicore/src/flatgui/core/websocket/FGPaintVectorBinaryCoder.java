@@ -62,7 +62,10 @@ public class FGPaintVectorBinaryCoder
         registerCoder("fitImage", new ExtendedCommandCoder(fitImageCoder));
         registerCoder("fillImage", new ExtendedCommandCoder(fillImageCoder));
 
-        uidAwareCoders_ = Arrays.asList(drawStringCoder, drawImageCoder, fitImageCoder, fillImageCoder);
+        ICommandCoder setFontCoder = new SetFontStrPoolCoder(stringPoolIdSupplier);
+        registerCoder("setFont", new ExtendedCommandCoder(setFontCoder));
+
+        uidAwareCoders_ = Arrays.asList(drawStringCoder, drawImageCoder, fitImageCoder, fillImageCoder, setFontCoder);
     }
 
     public void setCodedComponentUid(Object componentId, int uid)
@@ -144,7 +147,7 @@ public class FGPaintVectorBinaryCoder
 
     public static interface ICommandCoder
     {
-        public int writeCommand(byte[] stream, int n, List command);
+        int writeCommand(byte[] stream, int n, List command);
 
         default void setCodedComponentUid(Object componentId, int uid)
         {}
@@ -1062,6 +1065,47 @@ public class FGPaintVectorBinaryCoder
         protected byte getImageCommandCode()
         {
             return 6;
+        }
+    }
+
+    public static class SetFontStrPoolCoder implements ICommandCoder
+    {
+        private StringPoolIdSupplier stringPoolIdSupplier_;
+        private Object componentId_;
+
+        public SetFontStrPoolCoder(StringPoolIdSupplier stringPoolIdSupplier)
+        {
+            stringPoolIdSupplier_ = stringPoolIdSupplier;
+        }
+
+        @Override
+        public void setCodedComponentUid(Object componentId, int uid)
+        {
+            componentId_ = componentId;
+        }
+
+        @Override
+        public int writeCommand(byte[] stream, int n, List command)
+        {
+            int csize = command.size();
+
+            if (csize != 2)
+            {
+                throw new IllegalStateException(
+                    "Cannot encode setFont operation: command length should be 2. Command " + command);
+            }
+
+            String s = (String)command.get(1);
+            Integer sId = stringPoolIdSupplier_.getStringPoolId(s, componentId_);
+            if (sId == null)
+            {
+                // TODO transmit actual string contents?
+                return 0;
+            }
+
+            stream[n] = 7; // setFont command code
+            stream[n+1] = sId.byteValue();
+            return 2;
         }
     }
 

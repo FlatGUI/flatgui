@@ -87,6 +87,8 @@ var CODE_DRAW_IMAGE_STRPOOL = 2;
 var CODE_FIT_IMAGE_STRPOOL = 4;
 var CODE_FILL_IMAGE_STRPOOL = 6;
 
+var CODE_SET_FONT = 7;
+
 
 function readUByte(stream, c)
 {
@@ -476,4 +478,11 @@ function decodeImageURIStrPool(stream, c)
     }
 
     return {x: x, y: y, w: w, h: h, i: index, len: header};
+}
+
+// Returns object {i: <font string index in pool> :len <actual length of command in bytes>}
+function decodeFontStrPool(stream, c)
+{
+    index = readUByte(stream, c+1);
+    return {i: index, len: 2};
 }
