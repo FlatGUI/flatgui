@@ -26,13 +26,20 @@ import java.util.function.Function;
  */
 public class FGAWTContainerHost implements IFGContainerHost<Component>
 {
+    private final HostComponent c_;
+
+    public FGAWTContainerHost(HostComponent c)
+    {
+        c_ = c;
+    }
+
     @Override
     public Component hostContainer(IFGContainer container)
     {
-        HostComponent c = new HostComponent(container);
-        ActionListener eventFedCallBack = c.getEventFedCallback();
-        Function<Object, Future<Set<List<Keyword>>>> inputEventConsumer = container.connect(eventFedCallBack, c);
-        c.setInputEventConsumer(inputEventConsumer::apply);
-        return c;
+        c_.initialize(container);
+        ActionListener eventFedCallBack = c_.getEventFedCallback();
+        Function<Object, Future<Set<List<Keyword>>>> inputEventConsumer = container.connect(eventFedCallBack, c_);
+        c_.setInputEventConsumer(inputEventConsumer::apply);
+        return c_;
     }
 }

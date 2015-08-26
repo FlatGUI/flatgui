@@ -8,12 +8,12 @@
  * You must not remove this notice, or any other, from this software.
  */
 
-package flatgui.core;
+package flatgui.core.util;
 
 /**
  * @author Denis Lebedev
  */
-public interface IFGContainerHost<H>
+public interface IFGChangeListener<T>
 {
-    public H hostContainer(IFGContainer container);
+    void onChange(FGChangeEvent<T> event);
 }

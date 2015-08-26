@@ -34,30 +34,9 @@ public class FGInputEventParser implements IFGInputEventParser<Object>
     }
 
     @Override
-    public Map<String, Object> initialize(IFGModule fgModule)
+    public Map<Object, Collection<Object>> getTargetCellIds(Object reason, IFGModule fgModule)
     {
-        Map<String, Object> allProperties = new HashMap<>();
-        for (IFGInputEventParser<?> impl : implMap_.values())
-        {
-            Map<String, Object> implMap = impl.initialize(fgModule);
-            if (implMap != null)
-            {
-                allProperties.putAll(implMap);
-            }
-        }
-        return allProperties;
-    }
-
-    @Override
-    public Map<String, Object> getTargetedPropertyValues(Object reason)
-    {
-        return getRepaintReasonParser(reason).getTargetedPropertyValues(reason);
-    }
-
-    @Override
-    public Map<Object, Collection<Object>> getTargetCellIds(Object reason, IFGModule fgModule, Map<String, Object> generalPropertyMap)
-    {
-        return getRepaintReasonParser(reason).getTargetCellIds(reason, fgModule, generalPropertyMap);
+        return getRepaintReasonParser(reason).getTargetCellIds(reason, fgModule);
     }
 
     private Object getMapKeyForClass(Class c)

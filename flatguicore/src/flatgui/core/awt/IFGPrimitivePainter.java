@@ -12,6 +12,8 @@ package flatgui.core.awt;
 import java.awt.*;
 import java.util.List;
 
+import flatgui.core.util.IFGChangeListener;
+
 /**
  * @author Denys Lebediev
  *         Date: 9/3/13
@@ -19,5 +21,7 @@ import java.util.List;
  */
 public interface IFGPrimitivePainter
 {
-    public void paintPrimitive(Graphics g, List<Object> primitive);
+    void addFontChangeListener(IFGChangeListener<Font> fontChangeListener);
+
+    void paintPrimitive(Graphics g, List<Object> primitive);
 }

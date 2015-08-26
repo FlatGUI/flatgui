@@ -19,22 +19,4 @@ import java.util.*;
  */
 public class FGKeyEventParser extends FGFocusTargetedEventParser<KeyEvent>
 {
-    public static final String CHANNEL_NAME = "keyboard";
-    public static final String FOCUS_ORDER_VECTOR_NAME = "focus-order";
-
-    public static final String FOCUS_OWNER_GENERAL_PROPERTY = "FocusOwner";
-
-    @Override
-    public Map<String, Object> initialize(IFGModule fgModule)
-    {
-        return null;
-    }
-
-    @Override
-    public Map<String, Object> getTargetedPropertyValues(KeyEvent keyEvent)
-    {
-        Map<String, Object> map = new HashMap<>();
-        map.put(CHANNEL_NAME, keyEvent);
-        return map;
-    }
 }

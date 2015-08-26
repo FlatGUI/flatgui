@@ -10,32 +10,9 @@
 
 package flatgui.core;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * @author Denys Lebediev
- *         Date: 8/15/13
- *         Time: 9:24 PM
  */
 public class FGClipboardEventEventParser extends FGFocusTargetedEventParser<FGClipboardEvent>
 {
-    public static final String CHANNEL_NAME = "clipboard";
-    public static final String FOCUS_ORDER_VECTOR_NAME = "focus-order";
-
-    public static final String FOCUS_OWNER_GENERAL_PROPERTY = "FocusOwner";
-
-    @Override
-    public Map<String, Object> initialize(IFGModule fgModule)
-    {
-        return null;
-    }
-
-    @Override
-    public Map<String, Object> getTargetedPropertyValues(FGClipboardEvent keyEvent)
-    {
-        Map<String, Object> map = new HashMap<>();
-        //map.put(CHANNEL_NAME, keyEvent);
-        return map;
-    }
 }

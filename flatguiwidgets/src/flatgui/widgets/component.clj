@@ -6,10 +6,11 @@
 ; the terms of this license.
 ; You must not remove this notice, or any other, from this software.
 
-(ns ^{:doc "Base type for all FlatGUI widgets"
+(ns ^{:doc    "Base type for all FlatGUI widgets"
       :author "Denys Lebediev"}
-  flatgui.widgets.component (:use flatgui.comlogic
-                                  flatgui.widgets.componentbase)
+flatgui.widgets.component
+  (:use flatgui.comlogic
+        flatgui.widgets.componentbase)
   (:require [flatgui.awt :as awt]
             [flatgui.base :as fg]
             [flatgui.paint :as fgp]
@@ -18,7 +19,8 @@
             [flatgui.theme]
             [flatgui.skins.skinbase]
             [flatgui.skins.flat]
-            [flatgui.inputchannels.mouse :as mouse]))
+            [flatgui.inputchannels.mouse :as mouse])
+  (:import (flatgui.core.awt FGDummyInteropUtil)))
 
 ;(fgp/deflookfn component-look (:background :abs-position-matrix :clip-size)
 ;  (if (= :main (:id comp-property-map))
@@ -77,6 +79,10 @@
   (let [parent (get-property component [] :skin)]
     (if parent parent old-skin)))
 
+(fg/defevolverfn :interop
+  (let [parent (get-property component [] :interop)]
+    (if parent parent old-interop)))
+
 (fg/defevolverfn :abs-position-matrix
   (let [ parent-pm (get-property component [] :abs-position-matrix)
          this-pm (get-property component [:this] :position-matrix)]
@@ -92,6 +98,10 @@
     (mouse/mouse-exited? component) false
     :else old-has-mouse))
 
+
+()
+
+
 (defn- default-properties-to-evolve-provider [container target-cell-ids reason]
   (fn [component]
     (let [ exclusions #{:look :evolvers}
@@ -104,6 +114,7 @@
   (array-map
     :visible true
     :enabled true
+    :interop (FGDummyInteropUtil.)
     :skin "flatgui.skins.flat"
     :theme flatgui.theme/light
     :clip-size (m/defpoint 1 1 0)
@@ -131,7 +142,8 @@
     :look component-look
     :default-properties-to-evolve-provider default-properties-to-evolve-provider
     :consumes? (fn [_] true)
-    :evolvers {:theme theme-evolver
+    :evolvers {:interop interop-evolver
+               :theme theme-evolver
                :skin skin-evolver
                :look flatgui.skins.skinbase/skin-look-evolver
                :abs-position-matrix abs-position-matrix-evolver

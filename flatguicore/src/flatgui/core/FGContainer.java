@@ -36,11 +36,6 @@ public class FGContainer implements IFGContainer
 
     private final FGInputEventParser reasonParser_;
 
-    private IFGInteropUtil interopUtil_;
-
-    private final Map<String, Object> containerProperties_;
-    private final Map<String, Object> targetedProperties_;
-
     private final String containerId_;
     private final IFGModule module_;
 
@@ -52,17 +47,17 @@ public class FGContainer implements IFGContainer
 
     private List<IFGEvolveConsumer> evolveConsumers_;
 
-    public FGContainer(IFGTemplate template)
+    public FGContainer(IFGTemplate template, IFGInteropUtil interopUtil)
     {
-        this(template, template.getContainerVarName());
+        this(template, template.getContainerVarName(), interopUtil);
     }
 
-    public FGContainer(IFGTemplate template, String containerId)
+    public FGContainer(IFGTemplate template, String containerId, IFGInteropUtil interopUtil)
     {
         Var containerVar = clojure.lang.RT.var(template.getContainerNamespace(), template.getContainerVarName());
         Var registerFn = clojure.lang.RT.var(FGModule.FG_CORE_NAMESPACE, REGISTER_FN_NAME);
         Object container = containerVar.get();
-        registerFn.invoke(containerId, container);
+        registerFn.invoke(containerId, container, interopUtil);
 
         Keyword containerIdInternal = (Keyword) ((Map)container).get(Keyword.intern("id"));
 
@@ -74,39 +69,12 @@ public class FGContainer implements IFGContainer
         reasonParser_.registerReasonClassParser(MouseWheelEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
         reasonParser_.registerReasonClassParser(KeyEvent.class, new FGKeyEventParser());
         reasonParser_.registerReasonClassParser(FGClipboardEvent.class, new FGClipboardEventEventParser());
-        reasonParser_.registerReasonClassParser(FGContainer.FGTimerEvent.class, new IFGInputEventParser<FGTimerEvent>() {
-            @Override
-            public Map<String, Object> initialize(IFGModule fgModule) {
-                return null;
-            }
-
-            @Override
-            public Map<String, Object> getTargetedPropertyValues(FGContainer.FGTimerEvent fgTimerEvent) {return Collections.emptyMap();}
-
-            @Override
-            public Map<FGContainer.FGTimerEvent, Collection<Object>> getTargetCellIds(FGContainer.FGTimerEvent fgTimerEvent, IFGModule fgModule, Map<String, Object> generalPropertyMap) {
-                return Collections.emptyMap();
-            }
+        reasonParser_.registerReasonClassParser(FGContainer.FGTimerEvent.class, (fgTimerEvent, fgModule) -> Collections.emptyMap());
+        reasonParser_.registerReasonClassParser(FGHostStateEvent.class, (fgHostStateEvent, fgModule) -> {
+            Map<FGHostStateEvent, Collection<Object>> map = new HashMap<>();
+            map.put(fgHostStateEvent, Arrays.asList(containerIdInternal));
+            return map;
         });
-        reasonParser_.registerReasonClassParser(FGHostStateEvent.class, new IFGInputEventParser<FGHostStateEvent>() {
-            @Override
-            public Map<String, Object> initialize(IFGModule fgModule) {return null;}
-
-            @Override
-            public Map<String, Object> getTargetedPropertyValues(FGHostStateEvent fgHostStateEvent) {return Collections.emptyMap();}
-
-            @Override
-            public Map<FGHostStateEvent, Collection<Object>> getTargetCellIds(FGHostStateEvent fgHostStateEvent, IFGModule fgModule, Map<String, Object> generalPropertyMap) {
-                Map<FGHostStateEvent, Collection<Object>> map = new HashMap<>();
-                map.put(fgHostStateEvent, Arrays.asList(containerIdInternal));
-                return map;
-            }
-        });
-
-        containerProperties_ = new HashMap<>();
-        containerProperties_.put(GENERAL_PROPERTY_UNIT_SIZE, UNIT_SIZE_PX);
-
-        targetedProperties_ = new HashMap<>();
 
 //        Timer repaintTimer = new Timer("FlatGUI Blink Helper Timer", true);
 //        repaintTimer.schedule(new TimerTask()
@@ -117,16 +85,6 @@ public class FGContainer implements IFGContainer
 //                //EventQueue.invokeLater(() -> cycle(new FGTimerEvent()));
 //            }
 //        }, 250, 250);
-
-        Map<String, Object> initialGeneralProperties = reasonParser_.initialize(module_);
-        if (initialGeneralProperties != null)
-        {
-            containerProperties_.putAll(initialGeneralProperties);
-        }
-
-        //interopUtil_ = new FGAWTInteropUtil((Component)hostContext, UNIT_SIZE_PX);
-        // TODO temporary
-        interopUtil_ = new FGDummyInteropUtil(UNIT_SIZE_PX);
 
         evolveConsumers_ = new ArrayList<>();
     }
@@ -181,21 +139,7 @@ public class FGContainer implements IFGContainer
         return evolverExecutorService_.submit(callable);
     }
 
-    ///
-
-    @Override
-    public Object getGeneralProperty(String propertyName)
-    {
-       return containerProperties_.get(propertyName);
-    }
-
-    @Override
-    public Object getAWTUtil()
-    {
-        return interopUtil_;
-    }
-
-    ///
+    // Private
 
     private Set<List<Keyword>> cycle(Object repaintReason)
     {
@@ -204,32 +148,15 @@ public class FGContainer implements IFGContainer
             throw new IllegalArgumentException();
         }
 
-        targetedProperties_.clear();
-        if (repaintReason != null)
-        {
-            Map<String, Object> propertiesFromReason = reasonParser_.getTargetedPropertyValues(repaintReason);
-            for (String propertyName : propertiesFromReason.keySet())
-            {
-                targetedProperties_.put(propertyName,
-                        propertiesFromReason.get(propertyName));
-            }
-        }
-
-        Map<String, Object> generalProperties = new HashMap<>();
         Map<Object, Collection<Object>> reasonMap;
         try
         {
-            reasonMap = reasonParser_.getTargetCellIds(repaintReason, module_, generalProperties);
+            reasonMap = reasonParser_.getTargetCellIds(repaintReason, module_);
         }
         catch(Exception ex)
         {
             ex.printStackTrace();
             reasonMap = Collections.emptyMap();
-        }
-
-        if (generalProperties != null)
-        {
-            containerProperties_.putAll(generalProperties);
         }
 
         Set<List<Keyword>> changedPaths = new HashSet<>();

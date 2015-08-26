@@ -250,15 +250,5 @@ public class FGContainerWebSocket implements WebSocketListener
         public Future<Set<List<Keyword>>> feedEvent(Object repaintReason) {
             throw new UnsupportedOperationException();
         }
-
-        @Override
-        public Object getGeneralProperty(String propertyName) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Object getAWTUtil() {
-            throw new UnsupportedOperationException();
-        }
     }
 }

@@ -7,47 +7,35 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns flatgui.awt
-  ;(:import [flatgui.core FGContainerBase])
-  (:use flatgui.util.matrix)
-  ; TODO temporary
-  (:import (flatgui.core FGDummyInteropUtil)
-           (java.awt Font)))
+    (:require
+      [flatgui.util.matrix :as m]
+      [flatgui.base :as fg] [flatgui.base :as fg])
+    (:import
+      [java.awt Font Color]
+      [java.awt.geom AffineTransform]))
 
-; TODO Further refactor
-;(defn- container [] (FGContainerBase/getCurrentContainer))
-;(defn awtutil [] (.getAWTUtil (container)))
-(defn- container [] nil)
-(defn awtutil [] (FGDummyInteropUtil. 64.0))
 
-(defn strw [t] (.getStringWidth (awtutil) t))
-(defn strh [] (.getFontAscent (awtutil)))
-(defn halfstrh [] (/ (strh) 2))
-(defn strlen [t] (if (nil? t) 0 (.length t)))
+(fg/defaccessorfn strw [component text]
+  (.getStringWidth (get-property component [:this] :interop) text))
 
-;(defn evalreason [] (.getInputForCell (container) :keyw "RepaintReason"))
-;(defn evalreasonclass [] (.getClass (evalreason)))
+(fg/defaccessorfn strh [component]
+  (.getFontAscent (get-property component [:this] :interop)))
 
-;;;;
-;;;;@todo without FGContainerBase/isInitialized check unit tests fail when w- and h- are calculated
-;;;;      by code generated for look fn
-;;;;      And all such dependencies fail when doint aot complilation. Need to refactor
-;;;;
-;;;;(defn unitsizepx [] (if (true? (FGContainerBase/isInitialized)) (double (.getGeneralProperty (container) "UnitSizePx")) 64.0))
-(defn unitsizepx [] (if (container) (double (.getGeneralProperty (container) "UnitSizePx")) 64.0))
-;(defn unitsizepx [] 64.0)
+(fg/defaccessorfn halfstrh [component]
+  (/ (strh component) 2))
+
+(defn unitsizepx [] 64.0)
 
 (defn px [] (/ 1.0 (unitsizepx)))
 (defn tounit [a] (/ a (unitsizepx)))
 (defn -px
   ([a] (- a (px)))
-  ([a n] (- a (* n (px))))
-  )
+  ([a n] (- a (* n (px)))))
 (defn +px
   ([a] (+ a (px)))
-  ([a n] (+ a (* n (px))))
-  )
+  ([a n] (+ a (* n (px)))))
 
-(defn color [r g b] (new java.awt.Color r g b))
+(defn color [r g b] (new Color r g b))
 
 (defn mix-colors [c1 c2]
   (color
@@ -68,13 +56,13 @@
     (int (+ (* d (.getBlue c1)) (* (- 1.0 d) (.getBlue c2))))))
 
 (defn affinetransform [matrix]
-  (let [ m00 (double (mx-get matrix 0 0))
-         m10 (double (mx-get matrix 1 0))
-         m01 (double (mx-get matrix 0 1))
-         m11 (double (mx-get matrix 1 1))
-         m02 (* (unitsizepx) (double (mx-get matrix 0 3)))
-         m12 (* (unitsizepx) (double (mx-get matrix 1 3)))]
-    (new java.awt.geom.AffineTransform m00 m10 m01 m11 m02 m12)))
+  (let [m00 (double (m/mx-get matrix 0 0))
+        m10 (double (m/mx-get matrix 1 0))
+        m01 (double (m/mx-get matrix 0 1))
+        m11 (double (m/mx-get matrix 1 1))
+        m02 (* (unitsizepx) (double (m/mx-get matrix 0 3)))
+        m12 (* (unitsizepx) (double (m/mx-get matrix 1 3)))]
+    (new AffineTransform m00 m10 m01 m11 m02 m12)))
 
 (defn invert [at]
   (.createInverse at))
@@ -120,5 +108,5 @@
 (defn drawImage [imgUri x y] ["drawImage" imgUri x y])          ;1 (regular), 2 (cached)
 (defn fitImage [imgUri x y w h] ["fitImage" imgUri x y w h])    ;3 (regular), 4 (cached)
 (defn fillImage [imgUri x y w h] ["fillImage" imgUri x y w h])  ;5 (regular), 6 (cached)
-(defn setFont [font-str] ["setFont" (str->font font-str)])      ;7
+(defn setFont [font-str] ["setFont" font-str])      ;7
 

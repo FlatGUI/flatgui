@@ -14,31 +14,23 @@ import java.awt.*;
 
 /**
  * @author Denys Lebediev
- *         Date: 8/14/13
- *         Time: 11:03 PM
  */
-public class FGDummyInteropUtil implements IFGInteropUtil
+public class FGWebInteropUtil implements IFGInteropUtil
 {
-    private final double unitSizePx_;
-    private final Font referenceFont_;
-    private final FontMetrics referenceFontMetrics_;
+    // TODO This is still a dummy implementation
 
-    public FGDummyInteropUtil(int unitSizePx)
+    private final double unitSizePx_;
+    private Font referenceFont_;
+    private FontMetrics referenceFontMetrics_;
+
+    public FGWebInteropUtil(int unitSizePx)
     {
         unitSizePx_ = unitSizePx;
         referenceFont_ = new Font("Tahoma", Font.PLAIN, 12);
-        // This will give FontMetrics constructed basing on default FontRenderContext
-        // (identity transformation, no antialiasing, no fractional metrics) which is
-        // a rendering device state that current FlatGUI implementation counts on
-        referenceFontMetrics_ = new Container().getFontMetrics(referenceFont_);
+        referenceFontMetrics_ = getDefaultReferenceFontMetrics(referenceFont_);
     }
 
     public double getStringWidth(String str)
-    {
-        return getStringWidth(str, referenceFont_);
-    }
-
-    public double getStringWidth(String str, Font font)
     {
         double widthPx = SwingUtilities.computeStringWidth(referenceFontMetrics_, str);
         return widthPx / unitSizePx_;
@@ -46,13 +38,16 @@ public class FGDummyInteropUtil implements IFGInteropUtil
 
     public double getFontAscent()
     {
-        return getFontAscent(referenceFont_);
-    }
-
-    public double getFontAscent(Font font)
-    {
         double heightPx = referenceFontMetrics_.getAscent();
         //@todo what does this 0.75 mean?
         return 0.75 * heightPx / unitSizePx_;
+    }
+
+    private static FontMetrics getDefaultReferenceFontMetrics(Font font)
+    {
+        // This will give FontMetrics constructed basing on default FontRenderContext
+        // (identity transformation, no antialiasing, no fractional metrics) which is
+        // a rendering device state that current FlatGUI implementation counts on
+        return new Container().getFontMetrics(font);
     }
 }

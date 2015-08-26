@@ -25,12 +25,6 @@ import java.util.*;
  */
 class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
 {
-    public static final String CHANNEL_NAME = "mouse";
-
-//    public static final String MOUSE_X_VEC_GENERAL_PROPERTY = "MouseXVec";
-//    public static final String MOUSE_Y_VEC_GENERAL_PROPERTY = "MouseYVec";
-
-
     private final int unitSizePx_;
 
     private boolean leftButtonDown_;
@@ -48,23 +42,7 @@ class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
     }
 
     @Override
-    public Map<String, Object> initialize(IFGModule fgModule)
-    {
-        return null;
-    }
-
-    @Override
-    public Map<String, Object> getTargetedPropertyValues(MouseEvent mouseEvent)
-    {
-        Map<String, Object> map = new HashMap<>();
-
-        map.put(CHANNEL_NAME, mouseEvent);
-
-        return map;
-    }
-
-    @Override
-    public Map<MouseEvent, Collection<Object>> getTargetCellIds(MouseEvent mouseEvent, IFGModule fgModule, Map<String, Object> generalPropertyMap)
+    public Map<MouseEvent, Collection<Object>> getTargetCellIds(MouseEvent mouseEvent, IFGModule fgModule)
     {
         boolean newLeftButtonDown = (mouseEvent.getModifiersEx() & MouseEvent.BUTTON1_DOWN_MASK) == MouseEvent.BUTTON1_DOWN_MASK;
 

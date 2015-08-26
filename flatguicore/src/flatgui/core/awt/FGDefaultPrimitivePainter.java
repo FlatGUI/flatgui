@@ -11,13 +11,17 @@ package flatgui.core.awt;
 
 
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import clojure.lang.Var;
+import flatgui.core.util.FGChangeEvent;
+import flatgui.core.util.IFGChangeListener;
 
 /**
  * @author Denys Lebediev
@@ -50,6 +54,9 @@ public class FGDefaultPrimitivePainter implements IFGPrimitivePainter
     private Map<String, BiConsumer<Graphics2D, Object[]>> customMethods_;
     private Map<String, Method> methodByNameCache_;
 
+    private Font lastFont_ = null;
+    private final List<IFGChangeListener<Font>> fontChangeListenerList_;
+
     public FGDefaultPrimitivePainter(double unitSizePx)
     {
         imageLoader_ = new FGImageLoader();
@@ -66,6 +73,14 @@ public class FGDefaultPrimitivePainter implements IFGPrimitivePainter
         methodByNameCache_ = new HashMap<>();
 
         unitSizePx_ = unitSizePx;
+
+        fontChangeListenerList_ = new ArrayList<>();
+    }
+
+    @Override
+    public void addFontChangeListener(IFGChangeListener<Font> fontChangeListener)
+    {
+        fontChangeListenerList_.add(fontChangeListener);
     }
 
     /*
@@ -212,6 +227,15 @@ public class FGDefaultPrimitivePainter implements IFGPrimitivePainter
         if (font != null)
         {
             g.setFont(font);
+            if (lastFont_ == null || !lastFont_.equals(font))
+            {
+                FGChangeEvent<Font> event = new FGChangeEvent<>(font);
+                for (IFGChangeListener<Font> l : fontChangeListenerList_)
+                {
+                    l.onChange(event);
+                }
+            }
+            lastFont_ = font;
         }
     }
 }

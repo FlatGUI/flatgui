@@ -10,9 +10,7 @@
 
 package flatgui.core.websocket;
 
-import flatgui.core.FGContainer;
-import flatgui.core.IFGContainerHost;
-import flatgui.core.IFGTemplate;
+import flatgui.core.*;
 
 import java.net.InetAddress;
 import java.util.Map;
@@ -66,7 +64,7 @@ class FGContainerSessionHolder
 
         FGContainerSession s = sessionMap_.computeIfAbsent(
                 getSessionId(template, remoteAddress),
-                k -> sessionHost_.hostContainer(new FGContainer(template, sessionId.toString())));
+                k -> sessionHost_.hostContainer(new FGContainer(template, sessionId.toString(), new FGWebInteropUtil(IFGContainer.UNIT_SIZE_PX))));
 
         FGAppServer.getFGLogger().debug(toString() + " state:");
         FGAppServer.getFGLogger().debug(sessionMap_.toString());

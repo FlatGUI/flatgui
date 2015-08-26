@@ -10,18 +10,12 @@
 
 package flatgui.core;
 
-import java.awt.*;
-
 /**
  * @author Denis Lebedev
  */
 public interface IFGInteropUtil
 {
-    public double getStringWidth(String str);
+    double getStringWidth(String str);
 
-    public double getStringWidth(String str, Font font);
-
-    public double getFontAscent();
-
-    public double getFontAscent(Font font);
+    double getFontAscent();
 }

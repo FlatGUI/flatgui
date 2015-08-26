@@ -27,34 +27,25 @@ import java.util.function.Function;
 public interface IFGContainer
 {
     // TODO
-    public static final int UNIT_SIZE_PX = 64;
-    public static final String GENERAL_PROPERTY_UNIT_SIZE = "UnitSizePx";
+    public int UNIT_SIZE_PX = 64;
 
+    String getId();
 
-    public String getId();
+    void initialize();
 
-    public void initialize();
+    void unInitialize();
 
-    public void unInitialize();
+    boolean isActive();
 
-    public boolean isActive();
+    void addEvolveConsumer(IFGEvolveConsumer consumer);
 
-    public void addEvolveConsumer(IFGEvolveConsumer consumer);
+    IFGModule getFGModule();
 
-    public IFGModule getFGModule();
+    Function<Object, Future<Set<List<Keyword>>>> connect(ActionListener eventFedCallback, Object hostContext);
 
-    public Function<Object, Future<Set<List<Keyword>>>> connect(ActionListener eventFedCallback, Object hostContext);
+    <T> Future<T> submitTask(Callable<T> callable);
 
-    public <T> Future<T> submitTask(Callable<T> callable);
+    Future<Set<List<Keyword>>> feedEvent(Object repaintReason);
 
-    public Future<Set<List<Keyword>>> feedEvent(Object repaintReason);
-
-    public Future<Set<List<Keyword>>> feedTargetedEvent(Collection<Object> targetCellIdPath, Object repaintReason);
-
-    // TODO following methods do not belong to here
-
-    public Object getGeneralProperty(String propertyName);
-
-    public Object getAWTUtil();
-
+    Future<Set<List<Keyword>>> feedTargetedEvent(Collection<Object> targetCellIdPath, Object repaintReason);
 }

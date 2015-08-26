@@ -8,27 +8,22 @@
  * You must not remove this notice, or any other, from this software.
  */
 
-package flatgui.core;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+package flatgui.core.util;
 
 /**
  * @author Denis Lebedev
  */
-public abstract class FGFocusTargetedEventParser<E> implements IFGInputEventParser<E>
+public class FGChangeEvent<T>
 {
-    @Override
-    public Map<E, Collection<Object>> getTargetCellIds(E event, IFGModule fgModule)
+    private final T newValue_;
+
+    public FGChangeEvent(T newValue)
     {
-        Map<E, Collection<Object>> map = new HashMap<>();
-        List focusedPath = fgModule.getFocusedPath();
-        if (focusedPath != null)
-        {
-            map.put(event, focusedPath);
-        }
-        return map;
+        newValue_ = newValue;
+    }
+
+    public T getNewValue()
+    {
+        return newValue_;
     }
 }

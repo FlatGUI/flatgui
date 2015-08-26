@@ -19,27 +19,22 @@ import java.util.Map;
  */
 public interface IFGInputEventParser<Reason>
 {
-    public Map<String, Object> initialize(IFGModule fgModule);
-
-    public Map<String, Object> getTargetedPropertyValues(Reason reason);
-
     /**
      * Determines target cells that need to receive given update. Depending
      * of the nature of update, implementation my decide to direct it to
      * different cells. For example, mouse updates may be targeted to cells
      * that are under cusror at the moment; keyboard updates may be targeted
      * to focus owner; timer updates may be targeted to cells that are explicitly
-     * subscribed to the times. All these criterias may be calculated with the
+     * subscribed to the timers. All these criterias may be calculated with the
      * help of fgModule passed as an argument. Implementation may generate more
      * that one reasons and target cell groups if needed
      *
      * @param reason the update
      * @param fgModule FlatGUI module that may be used by implementation to
      *                 find out what cells should receive the update.
-     * @param generalPropertyMap
      * @return a map of reason to target cell ids. Ids may be null in case all
      *         cells should receive the update.
      */
-    public Map<Reason, Collection<Object>> getTargetCellIds(Reason reason, IFGModule fgModule, Map<String, Object> generalPropertyMap);
+    Map<Reason, Collection<Object>> getTargetCellIds(Reason reason, IFGModule fgModule);
 
 }

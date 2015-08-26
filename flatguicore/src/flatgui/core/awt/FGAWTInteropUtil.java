@@ -7,12 +7,17 @@
  * the terms of this license.
  * You must not remove this notice, or any other, from this software.
  */
+
 package flatgui.core.awt;
 
-import flatgui.core.IFGInteropUtil;
+import java.awt.Container;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.SwingUtilities;
+
+import flatgui.core.IFGInteropUtil;
 
 /**
  * @author Denys Lebediev
@@ -21,50 +26,67 @@ import java.awt.*;
  */
 public class FGAWTInteropUtil implements IFGInteropUtil
 {
-    // TODO temporary
-    private final Component hostComponent_;
-    // TODO temporary
-    private final Font font_;
-
     private final double unitSizePx_;
+    private Font referenceFont_;
+    private FontMetrics referenceFontMetrics_;
+    private Graphics referenceGraphics_;
 
-    public FGAWTInteropUtil(Component hostComponent, int unitSizePx)
+    public FGAWTInteropUtil(int unitSizePx)
     {
-        hostComponent_ = hostComponent;
-        font_ = UIManager.getFont("Label.font");
         unitSizePx_ = unitSizePx;
+        referenceFont_ = getDefaultFont();
+        referenceFontMetrics_ = getDefaultReferenceFontMetrics(referenceFont_);
     }
 
+    @Override
     public double getStringWidth(String str)
     {
-        return getStringWidth(str, font_);
-    }
-
-    public double getStringWidth(String str, Font font)
-    {
-        if (font == null)
-        {
-            throw new NullPointerException("Font is null");
-        }
-
-        double widthPx = SwingUtilities.computeStringWidth(
-                hostComponent_.getFontMetrics(font), str);
+        double widthPx = SwingUtilities.computeStringWidth(referenceFontMetrics_, str);
         return widthPx / unitSizePx_;
     }
 
+    @Override
     public double getFontAscent()
     {
-        return getFontAscent(font_);
-    }
-
-    public double getFontAscent(Font font)
-    {
-        //Component c = hostComponent_ != null ? hostComponent_ : dummyComponent_;
-        Component c = hostComponent_;
-        FontMetrics fm = c.getFontMetrics(font);
-        double heightPx = fm.getAscent();
+        double heightPx = referenceFontMetrics_.getAscent();
         //@todo what does this 0.75 mean?
         return 0.75 * heightPx / unitSizePx_;
     }
 
+    // Non-public
+
+    void setReferenceFont(Font font)
+    {
+        referenceFont_ = font;
+        updateReferenceFontMetrics();
+    }
+
+    void setReferenceGraphics(Graphics g)
+    {
+        referenceGraphics_ = g;
+        updateReferenceFontMetrics();
+    }
+
+    private void updateReferenceFontMetrics()
+    {
+        if (referenceGraphics_ != null)
+        {
+            referenceFontMetrics_ = referenceGraphics_.getFontMetrics(referenceFont_);
+        }
+    }
+
+    // Defaults to start with for any (trouble) case when nothing else provided
+
+    private static Font getDefaultFont()
+    {
+        return new Font("Tahoma", Font.PLAIN, 12);
+    }
+
+    private static FontMetrics getDefaultReferenceFontMetrics(Font font)
+    {
+        // This will give FontMetrics constructed basing on default FontRenderContext
+        // (identity transformation, no antialiasing, no fractional metrics) which is
+        // a rendering device state that current FlatGUI implementation counts on
+        return new Container().getFontMetrics(font);
+    }
 }

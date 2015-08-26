@@ -25,15 +25,15 @@
     (get-container-atom container-name)
     (fn [c] (flatgui.widgets.componentbase/evolve-container c target-cell-ids reason))))
 
-(defn register-container [container-name container]
-  (if (and
-        (get-container-atom-var container-name)
-        (get-container-atom container-name)
-        (get-container container-name))
-    (flatgui.base/log-debug "Restored existing container name = " container-name " id = " (:id container))
-    (do
-      (register-container-internal
-        container-name
-        ;(flatgui.widgets.componentbase/initialize container)
-        container)
-      (flatgui.base/log-debug "Registered container name = " container-name " id = " (:id container) (System/identityHashCode container)))))
+(defn register-container [container-name container-template interop-util]
+  (let [container (assoc container-template :interop interop-util)]
+    (if (and
+          (get-container-atom-var container-name)
+          (get-container-atom container-name)
+          (get-container container-name))
+      (flatgui.base/log-debug "Restored existing container name = " container-name " id = " (:id container))
+      (do
+        (register-container-internal
+          container-name
+          container)
+        (flatgui.base/log-debug "Registered container name = " container-name " id = " (:id container) (System/identityHashCode container))))))

@@ -8,27 +8,18 @@
  * You must not remove this notice, or any other, from this software.
  */
 
-package flatgui.core;
+package flatgui.core.awt;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import flatgui.core.IFGContainer;
 
 /**
  * @author Denis Lebedev
  */
-public abstract class FGFocusTargetedEventParser<E> implements IFGInputEventParser<E>
+public class FGDummyInteropUtil extends FGAWTInteropUtil
 {
-    @Override
-    public Map<E, Collection<Object>> getTargetCellIds(E event, IFGModule fgModule)
+    public FGDummyInteropUtil()
     {
-        Map<E, Collection<Object>> map = new HashMap<>();
-        List focusedPath = fgModule.getFocusedPath();
-        if (focusedPath != null)
-        {
-            map.put(event, focusedPath);
-        }
-        return map;
+        // TODO Some initial default unit size here
+        super(IFGContainer.UNIT_SIZE_PX);
     }
 }

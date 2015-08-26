@@ -13,6 +13,7 @@ package flatgui.core.awt;
 import flatgui.core.FGContainer;
 import flatgui.core.FGHostStateEvent;
 import flatgui.core.IFGContainer;
+import flatgui.core.IFGInteropUtil;
 import flatgui.core.awt.FGDefaultPrimitivePainter;
 import flatgui.core.awt.IFGPrimitivePainter;
 
@@ -36,14 +37,20 @@ public class HostComponent extends Canvas
 
     private boolean appTriggered_ = false;
 
-    public HostComponent(IFGContainer fgContainer)
+    private final FGAWTInteropUtil interopUtil_;
+
+    public HostComponent()
     {
         setFocusTraversalKeysEnabled(false);
-
-        fgContainer_ = fgContainer;
+        interopUtil_ = new FGAWTInteropUtil(FGContainer.UNIT_SIZE_PX);
         primitivePainter_ = new FGDefaultPrimitivePainter(FGContainer.UNIT_SIZE_PX);
-
+        primitivePainter_.addFontChangeListener(e -> interopUtil_.setReferenceFont(e.getNewValue()));
         setFocusable(true);
+    }
+
+    public void initialize(IFGContainer fgContainer)
+    {
+        fgContainer_ = fgContainer;
     }
 
     public ActionListener getEventFedCallback()
@@ -91,6 +98,7 @@ public class HostComponent extends Canvas
 
             Graphics bg = getBufferGraphics();
             ((Graphics2D)bg).setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            interopUtil_.setReferenceGraphics(bg);
 
             java.util.List<Object> pList = paintResult.get();
             paintSequence(bg, pList);
