@@ -12,6 +12,7 @@ package flatgui.samples;
 
 import flatgui.core.*;
 import flatgui.core.awt.FGAWTContainerHost;
+import flatgui.core.awt.HostComponent;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -47,21 +48,20 @@ public class FGColorChooserDemo
                 InputStream is = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/colorchooser.clj");
                 String sourceCode = new Scanner(is).useDelimiter("\\Z").next();
 
-                IFGTemplate colorChooserTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
+                IFGTemplate appTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
 
-                IFGContainer colorChooserInstance = new FGContainer(colorChooserTemplate);
-
-                colorChooserInstance.initialize();
-
-                IFGContainerHost<Component> awtHost = new FGAWTContainerHost();
-                Component awtComponent = awtHost.hostContainer(colorChooserInstance);
+                HostComponent hc = new HostComponent();
+                IFGContainer appInstance = new FGContainer(appTemplate, hc.getInterop());
+                appInstance.initialize();
+                IFGContainerHost<Component> awtHost = new FGAWTContainerHost(hc);
+                Component awtComponent = awtHost.hostContainer(appInstance);
 
                 frame.add(awtComponent, BorderLayout.CENTER);
                 frame.addWindowListener(new WindowAdapter()
                 {
                     public void windowClosing(WindowEvent we)
                     {
-                        colorChooserInstance.unInitialize();
+                        appInstance.unInitialize();
                         System.exit(0);
                     }
                 });

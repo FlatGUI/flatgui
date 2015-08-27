@@ -12,6 +12,7 @@ package flatgui.samples;
 
 import flatgui.core.*;
 import flatgui.core.awt.FGAWTContainerHost;
+import flatgui.core.awt.HostComponent;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -49,11 +50,10 @@ public class FGCompoundDemo
 
                 IFGTemplate appTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
 
-                IFGContainer appInstance = new FGContainer(appTemplate);
-
+                HostComponent hc = new HostComponent();
+                IFGContainer appInstance = new FGContainer(appTemplate, hc.getInterop());
                 appInstance.initialize();
-
-                IFGContainerHost<Component> awtHost = new FGAWTContainerHost();
+                IFGContainerHost<Component> awtHost = new FGAWTContainerHost(hc);
                 Component awtComponent = awtHost.hostContainer(appInstance);
 
                 frame.add(awtComponent, BorderLayout.CENTER);

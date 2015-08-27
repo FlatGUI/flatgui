@@ -39,13 +39,22 @@ public class HostComponent extends Canvas
 
     private final FGAWTInteropUtil interopUtil_;
 
+    private Font lastUserDefinedFont_ = null;
+
     public HostComponent()
     {
         setFocusTraversalKeysEnabled(false);
         interopUtil_ = new FGAWTInteropUtil(FGContainer.UNIT_SIZE_PX);
         primitivePainter_ = new FGDefaultPrimitivePainter(FGContainer.UNIT_SIZE_PX);
-        primitivePainter_.addFontChangeListener(e -> interopUtil_.setReferenceFont(e.getNewValue()));
+        primitivePainter_.addFontChangeListener(e -> {
+            lastUserDefinedFont_ = e.getNewValue();
+            interopUtil_.setReferenceFont(lastUserDefinedFont_);});
         setFocusable(true);
+    }
+
+    public final IFGInteropUtil getInterop()
+    {
+        return interopUtil_;
     }
 
     public void initialize(IFGContainer fgContainer)
@@ -97,7 +106,15 @@ public class HostComponent extends Canvas
             Future<java.util.List<Object>> paintResult = fgContainer_.submitTask(() -> fgContainer_.getFGModule().getPaintAllSequence(clipX, clipY, clipW, clipH));
 
             Graphics bg = getBufferGraphics();
-            ((Graphics2D)bg).setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            ((Graphics2D) bg).setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            if (lastUserDefinedFont_ != null)
+            {
+                bg.setFont(lastUserDefinedFont_);
+            }
+            else
+            {
+                interopUtil_.setReferenceFont(bg.getFont());
+            }
             interopUtil_.setReferenceGraphics(bg);
 
             java.util.List<Object> pList = paintResult.get();

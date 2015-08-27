@@ -48,9 +48,9 @@ public class FGContainer implements IFGContainer
 
     private List<IFGEvolveConsumer> evolveConsumers_;
 
-    public FGContainer(IFGTemplate template)
+    public FGContainer(IFGTemplate template, IFGInteropUtil interopUtil)
     {
-        this(template, template.getContainerVarName(), new FGAWTInteropUtil(IFGContainer.UNIT_SIZE_PX));
+        this(template, template.getContainerVarName(), interopUtil);
     }
 
     public FGContainer(IFGTemplate template, String containerId, IFGInteropUtil interopUtil)

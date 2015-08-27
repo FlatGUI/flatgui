@@ -12,6 +12,7 @@ package flatgui.samples;
 import clojure.lang.Keyword;
 import flatgui.core.*;
 import flatgui.core.awt.FGAWTContainerHost;
+import flatgui.core.awt.HostComponent;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -48,23 +49,21 @@ public class FGHelloWorldDemo
                 InputStream is = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/helloworld.clj");
                 String sourceCode = new Scanner(is).useDelimiter("\\Z").next();
 
-                IFGTemplate helloWorldTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
+                IFGTemplate appTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
 
-                IFGContainer helloWorldInstance = new FGContainer(helloWorldTemplate);
-
-                helloWorldInstance.initialize();
-
-                helloWorldInstance.addEvolveConsumer(new DemoConsumer());
-
-                IFGContainerHost<Component> awtHost = new FGAWTContainerHost();
-                Component awtComponent = awtHost.hostContainer(helloWorldInstance);
+                HostComponent hc = new HostComponent();
+                IFGContainer appInstance = new FGContainer(appTemplate, hc.getInterop());
+                appInstance.initialize();
+                appInstance.addEvolveConsumer(new DemoConsumer());
+                IFGContainerHost<Component> awtHost = new FGAWTContainerHost(hc);
+                Component awtComponent = awtHost.hostContainer(appInstance);
 
                 frame.add(awtComponent, BorderLayout.CENTER);
                 frame.addWindowListener(new WindowAdapter()
                 {
                     public void windowClosing(WindowEvent we)
                     {
-                        helloWorldInstance.unInitialize();
+                        appInstance.unInitialize();
                         System.exit(0);
                     }
                 });

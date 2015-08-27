@@ -12,6 +12,7 @@ package flatgui.samples;
 import flatgui.controlcenter.view.ControlCenterFrame;
 import flatgui.core.*;
 import flatgui.core.awt.FGAWTContainerHost;
+import flatgui.core.awt.HostComponent;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -59,21 +60,20 @@ public class FGBookPanelDemo
                 InputStream is = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/bookpanelmain.clj");
                 String sourceCode = new Scanner(is).useDelimiter("\\Z").next();
 
-                IFGTemplate bookPanelTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
+                IFGTemplate appTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
 
-                IFGContainer bookPanelInstance = new FGContainer(bookPanelTemplate);
-
-                bookPanelInstance.initialize();
-
-                IFGContainerHost<Component> awtHost = new FGAWTContainerHost();
-                Component awtComponent = awtHost.hostContainer(bookPanelInstance);
+                HostComponent hc = new HostComponent();
+                IFGContainer appInstance = new FGContainer(appTemplate, hc.getInterop());
+                appInstance.initialize();
+                IFGContainerHost<Component> awtHost = new FGAWTContainerHost(hc);
+                Component awtComponent = awtHost.hostContainer(appInstance);
 
                 frame.add(awtComponent, BorderLayout.CENTER);
                 frame.addWindowListener(new WindowAdapter()
                 {
                     public void windowClosing(WindowEvent we)
                     {
-                        bookPanelInstance.unInitialize();
+                        appInstance.unInitialize();
                         System.exit(0);
                     }
                 });
