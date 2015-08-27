@@ -10,13 +10,9 @@
       :author "Denys Lebediev"}
   flatgui.widgets.panel
   (:require [flatgui.base :as fg]
-            [flatgui.paint :as fgp]
             [flatgui.widgets.component]))
 
-(fgp/deflookfn panel-look (:theme)
-  (fgp/call-look flatgui.widgets.component/component-look))
-
+;; For now, inherits :skin-key from component
 (fg/defwidget "panel"
-  {:look panel-look
-   :consumes? (fn [_] false)}
+  {:consumes? (fn [_] false)}
   flatgui.widgets.component/component)

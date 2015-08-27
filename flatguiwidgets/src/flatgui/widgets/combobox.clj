@@ -9,8 +9,7 @@
 (ns ^{:doc "Combo box widget"
       :author "Denys Lebediev"}
   flatgui.widgets.combobox
-  (:require [flatgui.awt :as awt]
-            [flatgui.base :as fg]
+  (:require [flatgui.base :as fg]
             [flatgui.widgets.component]
             [flatgui.widgets.textfield]
             [flatgui.widgets.abstractbutton]
@@ -57,7 +56,7 @@
 (fg/defevolverfn combo-text-model-evolver :model
   (let [text (get-clicked-item component)]
     (if text
-      (let [len (awt/strlen text)]
+      (let [len (.length text)]
         (textfield/create-single-line-model text len 0))
       (flatgui.widgets.textfield/text-model-evolver component))))
 

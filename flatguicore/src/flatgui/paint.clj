@@ -92,7 +92,7 @@
       (list (first param) (gen-param-binding (next param))))))
 
 
-(def PREDEFINED-PARAMS '(:clip-size :content-size :background :foreground))
+(def PREDEFINED-PARAMS '(:clip-size :content-size :background :foreground :interop))
 
 ;;; TODO param-list should be a vector rather than list
 (defmacro deflookfn [fnname param-list & awt-calls]

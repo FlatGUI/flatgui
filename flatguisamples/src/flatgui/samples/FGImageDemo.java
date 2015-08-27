@@ -10,7 +10,6 @@
 
 package flatgui.samples;
 
-import clojure.lang.Keyword;
 import flatgui.core.*;
 import flatgui.core.awt.FGAWTContainerHost;
 
@@ -20,7 +19,6 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.InputStream;
 import java.util.*;
-import java.util.List;
 
 /**
  * @author Denis Lebedev

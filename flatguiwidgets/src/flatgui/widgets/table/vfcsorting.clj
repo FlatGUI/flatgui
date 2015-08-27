@@ -106,7 +106,7 @@
    :mode :none
    :degree 0
    :should-evolve-header false
-   :look vfc/sorting-look
+   :skin-key [:table :sorting]
    :evolvers {:should-evolve-header sorting-header-should-evolve
               :mode sorting-mode-evolver
               :degree sorting-degree-evolver}}

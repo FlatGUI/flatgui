@@ -17,11 +17,6 @@
             [flatgui.widgets.panel]
             [flatgui.widgets.table.commons :as tcom]))
 
-;; TODO move to theme namespace
-;;
-(fgp/deflookfn header-look (:theme :mouse-down)
-  (awt/setColor (:prime-4 theme))
-  (awt/fillRect 0 0 w h))
 
 (fg/defevolverfn header-clip-size-evolver :clip-size
   (let [ content-clip-size (get-property component [:content-pane] :clip-size)
@@ -76,9 +71,7 @@
     :position-matrix (m/translation-matrix 0 0 0)
     :active-headers nil
     :fit-width false
-
-    :look header-look
-
+    :skin-key [:table :tableheader]
     :evolvers {
                 :content-size header-content-size-evolver
                 :clip-size header-clip-size-evolver

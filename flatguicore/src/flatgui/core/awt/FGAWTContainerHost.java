@@ -28,6 +28,11 @@ public class FGAWTContainerHost implements IFGContainerHost<Component>
 {
     private final HostComponent c_;
 
+    public FGAWTContainerHost()
+    {
+        c_ = new HostComponent();
+    }
+
     public FGAWTContainerHost(HostComponent c)
     {
         c_ = c;

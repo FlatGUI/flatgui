@@ -78,68 +78,6 @@
           (take-last (- (count v-rest) (count sub-range)) v-rest)
           (conj result [begin sub-range-size])))))))
 
-;;;TODO for some unknown reason it cannot parse vfcsorting when this functions is declared there
-;;;
-;;;
-(fgp/deflookfn sorting-look (:theme :mode :degree)
-  ;(flatgui.awt/setColor foreground)
-  (let [text (if (> degree 0) (str degree))
-        tx (- w (awt/strw text))
-        hy (/ h 2)
-        ty (+ hy (awt/halfstrh))]
-    [ (cond
-        (= :asc mode)
-        (let [lx1 (* w 0.375)
-              ly1 (- (/ h 2) (* w 0.0625))
-              lx2 (* w 0.5)
-              ly2 (- (/ h 2) (* w 0.25))
-              lx3 (awt/+px (* w 0.625))
-              ly3 (- (/ h 2) (* w 0.0625))]
-          (flatgui.skins.flat/arrow-up lx1 ly1 lx2 ly2 lx3 ly3 theme (:prime-1 theme) (:extra-2 theme)))
-        (= :desc mode)
-        (let [lx1 (* w 0.375)
-              ly1 (+ (/ h 2) (* w 0.0625))
-              lx2 (* w 0.5)
-              ly2 (+ (/ h 2) (* w 0.25))
-              lx3 (awt/+px (* w 0.625))
-              ly3 (+ (/ h 2) (* w 0.0625))]
-          (flatgui.skins.flat/arrow-down lx1 ly1 lx2 ly2 lx3 ly3 theme (:prime-1 theme) (:extra-2 theme))))
-     ;(if text (flatgui.awt/drawString text tx ty))
-     ]))
-
-(defn- set-vfc-color [mode has-mouse theme]
-  (awt/setColor (cond
-                  (not= :none mode) (:prime-1 theme)
-                  has-mouse (awt/mix-colors (:extra-1 theme) (:prime-1 theme))
-                  :else (awt/mix-colors31 (:extra-1 theme) (:prime-1 theme)))))
-
-(fgp/deflookfn filtering-look (:theme :mode :has-mouse)
-  (let [fw (/ w 2)
-        btm (+ (/ h 2) (/ fw 2))
-        mid (- (/ h 2) (/ fw 4))
-        top (- (/ h 2) (/ fw 2))]
-    [(set-vfc-color mode has-mouse theme)
-     (awt/drawLine (* w 0.25) btm (* w 0.75) btm)
-     (awt/drawLine (* w 0.25) btm (* w 0.25) mid)
-     (awt/drawLine (* w 0.75) btm (* w 0.75) mid)
-     (awt/drawLine (* w 0.25) mid (* w 0.3125) top)
-     (awt/drawLine (* w 0.3125) top (* w 0.375) top)
-     (awt/drawLine (* w 0.375) top (* w 0.5) mid)
-     (awt/drawLine (* w 0.5) mid (* w 0.5625) top)
-     (awt/drawLine (* w 0.5625) top (* w 0.625) top)
-     (awt/drawLine (* w 0.625) top (* w 0.75) mid)
-     (awt/fillRect (* w 0.5625) (awt/+px top) (awt/+px (* w 0.125)) (- mid top))]))
-
-(fgp/deflookfn grouping-look (:theme :mode :degree :has-mouse)
-  (let [e (awt/+px 0 3) ; TODO (* 0.25 w)
-        t (/ e 2)
-        he (awt/+px 0 2) ; TODO (/ e 2)
-        ]
-    [(set-vfc-color mode has-mouse theme)
-     (awt/fillRect 0 t e e)
-     (awt/fillRect (+ e he) t e e)
-     (awt/fillRect (+ e he e he) t e e)]))
-
 (defn get-new-mode [component]
   (let [ old-mode (:mode component)
          mode-vec (:mode-vec component)]

@@ -9,9 +9,7 @@
 (ns ^{:doc "Drop down menu for combo box"
       :author "Denys Lebediev"}
   flatgui.widgets.combobox.dropdown
-  (:require [flatgui.awt :as awt]
-            [flatgui.paint :as fgp]
-            [flatgui.base :as fg]
+  (:require [flatgui.base :as fg]
             [flatgui.widgets.component]
             [flatgui.widgets.table.columnheader]
             [flatgui.widgets.abstractmenu]
@@ -23,11 +21,6 @@
 
 (def dropdown-default-row-height 0.25)
 
-
-(fgp/deflookfn dropdown-content-look (:theme)
-  (fgp/call-look flatgui.widgets.component/component-look)
-  (awt/setColor (:prime-6 theme))
-  (awt/drawRect 0 0 w- h-))
 
 (fg/defevolverfn dropdown-contnent-row-count-evolver :row-count
   (let [items (get-property component [:_] :model)]
@@ -98,7 +91,7 @@
                                 :wheel-rotation-step-y dropdown-default-row-height
                                 :row-count 0
                                 :row-order []
-                                :look dropdown-content-look
+                                :skin-key [:combobox :dropdown :content-pane]
                                 :evolvers {:row-count dropdown-contnent-row-count-evolver
                                            ; TODO Find out why regular evolver reverses row order for dropdowns and then get rid of this one
                                            :row-order dropdown-row-order-evolver}})}}

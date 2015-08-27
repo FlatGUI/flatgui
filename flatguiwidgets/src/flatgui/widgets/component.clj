@@ -22,38 +22,6 @@ flatgui.widgets.component
             [flatgui.inputchannels.mouse :as mouse])
   (:import (flatgui.core.awt FGDummyInteropUtil)))
 
-;(fgp/deflookfn component-look (:background :abs-position-matrix :clip-size)
-;  (if (= :main (:id comp-property-map))
-;    [(do
-;       ;(if (= :main (:id comp-property-map)) (println " component-look for "
-;       ;                                               (:id comp-property-map) " dirty-rects = " dirty-rects
-;       ;                                               " abs pm = " abs-position-matrix
-;       ;                                               " clip size = " clip-size))
-;       (awt/setColor background))
-;     ;(awt/fillRect 0 0 (m/x content-size) (m/y content-size))
-;     (if (and dirty-rects abs-position-matrix)
-;       ;Note: here it a single {:x .. :y .. :w .. :h ..} object, not a collection like in previous version. TODO rename parameter dirty-rects->dirty-rect
-;       (let [ inter (flatgui.util.rectmath/rect&
-;                      dirty-rects
-;                      {:x (mx-x abs-position-matrix)
-;                       :y (mx-y abs-position-matrix)
-;                       :w (m/x clip-size)
-;                       :h (m/y clip-size)})]
-;         (if inter
-;           (awt/fillRect
-;             (- (:x inter) (mx-x abs-position-matrix))
-;             (- (:y inter) (mx-y abs-position-matrix))
-;             (:w inter)
-;             (:h inter))))
-;       ;(awt/fillRect 0 0 (m/x content-size) (m/y content-size))
-;       []
-;       )]
-;    [(awt/setColor background)
-;     (awt/fillRect 0 0 (m/x content-size) (m/y content-size))]
-;    ))
-(fgp/deflookfn component-look (:background :abs-position-matrix :clip-size)
-  (awt/setColor background)
-  (awt/fillRect 0 0 (m/x content-size) (m/y content-size)))
 
 (fg/defevolverfn :z-position
   (if (get-property component [:this] :popup)
@@ -99,9 +67,6 @@ flatgui.widgets.component
     :else old-has-mouse))
 
 
-()
-
-
 (defn- default-properties-to-evolve-provider [container target-cell-ids reason]
   (fn [component]
     (let [ exclusions #{:look :evolvers}
@@ -139,7 +104,7 @@ flatgui.widgets.component
     :foreground :prime-6
 
     :children nil
-    :look component-look
+    :skin-key [:component]
     :default-properties-to-evolve-provider default-properties-to-evolve-provider
     :consumes? (fn [_] true)
     :evolvers {:interop interop-evolver

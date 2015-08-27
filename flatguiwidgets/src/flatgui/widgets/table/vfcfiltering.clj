@@ -41,5 +41,5 @@
   { :apply-feature apply-filtering-feature
     :mode-vec [:none :f]
     :mode :none
-    :look vfc/filtering-look}
+    :skin-key [:table :filtering]}
   vfc/vfc)

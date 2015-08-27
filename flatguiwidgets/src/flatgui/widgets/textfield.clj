@@ -32,19 +32,22 @@
    :selection-mark-line 0
    :selection-mark-line-pos selection-mark})
 
-(defn get-hgap [] (awt/halfstrh))
-
-(defn- get-caret-x [text caret-pos]
-  (awt/strw (subs text 0 caret-pos)))
+;; TODO avoid duplication with skin
+(fg/defaccessorfn get-hgap [component] (awt/halfstrh component))
 
 ;; TODO avoid duplication with skin
-(defn- text-str-h [] (* (flatgui.awt/strh) 2.5))
+(fg/defaccessorfn get-caret-x [component text caret-pos]
+  (awt/strw component (subs text 0 caret-pos)))
+
+;; TODO avoid duplication with skin
+(defn text-str-h-impl [interop] (* (flatgui.awt/sh interop) 2.5))
+(fg/defaccessorfn text-str-h [component] (text-str-h-impl (get-property component [:this] :interop)))
 
 (defn deccaretpos [c]
   (if (> c 0) (- c 1) 0))
 
 (defn inccaretpos [c t]
-  (let [len (awt/strlen t)]
+  (let [len (.length t)]
     (if (< c len) (+ c 1) len)))
 
 (defn evovle-caret-pos [component h old-caret-pos old-caret-line-pos old-caret-line old-selection-mark old-text old-lines supplied-text]
@@ -57,7 +60,7 @@
                             0)
         with-ctrl (inputbase/with-ctrl? component)]
     (if (or typed (clipboard/clipboard-event? component))
-      (+ old-caret-pos (awt/strlen supplied-text))
+      (+ old-caret-pos (.length supplied-text))
       (if pressed
         (condp = key
           KeyEvent/VK_BACK_SPACE (if (> fwd-selection-len 0) (- old-caret-pos fwd-selection-len) (deccaretpos old-caret-pos))
@@ -68,7 +71,7 @@
                              0
                              (- old-caret-pos old-caret-line-pos))
           KeyEvent/VK_END (if (or (not (:multiline component)) with-ctrl)
-                            (awt/strlen t)
+                            (.length t)
                             (+ old-caret-pos (- (.length (nth old-lines old-caret-line)) old-caret-line-pos)))
           KeyEvent/VK_UP (if (> old-caret-line 0)
                            (- old-caret-pos (+
@@ -83,7 +86,7 @@
                                                 1))  ;1 for linebreak
                              old-caret-pos)
           KeyEvent/VK_PAGE_UP (if (pos? old-caret-line)
-                               (let [lines-skip (int (/ h (text-str-h)))
+                               (let [lines-skip (int (/ h (text-str-h-impl (:interop component))))
                                      first-line (max 0 (- old-caret-line lines-skip))]
                                  (max 0 (+
                                           (-
@@ -93,9 +96,9 @@
                                           (min old-caret-line-pos (.length (nth old-lines first-line))))))
                                old-caret-pos)
           KeyEvent/VK_PAGE_DOWN (if (< old-caret-line (dec (count old-lines)))
-                                  (let [lines-skip (int (/ h (text-str-h)))
+                                  (let [lines-skip (int (/ h (text-str-h-impl (:interop component))))
                                         last-line (min (dec (count old-lines)) (+ old-caret-line lines-skip))]
-                                    (max (awt/strlen t) (+
+                                    (min (.length t) (+
                                                           (+
                                                             old-caret-pos
                                                             (- (.length (nth old-lines old-caret-line)) old-caret-line-pos)
@@ -134,7 +137,7 @@
           backspace (if (> prevcaretpos 0)
                       (str (subs old-text 0 caretpos) (subs old-text (+ caretpos 1)))
                       old-text)
-          delete (if (< prevcaretpos (awt/strlen old-text))
+          delete (if (< prevcaretpos (.length old-text))
                    (str (subs old-text 0 prevcaretpos) (subs old-text (+ caretpos 1)))
                    old-text)
           enter (insert-text old-text prevcaretpos has-selection sstart send "\n")
@@ -179,7 +182,7 @@
           (pos? (count (:lines old-model)))
           (mouse/mouse-left? component))
       (let [click-line (if (get-property [:this] :multiline)
-                         (min (int (/ (mouse/get-mouse-rel-y component) (text-str-h))) (dec (count (:lines old-model))))
+                         (min (int (/ (mouse/get-mouse-rel-y component) (text-str-h component))) (dec (count (:lines old-model))))
                          0)
             click-line-text (nth (:lines old-model) click-line)
             click-x (mouse/get-mouse-rel-x component)
@@ -187,8 +190,8 @@
                              (max
                                0
                                (loop [i 0]
-                                 (if (or (= i (.length click-line-text)) (>= (awt/strw (subs click-line-text 0 i)) click-x))
-                                   (if (> click-x (awt/strw click-line-text)) i (dec i))
+                                 (if (or (= i (.length click-line-text)) (>= (awt/strw component (subs click-line-text 0 i)) click-x))
+                                   (if (> click-x (awt/strw component click-line-text)) i (dec i))
                                    (recur
                                      (inc i)))))
                              0)
@@ -243,14 +246,14 @@
         (:caret-pos model)
         (let [caret-pos (- (:caret-pos model) old-first-visible-symbol)
               text (:text model)
-              caret-x (get-caret-x (subs text old-first-visible-symbol) caret-pos)
-              width (- (m/x (get-property component [:this] :clip-size)) (* 1 (get-hgap)) (awt/px))]
+              caret-x (get-caret-x component (subs text old-first-visible-symbol) caret-pos)
+              width (- (m/x (get-property component [:this] :clip-size)) (* 1 (get-hgap component)) (awt/px))]
           (if (> caret-x width)
             (let [diff (- caret-x width)]
               (+
                 old-first-visible-symbol
                 (loop [i 1]
-                  (if (>= (awt/strw (subs text old-first-visible-symbol (+ old-first-visible-symbol i))) diff)
+                  (if (>= (awt/strw component (subs text old-first-visible-symbol (+ old-first-visible-symbol i))) diff)
                     i
                     (recur
                       (inc i))))))
@@ -273,10 +276,10 @@
       (let [caret-line-pos (:caret-line-pos model)
             caret-line (:caret-line model)
             line-text (nth lines caret-line)
-            caret-x-left (awt/strw (if (< caret-line-pos (.length line-text)) (subs line-text 0 caret-line-pos) line-text))
-            caret-x-right (+ (* 2 (get-hgap)) (awt/strw (if (< caret-line-pos (.length line-text)) (subs line-text 0 caret-line-pos) line-text)))
-            caret-y-top (* caret-line (text-str-h))
-            caret-y-btm (* (inc caret-line) (text-str-h))
+            caret-x-left (awt/strw component (if (< caret-line-pos (.length line-text)) (subs line-text 0 caret-line-pos) line-text))
+            caret-x-right (+ (* 2 (get-hgap component)) (awt/strw component (if (< caret-line-pos (.length line-text)) (subs line-text 0 caret-line-pos) line-text)))
+            caret-y-top (* caret-line (text-str-h component))
+            caret-y-btm (* (inc caret-line) (text-str-h component))
             vmx (- (m/mx-x old-viewport-matrix))
             vmy (- (m/mx-y old-viewport-matrix))
             cs (get-property [:this] :clip-size)]
@@ -313,8 +316,8 @@
           parent-h (m/y parent-size)
           lines (:lines (get-property [:this] :model))]
       (if (pos? (count lines))
-        (let [preferred-w (+ (apply max (map awt/strw lines)) (* 2 (get-hgap)))
-              preferred-h (* (count lines) (text-str-h))]
+        (let [preferred-w (+ (apply max (map #(awt/strw component %) lines)) (* 2 (get-hgap component)))
+              preferred-h (* (count lines) (text-str-h component))]
           (m/defpoint (max preferred-w parent-w) (max preferred-h parent-h)))
         (m/defpoint parent-w parent-h)))
     old-clip-size))

@@ -108,7 +108,7 @@
    :mode-vec [:none :g]
    :mode :none
    :row-groups nil
-   :look vfc/grouping-look
+   :skin-key [:table :grouping]
    :evolvers {:degree grouping-degree-evolver
               :row-groups row-groups-evolver}}
   vfc/vfc)

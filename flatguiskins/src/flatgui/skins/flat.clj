@@ -14,43 +14,85 @@ flatgui.skins.flat
         flatgui.skins.skinbase
         flatgui.comlogic
         flatgui.paint)
-  (:require [flatgui.awt :as awt]))
+  (:require [flatgui.awt :as awt]
+            [flatgui.util.matrix :as m]))
 
-;;;; TODO
-(defn label-look-impl [foreground text h-alignment v-alignment left top w h]
+;;;
+;;; Component
+;;;
+
+;(fgp/deflookfn component-look (:background :abs-position-matrix :clip-size)
+;  (if (= :main (:id comp-property-map))
+;    [(do
+;       ;(if (= :main (:id comp-property-map)) (println " component-look for "
+;       ;                                               (:id comp-property-map) " dirty-rects = " dirty-rects
+;       ;                                               " abs pm = " abs-position-matrix
+;       ;                                               " clip size = " clip-size))
+;       (awt/setColor background))
+;     ;(awt/fillRect 0 0 (m/x content-size) (m/y content-size))
+;     (if (and dirty-rects abs-position-matrix)
+;       ;Note: here it a single {:x .. :y .. :w .. :h ..} object, not a collection like in previous version. TODO rename parameter dirty-rects->dirty-rect
+;       (let [ inter (flatgui.util.rectmath/rect&
+;                      dirty-rects
+;                      {:x (mx-x abs-position-matrix)
+;                       :y (mx-y abs-position-matrix)
+;                       :w (m/x clip-size)
+;                       :h (m/y clip-size)})]
+;         (if inter
+;           (awt/fillRect
+;             (- (:x inter) (mx-x abs-position-matrix))
+;             (- (:y inter) (mx-y abs-position-matrix))
+;             (:w inter)
+;             (:h inter))))
+;       ;(awt/fillRect 0 0 (m/x content-size) (m/y content-size))
+;       []
+;       )]
+;    [(awt/setColor background)
+;     (awt/fillRect 0 0 (m/x content-size) (m/y content-size))]
+;    ))
+(deflookfn component-look (:background :abs-position-matrix :clip-size)
+           (awt/setColor background)
+           (awt/fillRect 0 0 (m/x content-size) (m/y content-size)))
+
+
+;;;
+;;; Common label-look-impl for various components containing text
+;;;
+
+(defn label-look-impl [interop foreground text h-alignment v-alignment left top w h]
   [(flatgui.awt/setColor foreground)
    (let [ dx (condp = h-alignment
-               :left (flatgui.awt/halfstrh)
-               :right (- w (flatgui.awt/strw text) (flatgui.awt/halfstrh))
-               (/ (- w (flatgui.awt/strw text)) 2))
+               :left (flatgui.awt/hsh interop)
+               :right (- w (flatgui.awt/sw interop text) (flatgui.awt/hsh interop))
+               (/ (- w (flatgui.awt/sw interop text)) 2))
          dy (condp = v-alignment
-              :top (+ (flatgui.awt/halfstrh) (flatgui.awt/strh))
-              :bottom (- h (flatgui.awt/halfstrh))
-              (+ (/ h 2) (flatgui.awt/halfstrh)))]
+              :top (+ (flatgui.awt/hsh interop) (flatgui.awt/sh interop))
+              :bottom (- h (flatgui.awt/hsh interop))
+              (+ (/ h 2) (flatgui.awt/hsh interop)))]
      (flatgui.awt/drawString text (+ left dx) (+ top dy)))])
 
 (deflookfn label-look (:text :h-alignment :v-alignment)
-           (label-look-impl foreground text h-alignment v-alignment 0 0 w h))
+  (label-look-impl interop foreground text h-alignment v-alignment 0 0 w h))
 
 
 ;;;; TODO !!!! HGAP and get-caret-x is duplicated: widget and skin. Find place for it single
-(defn get-hgap [] (flatgui.awt/halfstrh))
-(defn- get-caret-x [text caret-pos]
-  (flatgui.awt/strw (if (< caret-pos (.length text)) (subs text 0 caret-pos) text)))
+(defn get-hgap [interop] (flatgui.awt/hsh interop))
+(defn- get-caret-x [interop text caret-pos]
+  (flatgui.awt/sw interop (if (< caret-pos (.length text)) (subs text 0 caret-pos) text)))
 
-(defn- text-str-h [] (* (flatgui.awt/strh) 2.5))
+(defn- text-str-h [interop] (* (flatgui.awt/sh interop) 2.5))
 
-(defn- get-caret-y [caret-line] (* caret-line (text-str-h)))
+(defn- get-caret-y [interop caret-line] (* caret-line (text-str-h interop)))
 
-(defn- get-caret-h [] (- (* (flatgui.awt/strh) 2) (get-hgap)))
+(defn- get-caret-h [interop] (- (* (flatgui.awt/sh interop) 2) (get-hgap interop)))
 
 (deflookfn caret-look ( :model :foreground :first-visible-symbol)
   (let [line (:caret-line model)
         trunk-text (subs (nth (:lines model) line) first-visible-symbol)
         trunk-caret-pos (- (:caret-line-pos model) first-visible-symbol)
-        caret-y (+ (get-caret-y line) (get-hgap))
-        xc (+ (get-hgap) (get-caret-x trunk-text trunk-caret-pos))
-        caret-h (get-caret-h)]
+        caret-y (+ (get-caret-y interop line) (get-hgap interop))
+        xc (+ (get-hgap interop) (get-caret-x interop trunk-text trunk-caret-pos))
+        caret-h (get-caret-h interop)]
     [(setColor foreground)
      (drawLine xc caret-y xc (+ caret-y caret-h))]))
 
@@ -64,7 +106,7 @@ flatgui.skins.flat
                      (fn [i]
                        (let [line-text (nth lines i)]
                          {:line line-text
-                          :y (* i (text-str-h))
+                          :y (* i (text-str-h interop))
                           :line-sstart (if (= i sstart-line) selection-start-in-line 0)
                           :line-send (cond
                                        (and (>= i sstart-line) (< i send-line)) (.length line-text)
@@ -84,17 +126,16 @@ flatgui.skins.flat
               selection-mark (:selection-mark model)]
           [(if (not= caret-pos selection-mark)
              [(setColor (:prime-5 theme))
-              (let [hgap (get-hgap)
+              (let [hgap (get-hgap interop)
                     sstart (:line-sstart line-info)
                     send (:line-send line-info)
-                    x1 (get-caret-x trunk-text sstart)
-                    x2 (get-caret-x trunk-text send)
-                    ]
-                (fillRect (+ hgap x1) (+ hgap (:y line-info)) (- x2 x1) (get-caret-h)))])
+                    x1 (get-caret-x interop trunk-text sstart)
+                    x2 (get-caret-x interop trunk-text send)]
+                (fillRect (+ hgap x1) (+ hgap (:y line-info)) (- x2 x1) (get-caret-h interop)))])
            (if caret-visible (call-look caret-look))
            (if multiline
-             (label-look-impl foreground trunk-text h-alignment v-alignment 0 (:y line-info) w (text-str-h))
-             (label-look-impl foreground trunk-text h-alignment v-alignment 0 0 w h))]))
+             (label-look-impl interop foreground trunk-text h-alignment v-alignment 0 (:y line-info) w (text-str-h interop))
+             (label-look-impl interop foreground trunk-text h-alignment v-alignment 0 0 w h))]))
       line-infos)))
 
 
@@ -398,6 +439,11 @@ flatgui.skins.flat
               (drawLine lx1 (+px ly1 2) (-px lx2) (+px ly2 1))
               (drawLine (+px lx2) (+px ly2 1) lx3 (+px ly3 2))]))
 
+(deflookfn dropdown-content-look (:theme)
+               (call-look component-look)
+               (awt/setColor (:prime-6 theme))
+               (awt/drawRect 0 0 w- h-))
+
 ;;;
 ;;; Scroll Bar
 ;;;
@@ -483,7 +529,7 @@ flatgui.skins.flat
                  (setColor (mix-colors (:prime-4 theme) (:engaged theme)))
                  (drawLine lx1 (+px ly1) lx2 (+px ly2))
                  (drawLine lx2 (+px ly2) lx3 (+px ly3))]))]
-           (label-look-impl foreground text h-alignment v-alignment h 0 w h))
+           (label-look-impl interop foreground text h-alignment v-alignment h 0 w h))
 
 ;;;
 ;;; Slider
@@ -528,6 +574,90 @@ flatgui.skins.flat
            (fillRect 0 (px) (-px w 1) (-px h 2))
            (call-look label-look))
 
+(deflookfn tableheader-look (:theme :mouse-down)
+  (awt/setColor (:prime-4 theme))
+  (awt/fillRect 0 0 w h))
+
+(deflookfn tablecell-look (:theme :anchor :text :h-alignment :v-alignment :foreground)
+               [(awt/setColor (:prime-4 theme))
+                (awt/drawRect 0 0 w- h-)
+                (awt/setColor background)
+                (awt/fillRect 0 0 w- h-)
+                (label-look-impl interop foreground text h-alignment v-alignment 0 0 w h)
+                (if anchor (awt/setColor (:prime-2 theme)))
+                (if anchor (awt/drawRect 0 0 (awt/-px w-) (awt/-px h-)))])
+
+(deflookfn sorting-look (:theme :mode :degree)
+               ;(flatgui.awt/setColor foreground)
+               (let [text (if (> degree 0) (str degree))
+                     tx (- w (awt/sw interop text))
+                     hy (/ h 2)
+                     ty (+ hy (awt/hsh interop))]
+                 [ (cond
+                     (= :asc mode)
+                     (let [lx1 (* w 0.375)
+                           ly1 (- (/ h 2) (* w 0.0625))
+                           lx2 (* w 0.5)
+                           ly2 (- (/ h 2) (* w 0.25))
+                           lx3 (awt/+px (* w 0.625))
+                           ly3 (- (/ h 2) (* w 0.0625))]
+                       (flatgui.skins.flat/arrow-up lx1 ly1 lx2 ly2 lx3 ly3 theme (:prime-1 theme) (:extra-2 theme)))
+                     (= :desc mode)
+                     (let [lx1 (* w 0.375)
+                           ly1 (+ (/ h 2) (* w 0.0625))
+                           lx2 (* w 0.5)
+                           ly2 (+ (/ h 2) (* w 0.25))
+                           lx3 (awt/+px (* w 0.625))
+                           ly3 (+ (/ h 2) (* w 0.0625))]
+                       (flatgui.skins.flat/arrow-down lx1 ly1 lx2 ly2 lx3 ly3 theme (:prime-1 theme) (:extra-2 theme))))
+                  ;(if text (flatgui.awt/drawString text tx ty))
+                  ]))
+
+(defn- set-vfc-color [mode has-mouse theme]
+  (awt/setColor (cond
+                  (not= :none mode) (:prime-1 theme)
+                  has-mouse (awt/mix-colors (:extra-1 theme) (:prime-1 theme))
+                  :else (awt/mix-colors31 (:extra-1 theme) (:prime-1 theme)))))
+
+(deflookfn filtering-look (:theme :mode :has-mouse)
+               (let [fw (/ w 2)
+                     btm (+ (/ h 2) (/ fw 2))
+                     mid (- (/ h 2) (/ fw 4))
+                     top (- (/ h 2) (/ fw 2))]
+                 [(set-vfc-color mode has-mouse theme)
+                  (awt/drawLine (* w 0.25) btm (* w 0.75) btm)
+                  (awt/drawLine (* w 0.25) btm (* w 0.25) mid)
+                  (awt/drawLine (* w 0.75) btm (* w 0.75) mid)
+                  (awt/drawLine (* w 0.25) mid (* w 0.3125) top)
+                  (awt/drawLine (* w 0.3125) top (* w 0.375) top)
+                  (awt/drawLine (* w 0.375) top (* w 0.5) mid)
+                  (awt/drawLine (* w 0.5) mid (* w 0.5625) top)
+                  (awt/drawLine (* w 0.5625) top (* w 0.625) top)
+                  (awt/drawLine (* w 0.625) top (* w 0.75) mid)
+                  (awt/fillRect (* w 0.5625) (awt/+px top) (awt/+px (* w 0.125)) (- mid top))]))
+
+(deflookfn grouping-look (:theme :mode :degree :has-mouse)
+               (let [e (awt/+px 0 3) ; TODO (* 0.25 w)
+                     t (/ e 2)
+                     he (awt/+px 0 2) ; TODO (/ e 2)
+                     ]
+                 [(set-vfc-color mode has-mouse theme)
+                  (awt/fillRect 0 t e e)
+                  (awt/fillRect (+ e he) t e e)
+                  (awt/fillRect (+ e he e he) t e e)]))
+
+
+;;;
+;;; Menu cell
+;;;
+
+(deflookfn menucell-look (:theme :anchor :id)
+               [(awt/setColor background)
+                ;; TODO 1 px is cut temporarily: until borders are introduced
+                ;(flatgui.awt/fillRect 0 0 (m/x content-size) (m/y content-size))
+                (awt/fillRect (awt/px) 0 (awt/-px (m/x content-size) 2) (awt/-px (m/y content-size)))
+                (call-look label-look)])
+
 ;;;
 ;;; Toolbar
 ;;;
@@ -557,20 +687,39 @@ flatgui.skins.flat
                 [(setColor cin)
                  (let [d (* r 0.5)]
                    (fillOval (- (/ r 2) (/ d 2)) (- (/ r 2) (/ d 2)) d d))])
-              (label-look-impl foreground text h-alignment v-alignment (if (= h-alignment :left) h 0) 0 w h)]))
+              (label-look-impl interop foreground text h-alignment v-alignment (if (= h-alignment :left) h 0) 0 w h)]))
+
+;;;
+;;; Window
+;;;
+
+(defn draw-focused? [focus-state]
+  (#{:parent-of-focused :has-focus} (:mode focus-state)))
+
+(deflookfn window-look (:theme :header-h :text :focus-state)
+               [(call-look component-look)
+                (if (draw-focused? focus-state)
+                  [(awt/setColor (:prime-2 theme))
+                   (awt/drawRect 0 0 w- h-)])
+                (awt/setColor (if (draw-focused? focus-state) (:prime-4 theme) (:prime-2 theme)))
+                (awt/fillRect 0 0 w header-h)
+                (label-look-impl interop (if (draw-focused? focus-state) (:prime-1 theme) (:prime-4 theme)) text :left :center 0 0 w header-h)])
+
 
 ;;;
 ;;; skin-map
 ;;;
 
 (def skin-map
-  {:spinner {:up spinner-up-look
+  {:label label-look
+   :spinner {:up spinner-up-look
              :down spinner-down-look
              :editor leftsmooth-editor-look}
    :button {:rollover rollover-button-look
             :regular regular-button-look}
    :combobox {:arrow-button combobox-arrow-button-look
-              :editor leftsmooth-editor-look}
+              :editor leftsmooth-editor-look
+              :dropdown {:content-pane dropdown-content-look}}
    :scrollbar {:scroller scroller-look
                :scrollbar scrollbar-look}
    :textfield textfield-look
@@ -578,6 +727,14 @@ flatgui.skins.flat
    :radiobutton radiobutton-look
    :slider {:base sliderhandlebase-look
             :handle sliderhandle-look}
-   :table {:columnheader columnheader-look}
+   :table {:tableheader tableheader-look
+           :columnheader columnheader-look
+           :sorting sorting-look
+           :filtering filtering-look
+           :grouping grouping-look
+           :tablecell tablecell-look}
+   :menu {:menucell menucell-look}
    :toolbar toolbar-look
+   :window window-look
+   :component component-look
    })

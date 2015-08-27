@@ -10,15 +10,15 @@
   (:require [flatgui.util.matrix :as m]
             [flatgui.base :as fg]
             [flatgui.awt :as awt]
-            [flatgui.widgets.component :as component]
             [flatgui.widgets.window :as window]
             [flatgui.widgets.radiobutton :as radiobutton]
             [flatgui.widgets.button :as button]
             [flatgui.widgets.panel :as panel]
-            [flatgui.paint :as fgp]))
+            [flatgui.paint :as fgp]
+            [flatgui.skins.flat]))
 
 (fgp/deflookfn img-look (:method :image-url :w :h)
-  [(fgp/call-look component/component-look)
+  [(fgp/call-look flatgui.skins.flat/component-look)
    (if method
      (case method
        :draw (awt/drawImage image-url 0 0)

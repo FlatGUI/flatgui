@@ -11,16 +11,14 @@
             [flatgui.base :as fg]
             [flatgui.awt :as awt]
             [flatgui.widgets.window :as window]
-            [flatgui.widgets.checkbox :as checkbox]
             [flatgui.widgets.textfield :as textfield]
-            [flatgui.widgets.label :as label]
             [flatgui.widgets.panel :as panel]
-            [flatgui.widgets.component :as component]
-            [flatgui.paint :as fgp]))
+            [flatgui.paint :as fgp]
+            [flatgui.skins.flat]))
 
 
 (fgp/deflookfn container-look (:theme :focus-state)
-  [(fgp/call-look component/component-look)
+  [(fgp/call-look flatgui.skins.flat/component-look)
    (awt/setColor (:prime-2 theme))
    (awt/drawRect 0 0 w- h-)
    (awt/drawString (str (:mode focus-state) "/"

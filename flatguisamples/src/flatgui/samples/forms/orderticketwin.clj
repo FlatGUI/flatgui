@@ -100,13 +100,13 @@
 (defn- recreare-text-model [old-model v]
   (let [old-text (:text old-model)
         new-text (add-val (if (.isEmpty old-text) "0" old-text) v)]
-    (textfield/create-single-line-model new-text (awt/strlen new-text) 0)))
+    (textfield/create-single-line-model new-text (.length new-text) 0)))
 
 (fg/defevolverfn qty-evolver :model
   (let [quote-val (quote-val-provider component (fg/get-reason) :bidsize :asksize)]
     (if quote-val
       ;; If some quote is clicked then Qty gets filled from the quote
-      (textfield/create-single-line-model (str quote-val) (awt/strlen (str quote-val)) 0)
+      (textfield/create-single-line-model (str quote-val) (.length (str quote-val)) 0)
       (case (fg/get-reason)
         ;; If one toolbar buttons is clicked then Qty is adjusted according to its value
         [:qty-toolbar :+1] (if (abtn/button-pressed? (get-property [:qty-toolbar :+1] :pressed-trigger))
@@ -130,14 +130,14 @@
       ;; If quote is clicked, fill editor from quote
       (let [num->str (get-property [:this] :num->str)
             quote-val-str (num->str component quote-val)]
-        (textfield/create-single-line-model quote-val-str (awt/strlen quote-val-str) 0))
+        (textfield/create-single-line-model quote-val-str (.length quote-val-str) 0))
       (flatgui.widgets.spinner/spinner-model-evovler component))))
 
 (fg/defevolverfn exch-evolver :model
   (let [quote-val (quote-val-provider component (fg/get-reason) :bidsource :asksource)]
     (if quote-val
       ;; If quote is clicked, fill editor from quote
-      (textfield/create-single-line-model (str quote-val) (awt/strlen (str quote-val)) 0)
+      (textfield/create-single-line-model (str quote-val) (.length (str quote-val)) 0)
       (flatgui.widgets.textfield/text-model-evolver component))))
 
 ;;; If "Follow blotter" mode, fills symbol editor from selected blotter row (blotter is in another window)
@@ -151,7 +151,7 @@
           symbol (if selection-model
                    (blotter-value-provider (tcom/get-anchor-model-row selection-model) (.indexOf blotter-header-ids :symbol))
                    "")]
-      (textfield/create-single-line-model symbol (awt/strlen (str symbol)) 0))
+      (textfield/create-single-line-model symbol (.length (str symbol)) 0))
     (flatgui.widgets.textfield/text-model-evolver component)))
 
 (def general-toolbar

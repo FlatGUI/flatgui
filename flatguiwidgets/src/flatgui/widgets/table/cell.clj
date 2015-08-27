@@ -9,25 +9,12 @@
 (ns ^{:doc "Regular table cell implementation. Supports row grouping"
       :author "Denys Lebediev"}
   flatgui.widgets.table.cell
-  (:require [flatgui.paint :as fgp]
-            [flatgui.awt :as awt]
-            [flatgui.base :as fg]
+  (:require [flatgui.base :as fg]
             [flatgui.widgets.table.commons :as tcom]
             [flatgui.widgets.label]
             [flatgui.widgets.table.abstractcell]
             [flatgui.widgets.component]))
 
-
-;;; TODO move to theme namespace
-;;;
-(fgp/deflookfn tablecell-look (:theme :anchor :text :h-alignment :v-alignment :foreground)
-  [(awt/setColor (:prime-4 theme))
-   (awt/drawRect 0 0 w- h-)
-   (awt/setColor background)
-   (awt/fillRect 0 0 w- h-)
-   (flatgui.widgets.label/label-look-impl foreground text h-alignment v-alignment 0 0 w h)
-   (if anchor (awt/setColor (:prime-2 theme)))
-   (if anchor (awt/drawRect 0 0 (awt/-px w-) (awt/-px h-)))])
 
 (fg/defevolverfn :row-grouping-state
   (let [screen-row (get-property component [:this] :screen-row)
@@ -64,7 +51,7 @@
 (fg/defwidget "tablecell"
   {:row-grouping-state nil
    :allowed-by-row-grouping true
-   :look tablecell-look
+   :skin-key [:table :tablecell]
    ;; Optimization for RIA. By default, do not send mouse move event for table cells.
    ;; Override this for some special cases, e.g. cells containing rollover buttons.
    :rollover-notify-disabled true

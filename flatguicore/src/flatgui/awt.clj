@@ -9,17 +9,26 @@
 (ns flatgui.awt
     (:require
       [flatgui.util.matrix :as m]
-      [flatgui.base :as fg] [flatgui.base :as fg])
+      [flatgui.base :as fg])
     (:import
       [java.awt Font Color]
       [java.awt.geom AffineTransform]))
 
 
+(defn sw [interop text]
+  (.getStringWidth interop text))
+
+(defn sh [interop]
+  (.getFontAscent interop))
+
+(defn hsh [interop]
+  (/ (sh interop) 2))
+
 (fg/defaccessorfn strw [component text]
-  (.getStringWidth (get-property component [:this] :interop) text))
+  (sw (get-property component [:this] :interop) text))
 
 (fg/defaccessorfn strh [component]
-  (.getFontAscent (get-property component [:this] :interop)))
+  (sh (get-property component [:this] :interop)))
 
 (fg/defaccessorfn halfstrh [component]
   (/ (strh component) 2))

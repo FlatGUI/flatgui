@@ -27,6 +27,7 @@
                         "snapshots" {:url "https://oss.sonatype.org/content/repositories/snapshots/" :creds :gpg}}
   :java-source-paths ["src/flatgui/core"
                       "src/flatgui/core/awt"
+                      "src/flatgui/core/util"
                       "src/flatgui/core/websocket"
                       "src/flatgui/controlcenter"]
   :omit-source true

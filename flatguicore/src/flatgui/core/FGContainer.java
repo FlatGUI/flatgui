@@ -11,6 +11,7 @@ package flatgui.core;
 
 import clojure.lang.Keyword;
 import clojure.lang.Var;
+import flatgui.core.awt.FGAWTInteropUtil;
 
 import java.awt.event.*;
 import java.util.*;
@@ -47,9 +48,9 @@ public class FGContainer implements IFGContainer
 
     private List<IFGEvolveConsumer> evolveConsumers_;
 
-    public FGContainer(IFGTemplate template, IFGInteropUtil interopUtil)
+    public FGContainer(IFGTemplate template)
     {
-        this(template, template.getContainerVarName(), interopUtil);
+        this(template, template.getContainerVarName(), new FGAWTInteropUtil(IFGContainer.UNIT_SIZE_PX));
     }
 
     public FGContainer(IFGTemplate template, String containerId, IFGInteropUtil interopUtil)

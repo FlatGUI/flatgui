@@ -9,27 +9,17 @@
 (ns ^{:doc "Table cell implementation for menus"
       :author "Denys Lebediev"}
   flatgui.widgets.menu.menucell
-  (:require [flatgui.awt :as awt]
-            [flatgui.paint :as fgp]
-            [flatgui.base :as fg]
+  (:require [flatgui.base :as fg]
             [flatgui.widgets.abstractbutton]
             [flatgui.widgets.label]
-            [flatgui.widgets.table.commons :as tcom]
-            [flatgui.util.matrix :as m]))
+            [flatgui.widgets.table.commons :as tcom]))
 
-
-(fgp/deflookfn menucell-look (:theme :anchor :id)
-  [(awt/setColor background)
-   ;; TODO 1 px is cut temporarily: until borders are introduced
-   ;(flatgui.awt/fillRect 0 0 (m/x content-size) (m/y content-size))
-   (awt/fillRect (awt/px) 0 (awt/-px (m/x content-size) 2) (awt/-px (m/y content-size)))
-   (fgp/call-look flatgui.widgets.label/label-look)])
 
 (fg/defwidget "menucell"
   {;TODO move out
    :nonselected-background :prime-3
    :h-alignment :right
-   :look menucell-look
+   :skin-key [:menu :menucell]
    :evolvers {:pressed flatgui.widgets.abstractbutton/regular-pressed-evolver
               :text (fg/accessorfn (let [model-row (tcom/get-model-row component)]
                                      (if (>= model-row 0)

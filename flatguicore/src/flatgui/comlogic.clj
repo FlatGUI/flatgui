@@ -11,11 +11,9 @@
       :author "Denys Lebediev"}
     ;;; TODO either remove this namespace or make client apps not use it
   flatgui.comlogic
-  (:import [clojure.lang Keyword])
-  (:require [flatgui.util.matrix :as m]
-            [flatgui.awt]
-            )
-  )
+  (:import [clojure.lang Keyword]
+           (java.awt Color))
+  (:require [flatgui.util.matrix :as m]))
 
 (defn masknil [a] (if (nil? a) 0.0 a))
 
@@ -85,18 +83,19 @@
   (= reason []))
 
 ;;;; temporary
+(defn make-color [r g b] (new Color r g b))
 (def std-colors
-  {:prime-1 (flatgui.awt/color 0 78 145) ; Button etc. face
-   :prime-2 (flatgui.awt/color 51 113 167) ; Shadowed component background
-   :prime-3 (flatgui.awt/color 225 241 255) ; Panel surface
-   :prime-4 (flatgui.awt/color 255 255 255) ; Regular component background
-   :prime-5 (flatgui.awt/color 225 241 255) ; Selection indication
-   :prime-6 (flatgui.awt/color 0 78 145) ; Regular component foreground
-   :prime-gradient-start (flatgui.awt/color 0 87 152) ; Same usage as :prime-1 but for faces with gradient
-   :prime-gradient-end (flatgui.awt/color 0 70 136) ; Same usage as :prime-1 but for faces with gradient
-   :extra-1 (flatgui.awt/color 199 199 199) ; Foreground extra
-   :extra-2 (flatgui.awt/color 234 237 236) ; Background extra
-   :engaged (flatgui.awt/color 34 168 108)  ; Engaged checkable (radiobutton, checkbox, etc)
+  {:prime-1 (make-color 0 78 145) ; Button etc. face
+   :prime-2 (make-color 51 113 167) ; Shadowed component background
+   :prime-3 (make-color 225 241 255) ; Panel surface
+   :prime-4 (make-color 255 255 255) ; Regular component background
+   :prime-5 (make-color 225 241 255) ; Selection indication
+   :prime-6 (make-color 0 78 145) ; Regular component foreground
+   :prime-gradient-start (make-color 0 87 152) ; Same usage as :prime-1 but for faces with gradient
+   :prime-gradient-end (make-color 0 70 136) ; Same usage as :prime-1 but for faces with gradient
+   :extra-1 (make-color 199 199 199) ; Foreground extra
+   :extra-2 (make-color 234 237 236) ; Background extra
+   :engaged (make-color 34 168 108)  ; Engaged checkable (radiobutton, checkbox, etc)
    })
 (def standard-theme-colors (into #{} (for [[k _] std-colors] k)))
 (defn standard-color? [color-property-name] (contains? standard-theme-colors color-property-name))

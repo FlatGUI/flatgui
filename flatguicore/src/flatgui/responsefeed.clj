@@ -7,9 +7,23 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns flatgui.responsefeed
-  (:require [flatgui.awt :as awt]
-            [flatgui.util.matrix :as m]
-            ))
+  (:require [flatgui.util.matrix :as m])
+  (:import (java.awt.geom AffineTransform)))
+
+;;; TODO Find better place; do not duplicate with flatgui.awt
+
+(defn unitsizepx [] 64.0)
+
+(defn affinetransform [matrix]
+  (let [m00 (double (m/mx-get matrix 0 0))
+        m10 (double (m/mx-get matrix 1 0))
+        m01 (double (m/mx-get matrix 0 1))
+        m11 (double (m/mx-get matrix 1 1))
+        m02 (* (unitsizepx) (double (m/mx-get matrix 0 3)))
+        m12 (* (unitsizepx) (double (m/mx-get matrix 1 3)))]
+    (new AffineTransform m00 m10 m01 m11 m02 m12)))
+
+;;; ;;;
 
 (defn extract-single [property f container]
   (f (property container)))
@@ -30,10 +44,10 @@
     look-vec))
 
 (defn extract-position-matrix [container]
-  (extract-single :position-matrix awt/affinetransform container))
+  (extract-single :position-matrix affinetransform container))
 
 (defn extract-viewport-matrix [container]
-  (extract-single :viewport-matrix awt/affinetransform container))
+  (extract-single :viewport-matrix affinetransform container))
 
 (defn- clip-size-extractor [c] [(m/x c) (m/y c)])
 

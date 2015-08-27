@@ -10,9 +10,7 @@
             widgets can be dragged together with it."
       :author "Denys Lebediev"}
   flatgui.widgets.window
-  (:require [flatgui.awt :as awt]
-            [flatgui.base :as fg]
-            [flatgui.paint :as fgp]
+  (:require [flatgui.base :as fg]
             [flatgui.widgets.component]
             [flatgui.widgets.label]
             [flatgui.widgets.floatingbar :as floatingbar]
@@ -20,18 +18,6 @@
             [flatgui.util.matrix :as m]
             [flatgui.inputchannels.mouse :as mouse]))
 
-
-(defn draw-focused? [focus-state]
-  (#{:parent-of-focused :has-focus} (:mode focus-state)))
-
-(fgp/deflookfn window-look (:theme :header-h :text :focus-state)
-  [(fgp/call-look flatgui.widgets.component/component-look)
-   (if (draw-focused? focus-state)
-     [(awt/setColor (:prime-2 theme))
-      (awt/drawRect 0 0 w- h-)])
-   (awt/setColor (if (draw-focused? focus-state) (:prime-4 theme) (:prime-2 theme)))
-   (awt/fillRect 0 0 w header-h)
-   (flatgui.widgets.label/label-look-impl (if (draw-focused? focus-state) (:prime-1 theme) (:prime-4 theme)) text :left :center 0 0 w header-h)])
 
 (fg/defevolverfn window-capture-area-evolver :capture-area
   (let [ content-size (get-property component [:this] :content-size)]
@@ -56,7 +42,7 @@
    :foreground :prime-4
    :text ""
    :closed-focus-root true
-   :look window-look
+   :skin-key [:window]
    :evolvers {:capture-area window-capture-area-evolver
               :position-matrix window-position-matrix-evolver}}
   floatingbar/floatingbar

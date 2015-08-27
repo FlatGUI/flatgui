@@ -18,14 +18,14 @@ flatgui.widgets.abstractbutton
   (:import (java.awt.event KeyEvent)))
 
 
-(fgp/deflookfn deprecated-regular-button-look (:theme :has-mouse :pressed)
-  (if pressed (awt/setColor (:mid-dark theme)) (awt/setColor (:light theme)))
-  (awt/drawLine 0 0 w- 0)
-  (awt/drawLine 0 0 0 h-)
-  (if pressed (awt/setColor (:light theme)) (awt/setColor (:mid-dark theme)))
-  (awt/drawLine 0 h- w- h-)
-  (awt/drawLine w- 0 w- h-)
-  (fgp/call-look flatgui.widgets.label/label-look))
+;(fgp/deflookfn deprecated-regular-button-look (:theme :has-mouse :pressed)
+;  (if pressed (awt/setColor (:mid-dark theme)) (awt/setColor (:light theme)))
+;  (awt/drawLine 0 0 w- 0)
+;  (awt/drawLine 0 0 0 h-)
+;  (if pressed (awt/setColor (:light theme)) (awt/setColor (:mid-dark theme)))
+;  (awt/drawLine 0 h- w- h-)
+;  (awt/drawLine w- 0 w- h-)
+;  (fgp/call-look flatgui.widgets.label/label-look))
 
 
 (fg/defevolverfn regular-pressed-evolver :pressed

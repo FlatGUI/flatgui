@@ -14,24 +14,24 @@
             [flatgui.paint :as fgp]
             [flatgui.widgets.component]))
 
-(defn label-look-impl [foreground text h-alignment v-alignment left top w h]
-  [(flatgui.awt/setColor foreground)
-   (let [ dx (condp = h-alignment
-               :left (flatgui.awt/halfstrh)
-               :right (- w (flatgui.awt/strw text) (flatgui.awt/halfstrh))
-               (/ (- w (flatgui.awt/strw text)) 2))
-          dy (condp = v-alignment
-               :top (+ (flatgui.awt/halfstrh) (flatgui.awt/strh))
-               :bottom (- h (flatgui.awt/halfstrh))
-               (+ (/ h 2) (flatgui.awt/halfstrh)))]
-     (flatgui.awt/drawString text (+ left dx) (+ top dy)))])
-
-(fgp/deflookfn label-look (:text :h-alignment :v-alignment)
-  (label-look-impl foreground text h-alignment v-alignment 0 0 w h))
+;(defn label-look-impl [foreground text h-alignment v-alignment left top w h]
+;  [(flatgui.awt/setColor foreground)
+;   (let [ dx (condp = h-alignment
+;               :left (flatgui.awt/halfstrh)
+;               :right (- w (flatgui.awt/strw text) (flatgui.awt/halfstrh))
+;               (/ (- w (flatgui.awt/strw text)) 2))
+;          dy (condp = v-alignment
+;               :top (+ (flatgui.awt/halfstrh) (flatgui.awt/strh))
+;               :bottom (- h (flatgui.awt/halfstrh))
+;               (+ (/ h 2) (flatgui.awt/halfstrh)))]
+;     (flatgui.awt/drawString text (+ left dx) (+ top dy)))])
+;
+;(fgp/deflookfn label-look (:text :h-alignment :v-alignment)
+;  (label-look-impl foreground text h-alignment v-alignment 0 0 w h))
 
 (fg/defwidget "label"
-  { :v-alignment :center
-    :h-alignment :center
-    :text ""
-    :look label-look}
+  {:v-alignment :center
+   :h-alignment :center
+   :text ""
+   :skin-key [:label]}
   flatgui.widgets.component/component)
