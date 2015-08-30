@@ -39,6 +39,7 @@ public class FGContainer implements IFGContainer
 
     private final String containerId_;
     private final IFGModule module_;
+    private final IFGInteropUtil interopUtil_;
 
     private boolean active_ = false;
 
@@ -64,6 +65,8 @@ public class FGContainer implements IFGContainer
 
         containerId_ = containerId;
         module_ = new FGModule(containerId);
+
+        interopUtil_ = interopUtil;
 
         reasonParser_ = new FGInputEventParser();
         reasonParser_.registerReasonClassParser(MouseEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
@@ -126,6 +129,12 @@ public class FGContainer implements IFGContainer
     public IFGModule getFGModule()
     {
         return module_;
+    }
+
+    @Override
+    public IFGInteropUtil getInterop()
+    {
+        return interopUtil_;
     }
 
     @Override

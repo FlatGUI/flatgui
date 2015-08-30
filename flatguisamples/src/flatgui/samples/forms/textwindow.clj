@@ -57,6 +57,7 @@
     {:theme flatgui.theme/dark
      :clip-size (m/defpoint 40 20)
      :background (awt/color 9 17 26)
+     :font "bold 14px sans-serif"
 
      ;; TODO this should be a part defroot probably
      :closed-focus-root true

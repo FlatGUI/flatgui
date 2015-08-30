@@ -7,17 +7,19 @@
  * the terms of this license.
  * You must not remove this notice, or any other, from this software.
  */
-package flatgui.core;
+package flatgui.core.websocket;
 
 import javax.swing.*;
 import java.awt.*;
+
+import flatgui.core.IFGInteropUtil;
 
 /**
  * @author Denys Lebediev
  */
 public class FGWebInteropUtil implements IFGInteropUtil
 {
-    // TODO This is still a dummy implementation
+    // TODO This is still a dummy implementation. Need to deliver font metrics from the client browser.
 
     private final double unitSizePx_;
     private Font referenceFont_;
@@ -26,21 +28,43 @@ public class FGWebInteropUtil implements IFGInteropUtil
     public FGWebInteropUtil(int unitSizePx)
     {
         unitSizePx_ = unitSizePx;
-        referenceFont_ = new Font("Tahoma", Font.PLAIN, 12);
-        referenceFontMetrics_ = getDefaultReferenceFontMetrics(referenceFont_);
+        referenceFont_ = getDefaultFont();
+        updateFontMetrics();
     }
 
+    @Override
     public double getStringWidth(String str)
     {
         double widthPx = SwingUtilities.computeStringWidth(referenceFontMetrics_, str);
         return widthPx / unitSizePx_;
     }
 
+    @Override
     public double getFontAscent()
     {
         double heightPx = referenceFontMetrics_.getAscent();
         //@todo what does this 0.75 mean?
         return 0.75 * heightPx / unitSizePx_;
+    }
+
+    // Non-public
+
+    void setReferenceFont(Font font)
+    {
+        referenceFont_ = font;
+        updateFontMetrics();
+    }
+
+    private void updateFontMetrics()
+    {
+        referenceFontMetrics_ = getDefaultReferenceFontMetrics(referenceFont_);
+    }
+
+    // Defaults to start with for any (trouble) case when nothing else provided
+
+    private static Font getDefaultFont()
+    {
+        return new Font("Tahoma", Font.PLAIN, 12);
     }
 
     private static FontMetrics getDefaultReferenceFontMetrics(Font font)

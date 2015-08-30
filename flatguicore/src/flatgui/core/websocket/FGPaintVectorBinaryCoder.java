@@ -11,6 +11,8 @@
 package flatgui.core.websocket;
 
 import flatgui.core.IFGContainer;
+import flatgui.core.util.FGChangeEvent;
+import flatgui.core.util.IFGChangeListener;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
@@ -34,9 +36,14 @@ public class FGPaintVectorBinaryCoder
     private Map<String, ICommandCoder> cmdNameToCoder_;
     private Collection<ICommandCoder> uidAwareCoders_;
 
+    private String lastFontStr_;
+    private List<IFGChangeListener<String>> fontStrListeners_;
+
     public FGPaintVectorBinaryCoder(StringPoolIdSupplier stringPoolIdSupplier)
     {
         cmdNameToCoder_ = new HashMap<>();
+
+        fontStrListeners_ = new ArrayList<>();
 
         registerCoder("setColor", new SetColorCoder());
         registerCoder("drawRect", new DrawRectCoder());
@@ -71,6 +78,11 @@ public class FGPaintVectorBinaryCoder
     public void setCodedComponentUid(Object componentId, int uid)
     {
         uidAwareCoders_.forEach(c -> c.setCodedComponentUid(componentId, uid));
+    }
+
+    public void addFontStrListener(IFGChangeListener<String> listener)
+    {
+        fontStrListeners_.add(listener);
     }
 
     public ByteBuffer codeCommandVector(List<Object> commandVector)
@@ -120,6 +132,19 @@ public class FGPaintVectorBinaryCoder
             List singleCommand = (List)commandVector.get(i);
             if (singleCommand.get(0) instanceof String) {
                 String command = (String) singleCommand.get(0);
+                if (command.equals("setFont"))
+                {
+                    String newFont = (String)singleCommand.get(1);
+                    if (lastFontStr_ == null || !lastFontStr_.equals(newFont))
+                    {
+                        FGChangeEvent event = new FGChangeEvent(newFont);
+                        for (IFGChangeListener<String> l : fontStrListeners_)
+                        {
+                            l.onChange(event);
+                        }
+                    }
+                    lastFontStr_ = (String)singleCommand.get(1);
+                }
                 ICommandCoder coder = cmdNameToCoder_.get(command);
                 if (coder == null) {
                     throw new IllegalArgumentException("No coder for command: " + command);

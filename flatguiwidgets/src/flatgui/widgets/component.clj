@@ -79,7 +79,7 @@ flatgui.widgets.component
   (array-map
     :visible true
     :enabled true
-    :interop (FGDummyInteropUtil.)
+    :interop (FGDummyInteropUtil.) ; For now, :interop has to be available when initializing the template. This may be changed
     :skin "flatgui.skins.flat"
     :theme flatgui.theme/light
     :clip-size (m/defpoint 1 1 0)

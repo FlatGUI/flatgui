@@ -12,6 +12,7 @@ package flatgui.core;
 
 import clojure.lang.Keyword;
 import clojure.lang.Var;
+import flatgui.core.util.IFGChangeListener;
 import flatgui.core.websocket.FGPaintVectorBinaryCoder;
 
 import java.awt.geom.AffineTransform;
@@ -124,6 +125,11 @@ public class FGWebContainerWrapper
     public synchronized void resetCache()
     {
         stateTransmitter_.resetDataCache();
+    }
+
+    public void addFontStrListener(IFGChangeListener<String> listener)
+    {
+        stateTransmitter_.addFontStrListener(listener);
     }
 
     private void ensureActive()
@@ -654,6 +660,11 @@ public class FGWebContainerWrapper
         {
             return LOOK_VECTOR_MAP_COMMAND_CODE;
         }
+
+        void addFontStrListener(IFGChangeListener<String> listener)
+        {
+            coder_.addFontStrListener(listener);
+        }
     }
 
     static abstract class StringTransmitter extends MapTransmitter<String>
@@ -845,6 +856,8 @@ public class FGWebContainerWrapper
 
         private Map<List<Keyword>, Map<Keyword, Object>> idPathToComponent_;
 
+        private final LookVectorTransmitter lookVectorTransmitter_;
+
         boolean initialCycle_;
 
         public FGContainerStateTransmitter(IFGModule fgModule)
@@ -869,9 +882,11 @@ public class FGWebContainerWrapper
                     () -> idPathToComponent_.entrySet().stream()
                             .collect(Collectors.toMap(e -> e.getKey(), e -> extractClipSize_.invoke(e.getValue())))));
 
-            addDataTransmitter(new LookVectorTransmitter(stringPoolIdSupplier_, keyCache_,
-                    () -> idPathToComponent_.entrySet().stream()
-                            .collect(Collectors.toMap(e -> e.getKey(), e -> extractLookVector_.invoke(e.getValue())))));
+            lookVectorTransmitter_ = new LookVectorTransmitter(stringPoolIdSupplier_, keyCache_,
+                () -> idPathToComponent_.entrySet().stream()
+                    .collect(Collectors.toMap(e -> e.getKey(), e -> extractLookVector_.invoke(e.getValue()))));
+
+            addDataTransmitter(lookVectorTransmitter_);
 
             addDataTransmitter(new ChildCountMapTransmitter(keyCache_,
                     () -> idPathToComponent_.entrySet().stream()
@@ -931,6 +946,11 @@ public class FGWebContainerWrapper
         {
             cmdToLastData_ = cmdToDataTransmitter_.entrySet().stream()
                     .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().getEmptyDataSupplier().get()));
+        }
+
+        void addFontStrListener(IFGChangeListener<String> listener)
+        {
+            lookVectorTransmitter_.addFontStrListener(listener);
         }
 
         private void addDataTransmitter(IDataTransmitter<?> dataTransmitter)

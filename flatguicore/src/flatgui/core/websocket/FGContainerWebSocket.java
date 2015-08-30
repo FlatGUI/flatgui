@@ -232,7 +232,14 @@ public class FGContainerWebSocket implements WebSocketListener
         }
 
         @Override
-        public IFGModule getFGModule() {
+        public IFGModule getFGModule()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public IFGInteropUtil getInterop()
+        {
             throw new UnsupportedOperationException();
         }
 

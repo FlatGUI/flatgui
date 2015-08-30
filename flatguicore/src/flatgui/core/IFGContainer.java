@@ -41,6 +41,8 @@ public interface IFGContainer
 
     IFGModule getFGModule();
 
+    IFGInteropUtil getInterop();
+
     Function<Object, Future<Set<List<Keyword>>>> connect(ActionListener eventFedCallback, Object hostContext);
 
     <T> Future<T> submitTask(Callable<T> callable);

@@ -25,8 +25,17 @@
     (get-container-atom container-name)
     (fn [c] (flatgui.widgets.componentbase/evolve-container c target-cell-ids reason))))
 
+(defn- update-interop [container-template interop-util]
+  (let [updated (assoc container-template :interop interop-util)
+        children (:children container-template)]
+    (if children
+      (assoc
+        updated
+        :children (into (array-map) (for [[k v] children] [k (update-interop v interop-util)])))
+      updated)))
+
 (defn register-container [container-name container-template interop-util]
-  (let [container (assoc container-template :interop interop-util)]
+  (let [container (update-interop container-template interop-util)]
     (if (and
           (get-container-atom-var container-name)
           (get-container-atom container-name)

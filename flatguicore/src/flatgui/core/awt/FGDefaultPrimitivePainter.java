@@ -11,7 +11,6 @@ package flatgui.core.awt;
 
 
 import java.awt.*;
-import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.*;

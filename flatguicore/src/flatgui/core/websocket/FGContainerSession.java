@@ -11,8 +11,10 @@
 package flatgui.core.websocket;
 
 
+import clojure.lang.Var;
 import flatgui.core.*;
 
+import java.awt.Font;
 import java.util.concurrent.atomic.LongAccumulator;
 
 /**
@@ -25,10 +27,13 @@ public class FGContainerSession
 {
     private static final long IDLE_MARKER = -1;
 
+    private static final Var strToFont_ = clojure.lang.RT.var("flatgui.awt", "str->font");
+
     private final Object sessionId_;
     private final FGWebContainerWrapper containerWrapper_;
     private final FGInputEventDecoder parser_;
     private final LongAccumulator lastAccessTime_;
+    private final FGWebInteropUtil interopUtil_;
 
     private volatile FGContainerWebSocket accosiatedWebSocket_;
 
@@ -38,6 +43,9 @@ public class FGContainerSession
 
         containerWrapper_ = new FGWebContainerWrapper(container);
         containerWrapper_.initialize();
+
+        interopUtil_ = (FGWebInteropUtil) container.getInterop();
+        containerWrapper_.addFontStrListener(e -> interopUtil_.setReferenceFont((Font) strToFont_.invoke(e.getNewValue())));
 
         parser_ = new FGInputEventDecoder();
         lastAccessTime_ = new LongAccumulator((r,t) -> t, 0);

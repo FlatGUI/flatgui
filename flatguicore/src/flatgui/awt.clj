@@ -84,7 +84,9 @@
         before-px-str (subs font-str 0 (.indexOf font-str "px"))
         space-index-before-px (.lastIndexOf before-px-str " ")
         size (Integer/valueOf (str (if (>= space-index-before-px 0) (subs before-px-str (inc space-index-before-px)) before-px-str)))
-        after-px-str (.replace (subs font-str (.lastIndexOf font-str "px")) "," "")
+        px-str (subs font-str (.lastIndexOf font-str "px"))
+        px-space-index (.indexOf px-str " ")
+        after-px-str (.replace (.trim (subs px-str px-space-index)) "," "")
         font-family-divider-index (.indexOf after-px-str " ")
         name (if (> font-family-divider-index 0) (subs after-px-str 0 font-family-divider-index) after-px-str)]
     (Font. name (int style) size)))
