@@ -11,6 +11,7 @@
       <sourceFolder url="file://$MODULE_DIR$/src/flatgui/controlcenter" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/flatgui/core" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/flatgui/core/awt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/flatgui/core/util" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/flatgui/core/websocket" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/test" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
