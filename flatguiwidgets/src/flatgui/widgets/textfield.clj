@@ -40,8 +40,7 @@
   (awt/strw component (subs text 0 caret-pos)))
 
 ;; TODO avoid duplication with skin
-(defn text-str-h-impl [interop] (* (flatgui.awt/sh interop) 2.5))
-(fg/defaccessorfn text-str-h [component] (text-str-h-impl (get-property component [:this] :interop)))
+(fg/defaccessorfn text-str-h [component] (awt/text-str-h-impl (get-property component [:this] :interop)))
 
 (defn deccaretpos [c]
   (if (> c 0) (- c 1) 0))
@@ -86,7 +85,7 @@
                                                 1))  ;1 for linebreak
                              old-caret-pos)
           KeyEvent/VK_PAGE_UP (if (pos? old-caret-line)
-                               (let [lines-skip (int (/ h (text-str-h-impl (:interop component))))
+                               (let [lines-skip (int (/ h (awt/text-str-h-impl (:interop component))))
                                      first-line (max 0 (- old-caret-line lines-skip))]
                                  (max 0 (+
                                           (-
@@ -96,7 +95,7 @@
                                           (min old-caret-line-pos (.length (nth old-lines first-line))))))
                                old-caret-pos)
           KeyEvent/VK_PAGE_DOWN (if (< old-caret-line (dec (count old-lines)))
-                                  (let [lines-skip (int (/ h (text-str-h-impl (:interop component))))
+                                  (let [lines-skip (int (/ h (awt/text-str-h-impl (:interop component))))
                                         last-line (min (dec (count old-lines)) (+ old-caret-line lines-skip))]
                                     (min (.length t) (+
                                                           (+
@@ -316,8 +315,9 @@
           parent-h (m/y parent-size)
           lines (:lines (get-property [:this] :model))]
       (if (pos? (count lines))
-        (let [preferred-w (+ (apply max (map #(awt/strw component %) lines)) (* 2 (get-hgap component)))
-              preferred-h (* (count lines) (text-str-h component))]
+        (let [preferred-size (awt/get-text-preferred-size lines interop)
+              preferred-w (m/x preferred-size)
+              preferred-h (m/y preferred-size)]
           (m/defpoint (max preferred-w parent-w) (max preferred-h parent-h)))
         (m/defpoint parent-w parent-h)))
     old-clip-size))

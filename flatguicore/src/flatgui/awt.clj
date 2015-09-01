@@ -33,6 +33,17 @@
 (fg/defaccessorfn halfstrh [component]
   (/ (strh component) 2))
 
+(fg/defaccessorfn get-hgap-impl [interop] (hsh interop))
+
+(defn text-str-h-impl [interop] (* (sh interop) 2.5))
+
+;; TODO unify gaps with layout
+(defn get-text-preferred-size [lines interop]
+  (let [preferred-w (+ (apply max (map #(sw interop %) lines)) (* 2 (get-hgap-impl interop)))
+        preferred-h (* (count lines) (text-str-h-impl interop))]
+       (m/defpoint preferred-w preferred-h)))
+
+
 (defn unitsizepx [] 64.0)
 
 (defn px [] (/ 1.0 (unitsizepx)))
