@@ -8,9 +8,9 @@
 
 (ns flatgui.base-test
   (:require [clojure.test :as test]
-            [flatgui.base :as b]))
+            [flatgui.base :as fg]))
 
-;;; FIXME
+;;; FIXME continue the test blow
 ;(test/deftest get-property-private-test
 ;  (let [parents '( {:children {:x {:a 1}} :a 0}
 ;                    {:children {:y {:a 2 :children {:c1 {:a 3}}}}}
@@ -24,6 +24,13 @@
 ;    (test/is (= 4 (b/get-property-private component  [:_ :_ :z] :a)))
 ;    (test/is (= 5 (b/get-property-private component  [:_ :_ :z :c1] :a)))
 ;    (test/is (= 6 (b/get-property-private component  [:_ :_ :z :c1 :c1] :a)))))
+(test/deftest get-property-private-test
+  (let [main {:id :main :path-to-target [] :children {:a {:id :a :path-to-target [:main] :p :pa}
+                                                      :b {:id :b :path-to-target [:main] :p :pb}
+                                                      }}
+        main (assoc main :root-container main)]
+    (test/is (= :pa (fg/get-property-private main [:this :a] :p)))))
+
 
 ;;; FIXME
 ;(test/deftest defwidget-test
@@ -46,4 +53,4 @@
 (test/deftest merge-ordered-test
   (let [m1 (array-map :a 1 :b (array-map :x 1 :y 2) :c 3)
         m2 (array-map :d 2 :b (array-map :y 3 :z 3) :c 4)]
-    (test/is (= (array-map :a 1, :b {:x 1, :y 3, :z 3}, :c 4, :d 2) (b/merge-ordered m1 m2)))))
+    (test/is (= (array-map :a 1, :b {:x 1, :y 3, :z 3}, :c 4, :d 2) (fg/merge-ordered m1 m2)))))

@@ -8,7 +8,13 @@
 
 (ns flatgui.layout-test
   (:require [clojure.test :as test]
-            [flatgui.layout :as layout]))
+            [flatgui.base :as fg]
+            [flatgui.layout :as layout]
+            [flatgui.util.matrix :as m]))
+
+
+;;; cfg->flags
+
 
 (test/deftest cfg->flags-test1
   (let [cfg [:a :b :c :-|]
@@ -25,6 +31,36 @@
                         {:element :edit-dim-btn, :flags nil}]
         flags (layout/cfg->flags cfg)]
     (test/is (= expected-flags flags))))
+
+
+;;; map-direction
+
+(defn- suppress-ratios [coll]
+  (map (fn [e] (into {} (for [[k v] e] [k (cond
+                                            (#{:min :pref} k) (m/defpoint (double (m/x v)) (double (m/y v)))
+                                            (ratio? v) (double v)
+                                            :else v)]))) coll))
+
+(test/deftest map-direction-test1
+  (let [cfg [:a [:b :---] :c [:d :--]]
+        main {:id :main
+              :path-to-target []
+              :clip-size (m/defpoint 10 1)
+              :children {:a {:id :a :path-to-target [:main] :preferred-size (m/defpoint 2 1) :minimum-size (m/defpoint 1 1)}
+                         :b {:id :b :path-to-target [:main] :preferred-size (m/defpoint 2 1) :minimum-size (m/defpoint 1 1)}
+                         :c {:id :c :path-to-target [:main] :preferred-size (m/defpoint 3 1) :minimum-size (m/defpoint 1 1)}
+                         :d {:id :d :path-to-target [:main] :preferred-size (m/defpoint 2 1) :minimum-size (m/defpoint 1 1)}}}
+        main (assoc main :root-container main)
+        expected (list
+                   {:element :a :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0   :x 0   :w 0.2 :y 0.5 :h 0.5 :flags nil}
+                   {:element :b :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0.6 :x 0.2 :w 0.3 :y 0.5 :h 0.5 :flags "---"}
+                   {:element :c :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.3 1.0) :stch-weight 0   :x 0.5 :w 0.3 :y 0.5 :h 0.5 :flags nil}
+                   {:element :d :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0.4 :x 0.8 :w 0.2 :y 0.5 :h 0.5 :flags "--"})
+        actual (layout/map-direction main cfg \- \< m/x)]
+    (test/is (= (m/defpoint 2 1) (fg/get-property-private main [:this :a] :preferred-size)))
+    (test/is (= expected (suppress-ratios actual)))
+    ))
+
 
 ;(test/deftest cfg->flags-test3
 ;  (let [cfg [:dimensions-label [:w-label [[[:w-feet]

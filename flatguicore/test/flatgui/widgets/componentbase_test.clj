@@ -14,7 +14,7 @@
 (defn- remove-service-info [component]
   (let [ children (into (array-map) (for [[k v] (:children component)] [k (remove-service-info v)]))]
     (assoc
-      (dissoc component :evolvers :parents :evolve-reason-provider :properties-to-evolve-provider)
+      (dissoc component :evolvers :evolve-reason-provider :properties-to-evolve-provider)
       :children children)))
 
 ;;; FIXME

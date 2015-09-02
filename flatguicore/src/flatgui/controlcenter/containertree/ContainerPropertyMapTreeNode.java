@@ -21,7 +21,10 @@ public class ContainerPropertyMapTreeNode implements TreeNode
     private static final String CHILDREN = ":children";
     private static final String LOOK = ":look";
     private static final String EVOLVERS = ":evolvers";
+
+    @Deprecated
     private static final String PARENTS = ":parents";
+
     private static final String ROOT_CONTAINER = ":root-container";
     private static final String AUX_CONTAINER = ":aux-container";
     private static final String DEPENDENTS = ":dependent-stage-list";

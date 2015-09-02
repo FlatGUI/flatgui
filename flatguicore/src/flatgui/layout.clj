@@ -38,6 +38,7 @@ flatgui.layout
   ([a] a)
   ([a b] (str a b)))
 
+;;; TODO take into account button visibility
 (fg/defaccessorfn get-child-preferred-size [component child-id]
   (let [abs-pref-size (if-let [own-pref-size (get-property component [:this child-id] :preferred-size)]
                         own-pref-size
@@ -49,7 +50,7 @@ flatgui.layout
                                    interop)
                                  (awt/get-text-preferred-size [text] interop)))
                           component-min-size))
-        container-size (get-property [:this] :clip-size)]
+        container-size (get-property component [:this] :clip-size)]
     (m/defpoint
       (/ (m/x abs-pref-size) (m/x container-size))
       (/ (m/y abs-pref-size) (m/y container-size)))))
@@ -58,7 +59,7 @@ flatgui.layout
   (let [abs-min-size (if-let [own-min-size (get-property component [:this child-id] :minimum-size)]
                        own-min-size
                        component-min-size)
-        container-size (get-property [:this] :clip-size)]
+        container-size (get-property component [:this] :clip-size)]
     (m/defpoint
       (/ (m/x abs-min-size) (m/x container-size))
       (/ (m/y abs-min-size) (m/y container-size)))))
@@ -94,22 +95,32 @@ flatgui.layout
          (mapv cfg->flags-mapper cfg))))
 
 ;(defn map-direction
-;  ([cfg w stcher bgner sfn space-share])
-;  ([cfg w space-share] (map-direction cfg w \- \< m/x 1.0)))
+;  ([cfg stcher bgner sfn ])
+;  ([cfg] (map-direction cfg \- \< m/x)))
 
-(fg/defaccessorfn map-direction [component cfg w stcher bgner sfn space-share]
-  (let [stretches? (fn [element] (.contains (:flags element) stcher))
-        dir (map #(assoc %
+(fg/defaccessorfn map-direction [component cfg stcher bgner sfn]
+  (let [stretches? (fn [element] (true? (and (:flags element) (.contains (:flags element) (str stcher)))))
+        flags (map #(assoc % :stch-weight (count (filter (fn [f] (= f stcher)) (:flags %)))) (cfg->flags cfg))
+        total-stch-weight (reduce + (map #(:stch-weight %) flags))
+        dir (mapv #(assoc %
                          :min (get-child-minimum-size component (:element %))
-                         :pref (get-child-preferred-size component (:element %))) (cfg->flags cfg))
+                         :pref (get-child-preferred-size component (:element %))
+                         :stch-weight (if total-stch-weight (/ (:stch-weight %) total-stch-weight) 0)) flags)
         grouped-by-stretch (group-by stretches? dir)
+        _ (println "grouped-by-stretch" grouped-by-stretch)
         stretching (get grouped-by-stretch true)
         stable (get grouped-by-stretch false)
         stable-pref-total (reduce + (map #(sfn (:pref %)) stable))
         stretching-min-total (reduce + (map #(sfn (:min %)) stretching))]
     (if (< (+ stable-pref-total stretching-min-total) 1.0)
-      ;; TODO distribute (- 1.0 stable-pref-total)
-      nil
+      (let [stretch-space (- 1.0 stable-pref-total)
+            _ (println "stretch-space" stretch-space)
+            index-range (range 0 (count dir))
+            ws (map #(if (stretches? %) (do (println "sw" (:stch-weight %)) (* (:stch-weight %) stretch-space)) (sfn (:pref %))) dir)
+            xs (map #(reduce + (take % ws)) index-range)]
+           ;; y and h are here temporarily
+           ;; instead of :x and :w there should be variables (params)
+        (map #(assoc (nth dir %) :x (nth xs %) :w (nth ws %) :y 0.5 :h 0.5) index-range))
       ;; TODO
       nil)))
 
