@@ -27,7 +27,7 @@ import flatgui.core.awt.HostComponent;
  */
 public class FGLayoutDemo
 {
-    public static final String CONTAINER_NS = "text";
+    public static final String CONTAINER_NS = "layoutdemo";
     public static final String CONTAINER_VAR_NAME = "layoutpanel";
 
     public static void main(String[] args)

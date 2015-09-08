@@ -86,7 +86,7 @@
           (= elem-count 0) (throw (IllegalArgumentException. (str "Wrong layout cfg (nothing but flags specified): " v)))))
 
    :else
-   (throw (IllegalArgumentException. (str "Wrong layout cfg: " v)))))
+   (throw (IllegalArgumentException. (str "Wrong layout cfg: '" (if (nil? v) "<nil>" v) "'")))))
 
 (defn cfg->flags [cfg]
   (let [_ (println "------" cfg)]
@@ -100,8 +100,10 @@
 
 (declare flattenmap)
 
-(defn flatten-mapper [e]
-  (if (coll? e) (flattenmap e) [e]))
+(defn- node? [e] (and (coll? e) (not (map? e))))
+
+(defn- flatten-mapper [e]
+  (if (node? e) (flattenmap e) [e]))
 
 (defn flattenmap [coll]
   (mapcat flatten-mapper coll))
@@ -138,8 +140,11 @@
       nil)))
 
 (fg/defevolverfn :coord-map
- (if-let [layout (map cmd->smile (get-property [:this] :layout))]
-   (flagnestedvec->coordmap (map-direction component layout \- \< m/x))))
+ (let [usr-layout (get-property [:this] :layout)
+       ;TODO this does not work layout (if usr-layout (map cmd->smile usr-layout))
+       layout usr-layout]
+   (if layout
+     (flagnestedvec->coordmap (map-direction component layout \- \< m/x)))))
 
 (fg/defevolverfn :position-matrix
   (if-let [coord-map (get-property [] :coord-map)]
