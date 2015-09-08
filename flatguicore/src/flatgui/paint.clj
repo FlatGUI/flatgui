@@ -52,8 +52,8 @@
 
 (defn flatten-vector
   "Suppose a vector that does not contain vectors among
-   its elements, it the tree leaf. This functions unrolls
-   tree-like structure or vectors into single vector that
+   its elements, it the tree leaf. This function unrolls
+   tree-like structure of vectors into single vector that
    contains only leafs. It is supposed that each vector
    may contain either vectors only, or non-vector elements
    only."
