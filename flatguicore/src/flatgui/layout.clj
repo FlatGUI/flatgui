@@ -8,10 +8,10 @@
 
 (ns ^{:doc    "Utilities for arranging container component layout."
       :author "Denys Lebediev"}
-flatgui.layout
+  flatgui.layout
     (:require [flatgui.base :as fg]
       [flatgui.awt :as awt]
-      [flatgui.util.matrix :as m] [flatgui.util.matrix :as m])
+      [flatgui.util.matrix :as m])
   (:import (java.util.regex Pattern)))
 
 
@@ -98,9 +98,22 @@ flatgui.layout
 ;  ([cfg stcher bgner sfn ])
 ;  ([cfg] (map-direction cfg \- \< m/x)))
 
+(declare flattenmap)
+
+(defn flatten-mapper [e]
+  (if (coll? e) (flattenmap e) [e]))
+
+(defn flattenmap [coll]
+  (mapcat flatten-mapper coll))
+
+(defn flagnestedvec->coordmap [flags]
+  (into {} (map (fn [flg] [(:element flg) flg]) (flattenmap flags))))
+
 (fg/defaccessorfn map-direction [component cfg stcher bgner sfn]
   (let [stretches? (fn [element] (true? (and (:flags element) (.contains (:flags element) (str stcher)))))
-        flags (map #(assoc % :stch-weight (count (filter (fn [f] (= f stcher)) (:flags %)))) (cfg->flags cfg))
+        flags (map
+                #(assoc % :stch-weight (count (filter (fn [f] (= f stcher)) (:flags %))))
+                (flattenmap (cfg->flags cfg)))
         total-stch-weight (reduce + (map #(:stch-weight %) flags))
         dir (mapv #(assoc %
                          :min (get-child-minimum-size component (:element %))
@@ -124,13 +137,26 @@ flatgui.layout
       ;; TODO
       nil)))
 
-;(fg/defevolverfn :coord-map
-; (if-let [layout (map cmd->smile (get-property [:this] :layout))]
-;   (let [
-;         ;No need in this, should contain rel coords ;cs (get-property [:this] :clip-size)
-;         ;w (m/x cs)
-;         ;h (m/y cs)
-;         ])))
+(fg/defevolverfn :coord-map
+ (if-let [layout (map cmd->smile (get-property [:this] :layout))]
+   (flagnestedvec->coordmap (map-direction component layout \- \< m/x))))
+
+(fg/defevolverfn :position-matrix
+  (if-let [coord-map (get-property [] :coord-map)]
+    (if-let [coord ((:id component) coord-map)]
+      (let [ps (get-property [] :clip-size)]
+        (m/translation (* (:x coord) (m/x ps)) (* (:y coord (m/y ps)))))
+      old-position-matrix)
+    old-position-matrix))
+
+(fg/defevolverfn :clip-size
+  (if-let [coord-map (get-property [] :coord-map)]
+    (if-let [coord ((:id component) coord-map)]
+      (let [ps (get-property [] :clip-size)]
+        (m/defpoint (* (:w coord) (m/x ps)) (* (:h coord (m/y ps)))))
+      old-clip-size)
+    old-clip-size))
+
 
 ;;; 1. After map-direction is used for elements of each row, each row will
 ;;; receive it's own set of smile flags. Then map-direction will be used
@@ -148,10 +174,3 @@ flatgui.layout
 ;;;          - either equally if nothing else specified
 ;;;          - or according to specified weights (may be specified with digits or
 ;;;            with smile lengths like :--- or :|||)
-
-
-
-;(fg/defevolverfn :position-matrix)
-;
-;(fg/defevolverfn :clip-size)
-
