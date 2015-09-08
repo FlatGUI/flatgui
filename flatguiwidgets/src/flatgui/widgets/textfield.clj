@@ -315,7 +315,7 @@
           parent-h (m/y parent-size)
           lines (:lines (get-property [:this] :model))]
       (if (pos? (count lines))
-        (let [preferred-size (awt/get-text-preferred-size lines interop)
+        (let [preferred-size (awt/get-text-preferred-size lines (get-property component [:this] :interop))
               preferred-w (m/x preferred-size)
               preferred-h (m/y preferred-size)]
           (m/defpoint (max preferred-w parent-w) (max preferred-h parent-h)))
