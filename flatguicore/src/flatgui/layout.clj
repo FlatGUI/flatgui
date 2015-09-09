@@ -15,7 +15,7 @@
   (:import (java.util.regex Pattern)))
 
 
-(def gap 0.125)
+(def gap 0.0625)
 
 (def component-min-size (m/defpoint 0.375 0.375))
 
@@ -131,7 +131,7 @@
       (let [stretch-space (- 1.0 stable-pref-total)
             _ (println "stretch-space" stretch-space)
             index-range (range 0 (count dir))
-            ws (map #(if (stretches? %) (do (println "sw" (:stch-weight %)) (* (:stch-weight %) stretch-space)) (sfn (:pref %))) dir)
+            ws (map #(if (stretches? %) (* (:stch-weight %) stretch-space) (sfn (:pref %))) dir)
             xs (map #(reduce + (take % ws)) index-range)]
            ;; y and h are here temporarily
            ;; instead of :x and :w there should be variables (params)
@@ -150,7 +150,7 @@
   (if-let [coord-map (get-property [] :coord-map)]
     (if-let [coord ((:id component) coord-map)]
       (let [ps (get-property [] :clip-size)]
-        (m/translation (* (:x coord) (m/x ps)) (* (:y coord (m/y ps)))))
+        (m/translation (+ gap (* (:x coord) (m/x ps))) (+ gap (* (:y coord (m/y ps))))))
       old-position-matrix)
     old-position-matrix))
 
@@ -158,7 +158,7 @@
   (if-let [coord-map (get-property [] :coord-map)]
     (if-let [coord ((:id component) coord-map)]
       (let [ps (get-property [] :clip-size)]
-        (m/defpoint (* (:w coord) (m/x ps)) (* (:h coord (m/y ps)))))
+        (m/defpoint (- (* (:w coord) (m/x ps)) gap gap) (- (* (:h coord (m/y ps))) gap gap)))
       old-clip-size)
     old-clip-size))
 
