@@ -320,7 +320,7 @@
               preferred-h (m/y preferred-size)]
           (m/defpoint (max preferred-w parent-w) (max preferred-h parent-h)))
         (m/defpoint parent-w parent-h)))
-    old-clip-size))
+    ((:clip-size (:evolvers flatgui.widgets.component/component)) component)))
 
 ;;;
 ;;;TODO listen to timer
