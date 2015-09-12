@@ -111,12 +111,68 @@
 (defn flagnestedvec->coordmap [flags]
   (into {} (map (fn [flg] [(:element flg) flg]) (flattenmap flags))))
 
+(fg/defaccessorfn assoc-constraints [component cfg-table stcher]
+  (let [with-abs-weights (map
+                           (fn [cfg-row] (map
+                                           #(assoc % :stch-weight (count (filter (fn [f] (= f stcher)) (:flags %))))
+                                           (flattenmap (cfg->flags cfg-row))))
+                           cfg-table)
+        row-w-mapper (fn [cfg-row] (reduce + (map #(:stch-weight %) cfg-row)))
+        total-stch-weight (reduce + (map row-w-mapper with-abs-weights))
+        with-total-weights (mapv
+                             (fn [cfg-row] (map
+                                             #(assoc %
+                                                     :min (get-child-minimum-size component (:element %))
+                                                     :pref (get-child-preferred-size component (:element %))
+                                                     :stch-weight (if total-stch-weight
+                                                                    (/ (:stch-weight %) total-stch-weight)
+                                                                    0))
+                                             cfg-row))
+                             with-abs-weights)
+        stch-total-weights (mapv row-w-mapper with-total-weights)]
+       (map
+         (fn [row-index]
+           (let [row (nth with-total-weights row-index)
+                 row-stch-w (nth stch-total-weights row-index)]
+             (map #(assoc % :stch-weight (* (:stch-weight %) (/ 1 row-stch-w))) row)))
+         (range 0 (count cfg-table)))))
+
+
+
+;(fg/defaccessorfn map-direction2 [component cfg stcher bgner sfn]
+;  (let [
+;        grouped-by-stretch (group-by stretches? dir)
+;        _ (println "grouped-by-stretch" grouped-by-stretch)
+;        stretching (get grouped-by-stretch true)
+;        stable (get grouped-by-stretch false)
+;        stable-pref-total (reduce + (map #(sfn (:pref %)) stable))
+;        stretching-min-total (reduce + (map #(sfn (:min %)) stretching))]
+;       (if (< (+ stable-pref-total stretching-min-total) 1.0)
+;         (let [stretch-space (- 1.0 stable-pref-total)
+;               _ (println "stretch-space" stretch-space)
+;               index-range (range 0 (count dir))
+;
+;               ; TODO take into account that same column may contain stretching and non-stretching instruments
+;
+;               ws (map #(if (stretches? %) (* (:stch-weight %) stretch-space) (sfn (:pref %))) dir)
+;               xs (map #(reduce + (take % ws)) index-range)]
+;              ;; y and h are here temporarily
+;              ;; instead of :x and :w there should be variables (params)
+;              (map #(assoc (nth dir %) :x (nth xs %) :w (nth ws %) :y 0.5 :h 0.5) index-range))
+;         ;; TODO
+;         nil)))
+
 (fg/defaccessorfn map-direction [component cfg stcher bgner sfn]
   (let [stretches? (fn [element] (true? (and (:flags element) (.contains (:flags element) (str stcher)))))
         flags (map
                 #(assoc % :stch-weight (count (filter (fn [f] (= f stcher)) (:flags %))))
                 (flattenmap (cfg->flags cfg)))
+
+        ; TODO take into account that same column may contain stretching and non-stretching instruments
+        ; TODO need to calculate total across whole cfg matrix
         total-stch-weight (reduce + (map #(:stch-weight %) flags))
+
+
         dir (mapv #(assoc %
                          :min (get-child-minimum-size component (:element %))
                          :pref (get-child-preferred-size component (:element %))
@@ -131,6 +187,9 @@
       (let [stretch-space (- 1.0 stable-pref-total)
             _ (println "stretch-space" stretch-space)
             index-range (range 0 (count dir))
+
+            ; TODO take into account that same column may contain stretching and non-stretching instruments
+
             ws (map #(if (stretches? %) (* (:stch-weight %) stretch-space) (sfn (:pref %))) dir)
             xs (map #(reduce + (take % ws)) index-range)]
            ;; y and h are here temporarily
@@ -138,6 +197,20 @@
         (map #(assoc (nth dir %) :x (nth xs %) :w (nth ws %) :y 0.5 :h 0.5) index-range))
       ;; TODO
       nil)))
+
+
+
+
+
+;(fg/defevolverfn :coord-map coord-map-evolver2
+;  (if-let [usr-layout (get-property [:this] :layout)]
+;    (let [;TODO this does not work layout (if usr-layout (map cmd->smile usr-layout))
+;          layout usr-layout
+;          with-constraints (assoc-constraints component layout stcher)
+;          x-dir ]
+;        )
+;  ))
+
 
 (fg/defevolverfn :coord-map
  (let [usr-layout (get-property [:this] :layout)

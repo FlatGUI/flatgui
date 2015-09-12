@@ -33,7 +33,17 @@
     (test/is (= expected-flags flags))))
 
 
-;;; map-direction
+;;; Test components ans utils
+
+(def test-component-1
+  (let [main {:id :main
+              :path-to-target []
+              :clip-size (m/defpoint 10 1)
+              :children {:a {:id :a :path-to-target [:main] :preferred-size (m/defpoint 2 1) :minimum-size (m/defpoint 1 1)}
+                         :b {:id :b :path-to-target [:main] :preferred-size (m/defpoint 2 1) :minimum-size (m/defpoint 1 1)}
+                         :c {:id :c :path-to-target [:main] :preferred-size (m/defpoint 3 1) :minimum-size (m/defpoint 1 1)}
+                         :d {:id :d :path-to-target [:main] :preferred-size (m/defpoint 2 1) :minimum-size (m/defpoint 1 1)}}}]
+    (assoc main :root-container main)))
 
 (defn- suppress-ratios [coll]
   (map (fn [e] (into {} (for [[k v] e] [k (cond
@@ -41,16 +51,41 @@
                                             (ratio? v) (double v)
                                             :else v)]))) coll))
 
+
+;;; assoc-constraints
+
+(test/deftest assoc-constraints-test1
+  (let [cfg [[:a [:b :---] :c [:d :--]]]
+        main test-component-1
+        expected (list
+                   (list
+                     {:element :a :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0   :flags nil}
+                     {:element :b :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0.6 :flags "---"}
+                     {:element :c :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.3 1.0) :stch-weight 0   :flags nil}
+                     {:element :d :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0.4 :flags "--"}))
+        actual (layout/assoc-constraints main cfg \-)]
+    (test/is (= expected (map suppress-ratios actual)))))
+
+(test/deftest assoc-constraints-test2
+  (let [cfg [[[:a :-]   [:b :---]]
+             [[:c :---] [:d :-]]]
+        main test-component-1
+        expected (list
+                   (list
+                     {:element :a :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0.25 :flags "-"}
+                     {:element :b :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0.75 :flags "---"})
+                   (list
+                     {:element :c :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.3 1.0) :stch-weight 0.75 :flags "---"}
+                     {:element :d :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0.25 :flags "-"}))
+        actual (layout/assoc-constraints main cfg \-)]
+    (test/is (= expected (map suppress-ratios actual)))))
+
+
+;;; map-direction
+
 (test/deftest map-direction-test1
   (let [cfg [:a [:b :---] :c [:d :--]]
-        main {:id :main
-              :path-to-target []
-              :clip-size (m/defpoint 10 1)
-              :children {:a {:id :a :path-to-target [:main] :preferred-size (m/defpoint 2 1) :minimum-size (m/defpoint 1 1)}
-                         :b {:id :b :path-to-target [:main] :preferred-size (m/defpoint 2 1) :minimum-size (m/defpoint 1 1)}
-                         :c {:id :c :path-to-target [:main] :preferred-size (m/defpoint 3 1) :minimum-size (m/defpoint 1 1)}
-                         :d {:id :d :path-to-target [:main] :preferred-size (m/defpoint 2 1) :minimum-size (m/defpoint 1 1)}}}
-        main (assoc main :root-container main)
+        main test-component-1
         expected (list
                    {:element :a :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0   :x 0   :w 0.2 :y 0.5 :h 0.5 :flags nil}
                    {:element :b :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0.6 :x 0.2 :w 0.3 :y 0.5 :h 0.5 :flags "---"}
