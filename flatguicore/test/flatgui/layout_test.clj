@@ -38,7 +38,7 @@
 (def test-component-1
   (let [main {:id :main
               :path-to-target []
-              :clip-size (m/defpoint 10 1)
+              :clip-size (m/defpoint 10 10)
               :children {:a {:id :a :path-to-target [:main] :preferred-size (m/defpoint 2 1) :minimum-size (m/defpoint 1 1)}
                          :b {:id :b :path-to-target [:main] :preferred-size (m/defpoint 2 1) :minimum-size (m/defpoint 1 1)}
                          :c {:id :c :path-to-target [:main] :preferred-size (m/defpoint 3 1) :minimum-size (m/defpoint 1 1)}
@@ -59,10 +59,10 @@
         main test-component-1
         expected (list
                    (list
-                     {:element :a :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0   :flags nil}
-                     {:element :b :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0.6 :flags "---"}
-                     {:element :c :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.3 1.0) :stch-weight 0   :flags nil}
-                     {:element :d :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0.4 :flags "--"}))
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 0   :flags nil}
+                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 0.6 :flags "---"}
+                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :stch-weight 0   :flags nil}
+                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 0.4 :flags "--"}))
         actual (layout/assoc-constraints main cfg \-)]
     (test/is (= expected (map suppress-ratios actual)))))
 
@@ -72,45 +72,45 @@
         main test-component-1
         expected (list
                    (list
-                     {:element :a :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0.25 :flags "-"}
-                     {:element :b :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0.75 :flags "---"})
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 0.25 :flags "-"}
+                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 0.75 :flags "---"})
                    (list
-                     {:element :c :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.3 1.0) :stch-weight 0.75 :flags "---"}
-                     {:element :d :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0.25 :flags "-"}))
+                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :stch-weight 0.75 :flags "---"}
+                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 0.25 :flags "-"}))
         actual (layout/assoc-constraints main cfg \-)]
     (test/is (= expected (map suppress-ratios actual)))))
 
+;;; compute-x-dir
 
-;;; map-direction
 
-(test/deftest map-direction-test1
-  (let [cfg [:a [:b :---] :c [:d :--]]
-        main test-component-1
-        expected (list
-                   {:element :a :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0   :x 0   :w 0.2 :y 0.5 :h 0.5 :flags nil}
-                   {:element :b :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0.6 :x 0.2 :w 0.3 :y 0.5 :h 0.5 :flags "---"}
-                   {:element :c :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.3 1.0) :stch-weight 0   :x 0.5 :w 0.3 :y 0.5 :h 0.5 :flags nil}
-                   {:element :d :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0.4 :x 0.8 :w 0.2 :y 0.5 :h 0.5 :flags "--"})
-        actual (layout/map-direction main cfg \- \< m/x)]
+;;; coord-map-evolver
+
+(test/deftest coord-map-evolver-test1
+  (let [cfg [[:a [:b :---] :c [:d :--]]]
+        main (assoc test-component-1 :layout cfg)
+        expected (layout/flagnestedvec->coordmap
+                   (list
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0   :w 0.2 :y 0 :h 0.1 :flags nil}
+                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.2 :w 0.3 :y 0 :h 0.1 :flags "---"}
+                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.5 :w 0.3 :y 0 :h 0.1 :flags nil}
+                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.8 :w 0.2 :y 0 :h 0.1 :flags "--"}))
+        actual (layout/coord-map-evolver main)]
     (test/is (= (m/defpoint 2 1) (fg/get-property-private main [:this :a] :preferred-size)))
-    (test/is (= expected (suppress-ratios actual)))
+    (test/is (= expected (into {} (for [[k v] actual] [k (first (suppress-ratios [v]))]))))
     ))
 
 
-;(test/deftest cfg->flags-test3
-;  (let [cfg [:dimensions-label [:w-label [[[:w-feet]
-;                                           [:w-inch]] :---] :h-label [[[:h-feet]
-;                                                                       [:h-inch]] :--]] :edit-dim-btn]
-;
-;        expected-flags [{:element :dimensions-label, :flags nil}
-;                        [{:element :w-label, :flags nil}
-;                         [{:element :w-feet, :flags nil}  ; No way to distinguish that :w-inch has to be UNDER :w-feet
-;                          {:element :w-inch, :flags nil}] ; So looks like this is not the way to go
-;                         {:element :h-label, :flags nil}
-;                         [{:element :h-feet, :flags nil}
-;                          {:element :h-inch, :flags nil}]]
-;                        {:element :edit-dim-btn, :flags nil}]
-;        flags (layout/cfg->flags cfg)]
-;    (test/is (= expected-flags flags))))
+;(test/deftest map-direction-test1
+;  (let [cfg [:a [:b :---] :c [:d :--]]
+;        main test-component-1
+;        expected (list
+;                   {:element :a :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0   :x 0   :w 0.2 :y 0.5 :h 0.5 :flags nil}
+;                   {:element :b :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0.6 :x 0.2 :w 0.3 :y 0.5 :h 0.5 :flags "---"}
+;                   {:element :c :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.3 1.0) :stch-weight 0   :x 0.5 :w 0.3 :y 0.5 :h 0.5 :flags nil}
+;                   {:element :d :min (m/defpoint 0.1 1.0) :pref (m/defpoint 0.2 1.0) :stch-weight 0.4 :x 0.8 :w 0.2 :y 0.5 :h 0.5 :flags "--"})
+;        actual (layout/map-direction main cfg \- \< m/x)]
+;    (test/is (= (m/defpoint 2 1) (fg/get-property-private main [:this :a] :preferred-size)))
+;    (test/is (= expected (suppress-ratios actual)))
+;    ))
 
 

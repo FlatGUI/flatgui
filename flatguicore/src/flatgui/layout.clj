@@ -11,7 +11,7 @@
   flatgui.layout
     (:require [flatgui.base :as fg]
       [flatgui.awt :as awt]
-      [flatgui.util.matrix :as m])
+      [flatgui.util.matrix :as m] [flatgui.base :as fg])
   (:import (java.util.regex Pattern)))
 
 
@@ -74,7 +74,6 @@
 
     (sequential? v)
     (let [grouped (group-by smile? v)
-          _ (println "groupe2" grouped)
           elements (get grouped false)
           elem-count (count elements)
           smiles (get grouped true)
@@ -89,14 +88,9 @@
    (throw (IllegalArgumentException. (str "Wrong layout cfg: '" (if (nil? v) "<nil>" v) "'")))))
 
 (defn cfg->flags [cfg]
-  (let [_ (println "------" cfg)]
-       (if (and (sequential? cfg) (every? keyword? cfg))
-         (cfg->flags-mapper cfg)
-         (mapv cfg->flags-mapper cfg))))
-
-;(defn map-direction
-;  ([cfg stcher bgner sfn ])
-;  ([cfg] (map-direction cfg \- \< m/x)))
+  (if (and (sequential? cfg) (every? keyword? cfg))
+    (cfg->flags-mapper cfg)
+    (mapv cfg->flags-mapper cfg)))
 
 (declare flattenmap)
 
@@ -108,8 +102,10 @@
 (defn flattenmap [coll]
   (mapcat flatten-mapper coll))
 
+(defn- remove-intermediate-data [m] (dissoc m :stch-weight :total-stch-weight))
+
 (defn flagnestedvec->coordmap [flags]
-  (into {} (map (fn [flg] [(:element flg) flg]) (flattenmap flags))))
+  (into {} (map (fn [flg] [(:element flg) (remove-intermediate-data flg)]) (flattenmap flags))))
 
 (fg/defaccessorfn assoc-constraints [component cfg-table stcher]
   (let [with-abs-weights (map
@@ -124,7 +120,7 @@
                                              #(assoc %
                                                      :min (get-child-minimum-size component (:element %))
                                                      :pref (get-child-preferred-size component (:element %))
-                                                     :stch-weight (if total-stch-weight
+                                                     :stch-weight (if (pos? total-stch-weight)
                                                                     (/ (:stch-weight %) total-stch-weight)
                                                                     0))
                                              cfg-row))
@@ -134,90 +130,77 @@
          (fn [row-index]
            (let [row (nth with-total-weights row-index)
                  row-stch-w (nth stch-total-weights row-index)]
-             (map #(assoc % :stch-weight (* (:stch-weight %) (/ 1 row-stch-w))) row)))
+             (map #(assoc % :stch-weight (if (pos? row-stch-w) (* (:stch-weight %) (/ 1 row-stch-w)) 0)) row)))
          (range 0 (count cfg-table)))))
 
+(defn nth-if-present [coll index not-present] (if (< index (count coll)) (nth coll index) not-present))
 
+(defn gen-vector-op [f]
+  (fn
+    ([a b]
+      (let [gv (fn [v i] (nth-if-present v i 0))]
+           (mapv #(f (gv a %) (gv b %)) (range 0 (max (count a) (count b))))))
+    ([a] a)
+    ([] [])))
 
-;(fg/defaccessorfn map-direction2 [component cfg stcher bgner sfn]
-;  (let [
-;        grouped-by-stretch (group-by stretches? dir)
-;        _ (println "grouped-by-stretch" grouped-by-stretch)
-;        stretching (get grouped-by-stretch true)
-;        stable (get grouped-by-stretch false)
-;        stable-pref-total (reduce + (map #(sfn (:pref %)) stable))
-;        stretching-min-total (reduce + (map #(sfn (:min %)) stretching))]
-;       (if (< (+ stable-pref-total stretching-min-total) 1.0)
-;         (let [stretch-space (- 1.0 stable-pref-total)
-;               _ (println "stretch-space" stretch-space)
-;               index-range (range 0 (count dir))
-;
-;               ; TODO take into account that same column may contain stretching and non-stretching instruments
-;
-;               ws (map #(if (stretches? %) (* (:stch-weight %) stretch-space) (sfn (:pref %))) dir)
-;               xs (map #(reduce + (take % ws)) index-range)]
-;              ;; y and h are here temporarily
-;              ;; instead of :x and :w there should be variables (params)
-;              (map #(assoc (nth dir %) :x (nth xs %) :w (nth ws %) :y 0.5 :h 0.5) index-range))
-;         ;; TODO
-;         nil)))
+(def vmax (gen-vector-op max))
 
-(fg/defaccessorfn map-direction [component cfg stcher bgner sfn]
+(defn compute-x-dir [cfg-table]
+  (let [weight-table (map (fn [cfg-row] (mapv #(:stch-weight %) cfg-row)) cfg-table)
+        column-weights (vec (reduce vmax weight-table))]
+    (mapv
+      (fn [cfg-row] (mapv #(assoc (nth cfg-row %) :total-stch-weight (nth column-weights %)) (range 0 (count cfg-row))))
+      cfg-table)))
+
+(defn compute-y-dir [cfg-table]
+  (let [row-weights (mapv (fn [cfg-row] (reduce max (map #(:stch-weight %) cfg-row))) cfg-table)]
+    (mapv
+      (fn [row-index]
+        (let [cfg-row (nth cfg-table row-index)]
+          (mapv #(assoc (nth cfg-row %) :total-stch-weight (nth row-weights row-index)) (range 0 (count cfg-row)))))
+      (range 0 (count cfg-table)))))
+
+(fg/defaccessorfn map-direction [component dir stcher bgner sfn coord-key size-key]
   (let [stretches? (fn [element] (true? (and (:flags element) (.contains (:flags element) (str stcher)))))
-        flags (map
-                #(assoc % :stch-weight (count (filter (fn [f] (= f stcher)) (:flags %))))
-                (flattenmap (cfg->flags cfg)))
-
-        ; TODO take into account that same column may contain stretching and non-stretching instruments
-        ; TODO need to calculate total across whole cfg matrix
-        total-stch-weight (reduce + (map #(:stch-weight %) flags))
-
-
-        dir (mapv #(assoc %
-                         :min (get-child-minimum-size component (:element %))
-                         :pref (get-child-preferred-size component (:element %))
-                         :stch-weight (if total-stch-weight (/ (:stch-weight %) total-stch-weight) 0)) flags)
         grouped-by-stretch (group-by stretches? dir)
-        _ (println "grouped-by-stretch" grouped-by-stretch)
+        ;_ (println "grouped-by-stretch" grouped-by-stretch)
         stretching (get grouped-by-stretch true)
         stable (get grouped-by-stretch false)
         stable-pref-total (reduce + (map #(sfn (:pref %)) stable))
         stretching-min-total (reduce + (map #(sfn (:min %)) stretching))]
-    (if (< (+ stable-pref-total stretching-min-total) 1.0)
-      (let [stretch-space (- 1.0 stable-pref-total)
-            _ (println "stretch-space" stretch-space)
-            index-range (range 0 (count dir))
+       (if (< (+ stable-pref-total stretching-min-total) 1.0)
+         (let [stretch-space (- 1.0 stable-pref-total)
+               index-range (range 0 (count dir))
+               sizes (mapv #(if (stretches? %) (* (:stch-weight %) stretch-space) (sfn (:pref %))) dir)
+               total-sizes (mapv #(if (stretches? %) (* (:total-stch-weight %) stretch-space) (sfn (:pref %))) dir)
+               coords (mapv #(reduce + (take % total-sizes)) index-range)]
+           (map #(assoc (nth dir %) coord-key (nth coords %) size-key (nth sizes %)) index-range))
 
-            ; TODO take into account that same column may contain stretching and non-stretching instruments
+         ;; TODO maybe one of three container policies when there is lack of space
+         ;;  1. shrink
+         ;;  2. ignore
+         ;;  3. line-wrap
+         (let [_ (println " <<<<TODO space lack>>>>")]
+              nil))))
 
-            ws (map #(if (stretches? %) (* (:stch-weight %) stretch-space) (sfn (:pref %))) dir)
-            xs (map #(reduce + (take % ws)) index-range)]
-           ;; y and h are here temporarily
-           ;; instead of :x and :w there should be variables (params)
-        (map #(assoc (nth dir %) :x (nth xs %) :w (nth ws %) :y 0.5 :h 0.5) index-range))
-      ;; TODO
-      nil)))
-
-
-
-
-
-;(fg/defevolverfn :coord-map coord-map-evolver2
-;  (if-let [usr-layout (get-property [:this] :layout)]
-;    (let [;TODO this does not work layout (if usr-layout (map cmd->smile usr-layout))
-;          layout usr-layout
-;          with-constraints (assoc-constraints component layout stcher)
-;          x-dir ]
-;        )
-;  ))
-
+(defn rotate-table [t]
+  (let [row-count (count t)
+        column-count (reduce max (map count t))]
+    (mapv (fn [col-index] (mapv (fn [row] (nth-if-present row col-index nil)) t)) (range 0 column-count))))
 
 (fg/defevolverfn :coord-map
- (let [usr-layout (get-property [:this] :layout)
-       ;TODO this does not work layout (if usr-layout (map cmd->smile usr-layout))
-       layout usr-layout]
-   (if layout
-     (flagnestedvec->coordmap (map-direction component layout \- \< m/x)))))
+  (if-let [usr-layout (get-property [:this] :layout)]
+    (let [;TODO this does not work layout (if usr-layout (map cmd->smile usr-layout))
+          layout usr-layout
+          x-coord-map (map
+                        #(map-direction component % \- \< m/x :x :w)
+                        (compute-x-dir (assoc-constraints component layout \-)))
+          y-coord-map (map
+                        #(map-direction component % \| \' m/y :y :h)
+                        (rotate-table (compute-y-dir (assoc-constraints component layout \|))))]
+      (merge-with merge
+        (flagnestedvec->coordmap x-coord-map)
+        (flagnestedvec->coordmap y-coord-map)))))
 
 (fg/defevolverfn :position-matrix
   (if-let [coord-map (get-property [] :coord-map)]
