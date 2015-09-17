@@ -108,30 +108,15 @@
   (into {} (map (fn [flg] [(:element flg) (remove-intermediate-data flg)]) (flattenmap flags))))
 
 (fg/defaccessorfn assoc-constraints [component cfg-table stcher]
-  (let [with-abs-weights (map
-                           (fn [cfg-row] (map
-                                           #(assoc % :stch-weight (count (filter (fn [f] (= f stcher)) (:flags %))))
-                                           (flattenmap (cfg->flags cfg-row))))
-                           cfg-table)
-        row-w-mapper (fn [cfg-row] (reduce + (map #(:stch-weight %) cfg-row)))
-        total-stch-weight (reduce + (map row-w-mapper with-abs-weights))
-        with-total-weights (mapv
-                             (fn [cfg-row] (map
-                                             #(assoc %
-                                                     :min (get-child-minimum-size component (:element %))
-                                                     :pref (get-child-preferred-size component (:element %))
-                                                     :stch-weight (if (pos? total-stch-weight)
-                                                                    (/ (:stch-weight %) total-stch-weight)
-                                                                    0))
-                                             cfg-row))
-                             with-abs-weights)
-        stch-total-weights (mapv row-w-mapper with-total-weights)]
-       (map
-         (fn [row-index]
-           (let [row (nth with-total-weights row-index)
-                 row-stch-w (nth stch-total-weights row-index)]
-             (map #(assoc % :stch-weight (if (pos? row-stch-w) (* (:stch-weight %) (/ 1 row-stch-w)) 0)) row)))
-         (range 0 (count cfg-table)))))
+  (map
+    (fn [cfg-row] (map
+                    #(assoc
+                      %
+                      :stch-weight (count (filter (fn [f] (= f stcher)) (:flags %)))
+                      :min (get-child-minimum-size component (:element %))
+                      :pref (get-child-preferred-size component (:element %)))
+                    (flattenmap (cfg->flags cfg-row))))
+    cfg-table))
 
 (defn nth-if-present [coll index not-present] (if (< index (count coll)) (nth coll index) not-present))
 
@@ -147,17 +132,26 @@
 
 (defn compute-x-dir [cfg-table]
   (let [weight-table (map (fn [cfg-row] (mapv #(:stch-weight %) cfg-row)) cfg-table)
-        column-weights (vec (reduce vmax weight-table))]
+        column-weights (vec (reduce vmax weight-table))
+        total-column-weight (reduce + column-weights)
+        coeff (if (pos? total-column-weight) (/ 1 total-column-weight) 1)
+        norm-column-weights (if (pos? total-column-weight) (map #(* % coeff) column-weights) column-weights)]
     (mapv
-      (fn [cfg-row] (mapv #(assoc (nth cfg-row %) :total-stch-weight (nth column-weights %)) (range 0 (count cfg-row))))
+      (fn [cfg-row] (mapv
+                      #(assoc (nth cfg-row %) :total-stch-weight (nth norm-column-weights %) :stch-weight (* coeff (:stch-weight (nth cfg-row %))))
+                      (range 0 (count cfg-row))))
       cfg-table)))
 
 (defn compute-y-dir [cfg-table]
-  (let [row-weights (mapv (fn [cfg-row] (reduce max (map #(:stch-weight %) cfg-row))) cfg-table)]
+  (let [row-weights (mapv (fn [cfg-row] (reduce max (map #(:stch-weight %) cfg-row))) cfg-table)
+        total-row-weight (reduce + row-weights)
+        coeff (if (pos? total-row-weight) (/ total-row-weight) 1)]
     (mapv
       (fn [row-index]
         (let [cfg-row (nth cfg-table row-index)]
-          (mapv #(assoc (nth cfg-row %) :total-stch-weight (nth row-weights row-index)) (range 0 (count cfg-row)))))
+          (mapv
+            #(assoc (nth cfg-row %) :total-stch-weight (* coeff (nth row-weights row-index)) :stch-weight (* coeff (:stch-weight (nth cfg-row %))))
+            (range 0 (count cfg-row)))))
       (range 0 (count cfg-table)))))
 
 (fg/defaccessorfn map-direction [component dir stcher bgner sfn coord-key size-key]
