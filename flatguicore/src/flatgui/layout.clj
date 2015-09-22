@@ -154,7 +154,7 @@
   (let [row-weights (mapv (fn [cfg-row] (reduce max (map #(:stch-weight %) cfg-row))) cfg-table)
         column-count (reduce max (map count cfg-table))
         total-row-weight (reduce + row-weights)
-        coeff (if (pos? total-row-weight) (/ total-row-weight) 1)]
+        coeff (if (pos? total-row-weight) (/ 1 total-row-weight) 1)]
     (mapv
       (fn [row-index]
         (let [cfg-row (nth cfg-table row-index)
