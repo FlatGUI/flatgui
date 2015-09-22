@@ -20,8 +20,10 @@
             [flatgui.widgets.scrollpanel :as scrollpanel]))
 
 (def layout-cfg
-  [
-   [:name-label       [:name-editor :-]]
+  [[:name-label       [:name-editor :-]]
+   [:password-label   [:password-textfield :-]               :show-chars-btn]
+   ; TODO :x :y do not work
+   ;[:position-label   [:x :y :-]                             :edit-pos-btn]
    ]
   ;[[:name-label       [:name-editor :-]]
   ; [:password-label   [:password-textfield :-]               :show-chars-btn]
@@ -50,10 +52,10 @@
     (fg/defcomponent label/label :name-label {:text "Name:"})
     (fg/defcomponent textfield/textfield :name-editor {})
 
-    ;(fg/defcomponent label/label :password-label {:text "Password:"})
-    ;(fg/defcomponent textfield/textfield :password-textfield {})
-    ;(fg/defcomponent button/button :show-chars-btn {:text "A"})
-    ;
+    (fg/defcomponent label/label :password-label {:text "Password:"})
+    (fg/defcomponent textfield/textfield :password-textfield {})
+    (fg/defcomponent button/button :show-chars-btn {:text "A"})
+
     ;(fg/defcomponent label/label :position-label {:text "Position:"})
     ;(fg/defcomponent textfield/textfield :x {})
     ;(fg/defcomponent textfield/textfield :y {})

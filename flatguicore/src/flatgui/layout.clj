@@ -51,9 +51,7 @@
                                  (awt/get-text-preferred-size
                                    (if-let [lines (:lines (get-property component [:this child-id] :multiline))] lines [text])
                                    interop)
-                                 (let [th (awt/get-text-preferred-size [text] interop)
-                                       _ (println child-id "th=" th)]
-                                      th)))
+                                 (awt/get-text-preferred-size [text] interop)))
                           component-min-size))
         container-size (get-property component [:this] :clip-size)]
     (m/defpoint
@@ -107,7 +105,7 @@
 (defn flattenmap [coll]
   (mapcat flatten-mapper coll))
 
-(defn- remove-intermediate-data [m] (dissoc m :stch-weight :total-stch-weight))
+(defn- remove-intermediate-data [m] (dissoc m :stch-weight :total-stch-weight :total-stable-pref))
 
 (defn flagnestedvec->coordmap [flags]
   (into {} (map (fn [flg] [(:element flg) (remove-intermediate-data flg)]) (flattenmap flags))))
@@ -138,6 +136,8 @@
 (defn compute-x-dir [cfg-table]
   (let [weight-table (map (fn [cfg-row] (mapv #(:stch-weight %) cfg-row)) cfg-table)
         column-weights (vec (reduce vmax weight-table))
+        stable-size-table (map (fn [cfg-row] (mapv #(m/x (if (:pref %) (:pref %) component-min-size)) cfg-row)) cfg-table)
+        column-stable-sizes (vec (reduce vmax stable-size-table))
         total-column-weight (reduce + column-weights)
         coeff (if (pos? total-column-weight) (/ 1 total-column-weight) 1)
         norm-column-weights (if (pos? total-column-weight) (map #(* % coeff) column-weights) column-weights)]
@@ -146,12 +146,14 @@
                       #(assoc
                         (nth cfg-row %)
                         :total-stch-weight (nth norm-column-weights %)
+                        :total-stable-pref (nth column-stable-sizes %)
                         :stch-weight (* coeff (:stch-weight (nth cfg-row %))))
                       (range 0 (count cfg-row))))
       cfg-table)))
 
 (defn compute-y-dir [cfg-table]
   (let [row-weights (mapv (fn [cfg-row] (reduce max (map #(:stch-weight %) cfg-row))) cfg-table)
+        row-stable-sizes (mapv (fn [cfg-row] (reduce max (map #(m/y (if (:pref %) (:pref %) component-min-size)) cfg-row))) cfg-table)
         column-count (reduce max (map count cfg-table))
         total-row-weight (reduce + row-weights)
         coeff (if (pos? total-row-weight) (/ 1 total-row-weight) 1)]
@@ -163,24 +165,23 @@
             #(assoc
               (if (< % row-size) (nth cfg-row %) {:min component-no-size :pref component-no-size})
               :total-stch-weight (* coeff (nth row-weights row-index))
+              :total-stable-pref (nth row-stable-sizes row-index)
               :stch-weight (* coeff (if (< % row-size) (:stch-weight (nth cfg-row %)) 0)))
             (range 0 column-count))))
       (range 0 (count cfg-table)))))
 
 (fg/defaccessorfn map-direction [component dir stcher bgner sfn coord-key size-key]
   (let [stretches? (fn [element] (true? (and (:flags element) (.contains (:flags element) (str stcher)))))
-        grouped-by-stretch (group-by stretches? dir)
+        grouped-by-stretch (group-by (fn [e] (pos? (:total-stch-weight e))) dir) ; Meaning whole column/row stretch (if there is at least one stretching element)
         stretching (get grouped-by-stretch true)
         stable (get grouped-by-stretch false)
-        stable-pref-total (reduce + (map #(sfn (:pref %)) stable))
+        stable-pref-total (reduce + (map #(:total-stable-pref %) stable))
         stretching-min-total (reduce + (map #(sfn (:min %)) stretching))]
        (if (< (+ stable-pref-total stretching-min-total) 1.0)
          (let [stretch-space (- 1.0 stable-pref-total)
                index-range (range 0 (count dir))
                sizes (mapv #(if (stretches? %) (* (:stch-weight %) stretch-space) (sfn (:pref %))) dir)
-
-               total-sizes (mapv #(if (stretches? %) (* (:total-stch-weight %) stretch-space) (sfn (:pref %))) dir)
-
+               total-sizes (mapv #(if (pos? (:total-stch-weight %)) (* (:total-stch-weight %) stretch-space) (:total-stable-pref %)) dir)
                coords (mapv #(reduce + (take % total-sizes)) index-range)]
            (map #(assoc (nth dir %) coord-key (nth coords %) size-key (nth sizes %)) index-range))
 
@@ -203,7 +204,6 @@
           x-coord-map (map
                         #(map-direction component % \- \< m/x :x :w)
                         (compute-x-dir (assoc-constraints component layout \-)))
-          _ (println "Y-DIR" (compute-y-dir (assoc-constraints component layout \|)))
           y-coord-map (map
                         #(map-direction component % \| \' m/y :y :h)
                         (rotate-table (compute-y-dir (assoc-constraints component layout \|))))]

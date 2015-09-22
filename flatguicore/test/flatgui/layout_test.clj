@@ -108,7 +108,7 @@
                    {:stch-weight 0.6 :total-stch-weight 0.6}
                    {:stch-weight 0.0 :total-stch-weight 0.0}
                    {:stch-weight 0.4 :total-stch-weight 0.4}]]
-        actual (layout/compute-x-dir cfg)]
+        actual (mapv (fn [cfg-row] (mapv #(dissoc % :total-stable-pref) cfg-row)) (layout/compute-x-dir cfg))]
     (test/is (= expected actual))))
 
 (test/deftest compute-x-dir-test2
@@ -123,7 +123,7 @@
                    {:stch-weight 0.5    :total-stch-weight 0.5}]
                   [{:stch-weight 0.5    :total-stch-weight 0.5}
                    {:stch-weight 0.125  :total-stch-weight 0.5}]]
-        actual (layout/compute-x-dir cfg)]
+        actual (mapv (fn [cfg-row] (mapv #(dissoc % :total-stable-pref) cfg-row)) (layout/compute-x-dir cfg))]
     (test/is (= expected actual))))
 
 (test/deftest compute-y-dir-test1
@@ -136,7 +136,7 @@
                   [{:stch-weight 0.6 :total-stch-weight 0.6}]
                   [{:stch-weight 0.0 :total-stch-weight 0.0}]
                   [{:stch-weight 0.4 :total-stch-weight 0.4}]]
-        actual (layout/compute-y-dir cfg)]
+        actual (mapv (fn [cfg-row] (mapv #(dissoc % :total-stable-pref) cfg-row)) (layout/compute-y-dir cfg))]
     (test/is (= expected actual))))
 
 (test/deftest compute-y-dir-test2
@@ -151,7 +151,7 @@
                    {:stch-weight 0.5    :total-stch-weight 0.5}]
                   [{:stch-weight 0.5    :total-stch-weight 0.5}
                    {:stch-weight 0.125  :total-stch-weight 0.5}]]
-        actual (layout/compute-y-dir cfg)]
+        actual (mapv (fn [cfg-row] (mapv #(dissoc % :total-stable-pref) cfg-row)) (layout/compute-y-dir cfg))]
     (test/is (= expected actual))))
 
 (test/deftest compute-y-dir-test3
@@ -162,7 +162,7 @@
                 {:stch-weight 0.75} {:stch-weight 0.75}))
         expected [[{:stch-weight 0.25 :total-stch-weight 0.25} {:stch-weight 0.25 :total-stch-weight 0.25}]
                   [{:stch-weight 0.75 :total-stch-weight 0.75} {:stch-weight 0.75 :total-stch-weight 0.75}]]
-        actual (layout/compute-y-dir cfg)]
+        actual (mapv (fn [cfg-row] (mapv #(dissoc % :total-stable-pref) cfg-row)) (layout/compute-y-dir cfg))]
     (test/is (= expected actual))))
 
 
@@ -209,18 +209,17 @@
         actual (layout/coord-map-evolver main)]
     (test/is (= expected (into {} (for [[k v] actual] [k (first (suppress-ratios [v]))]))))))
 
-;(test/deftest coord-map-evolver-test4
-;  (let [cfg [[[:a :- :|]                  ]
-;             [[:c :---- :|||] [:d :- :|||]]]
-;        main (assoc test-component-1 :layout cfg)
-;        expected (layout/flagnestedvec->coordmap
-;                   (list
-;                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0   :w 0.2 :y 0    :h 0.25 :flags "-|"}
-;                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0   :w 0.8 :y 0.25 :h 0.75 :flags "----|||"}
-;                     ; TODO :d has y 0 but should have 0.25 - because emty cell in place of :b does not stretch
-;                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.8 :w 0.2 :y 0.25 :h 0.75 :flags "-|||"}))
-;        raw-result (layout/coord-map-evolver main)
-;        _ (println "Empty: " (get raw-result nil))
-;        actual (dissoc raw-result nil)]
-;    (test/is (= expected (into {} (for [[k v] actual] [k (first (suppress-ratios [v]))]))))))
+(test/deftest coord-map-evolver-test4
+  (let [cfg [[[:a :- :|]                  ]
+             [[:c :---- :|||] [:d :- :|||]]]
+        main (assoc test-component-1 :layout cfg)
+        expected (layout/flagnestedvec->coordmap
+                   (list
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0   :w 0.2 :y 0    :h 0.25 :flags "-|"}
+                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0   :w 0.8 :y 0.25 :h 0.75 :flags "----|||"}
+                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.8 :w 0.2 :y 0.25 :h 0.75 :flags "-|||"}))
+        raw-result (layout/coord-map-evolver main)
+        _ (println "Empty: " (get raw-result nil))
+        actual (dissoc raw-result nil)]
+    (test/is (= expected (into {} (for [[k v] actual] [k (first (suppress-ratios [v]))]))))))
 
