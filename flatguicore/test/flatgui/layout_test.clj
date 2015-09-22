@@ -207,6 +207,20 @@
                      {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0   :w 0.5   :y 0.25 :h 0.75 :flags "----|||"}
                      {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.5 :w 0.125 :y 0.25 :h 0.75 :flags "-|||"}))
         actual (layout/coord-map-evolver main)]
-    (test/is (= (m/defpoint 2 1) (fg/get-property-private main [:this :a] :preferred-size)))
     (test/is (= expected (into {} (for [[k v] actual] [k (first (suppress-ratios [v]))]))))))
+
+;(test/deftest coord-map-evolver-test4
+;  (let [cfg [[[:a :- :|]                  ]
+;             [[:c :---- :|||] [:d :- :|||]]]
+;        main (assoc test-component-1 :layout cfg)
+;        expected (layout/flagnestedvec->coordmap
+;                   (list
+;                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0   :w 0.2 :y 0    :h 0.25 :flags "-|"}
+;                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0   :w 0.8 :y 0.25 :h 0.75 :flags "----|||"}
+;                     ; TODO :d has y 0 but should have 0.25 - because emty cell in place of :b does not stretch
+;                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.8 :w 0.2 :y 0.25 :h 0.75 :flags "-|||"}))
+;        raw-result (layout/coord-map-evolver main)
+;        _ (println "Empty: " (get raw-result nil))
+;        actual (dissoc raw-result nil)]
+;    (test/is (= expected (into {} (for [[k v] actual] [k (first (suppress-ratios [v]))]))))))
 

@@ -20,18 +20,22 @@
             [flatgui.widgets.scrollpanel :as scrollpanel]))
 
 (def layout-cfg
+  [
+   [:name-label       [:name-editor :-]]
+   ]
   ;[[:name-label       [:name-editor :-]]
   ; [:password-label   [:password-textfield :-]               :show-chars-btn]
   ; [:position-label   [:x :y :-]                             :edit-pos-btn]
   ; [:dimensions-label [:w-label [:w :---] :h-label [:h :--]] :edit-dim-btn]
   ; [[:one :two :']    [:notes-entry :-|]]
-  ; [[:upper-ed :-']   [:notes-entry]]
+  ; [[:upper-ed :-']   [:notes-entry]]     <--- :notes-entry takes more than one row
   ; [[:three :four]    [:notes-entry]]
   ; [[:five :six :-.]  [:notes-entry]]
+  ; [[:long-editor]    [:long-editor]] <--- :long-editor takes two columns
   ; [:bottom-labels    [[:bleft :<] [:bright :>]]]]
-
-  [:name-label       [:name-editor :-]]
-
+  ;                   /|\
+  ;                    | Need to know width of first column to align x coord for second.
+  ;                      Same is with rows
   )
 
 (def demo-window
@@ -83,7 +87,7 @@
 (def layout-window
   (fg/defcomponent
     window/window
-    :hello
+    :config
     {:clip-size (m/defpoint 5.125 5.5)
      :position-matrix (m/translation 1 1)
      :text "Config"}

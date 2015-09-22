@@ -11,13 +11,16 @@
   flatgui.layout
     (:require [flatgui.base :as fg]
       [flatgui.awt :as awt]
-      [flatgui.util.matrix :as m] [flatgui.base :as fg])
+      [flatgui.util.matrix :as m] [flatgui.base :as fg] [flatgui.awt :as awt])
   (:import (java.util.regex Pattern)))
 
 
-(def gap 0.0625)
+;(def gap 0.0625)
+(def gap (* (awt/px) 2))
 
 (def component-min-size (m/defpoint 0.375 0.375))
+
+(def component-no-size (m/defpoint 0 0))
 
 (def cmd->smile {:h-stretch :-
                  :v-stretch :|
@@ -48,7 +51,9 @@
                                  (awt/get-text-preferred-size
                                    (if-let [lines (:lines (get-property component [:this child-id] :multiline))] lines [text])
                                    interop)
-                                 (awt/get-text-preferred-size [text] interop)))
+                                 (let [th (awt/get-text-preferred-size [text] interop)
+                                       _ (println child-id "th=" th)]
+                                      th)))
                           component-min-size))
         container-size (get-property component [:this] :clip-size)]
     (m/defpoint
@@ -138,26 +143,33 @@
         norm-column-weights (if (pos? total-column-weight) (map #(* % coeff) column-weights) column-weights)]
     (mapv
       (fn [cfg-row] (mapv
-                      #(assoc (nth cfg-row %) :total-stch-weight (nth norm-column-weights %) :stch-weight (* coeff (:stch-weight (nth cfg-row %))))
+                      #(assoc
+                        (nth cfg-row %)
+                        :total-stch-weight (nth norm-column-weights %)
+                        :stch-weight (* coeff (:stch-weight (nth cfg-row %))))
                       (range 0 (count cfg-row))))
       cfg-table)))
 
 (defn compute-y-dir [cfg-table]
   (let [row-weights (mapv (fn [cfg-row] (reduce max (map #(:stch-weight %) cfg-row))) cfg-table)
+        column-count (reduce max (map count cfg-table))
         total-row-weight (reduce + row-weights)
         coeff (if (pos? total-row-weight) (/ total-row-weight) 1)]
     (mapv
       (fn [row-index]
-        (let [cfg-row (nth cfg-table row-index)]
+        (let [cfg-row (nth cfg-table row-index)
+              row-size (count cfg-row)]
           (mapv
-            #(assoc (nth cfg-row %) :total-stch-weight (* coeff (nth row-weights row-index)) :stch-weight (* coeff (:stch-weight (nth cfg-row %))))
-            (range 0 (count cfg-row)))))
+            #(assoc
+              (if (< % row-size) (nth cfg-row %) {:min component-no-size :pref component-no-size})
+              :total-stch-weight (* coeff (nth row-weights row-index))
+              :stch-weight (* coeff (if (< % row-size) (:stch-weight (nth cfg-row %)) 0)))
+            (range 0 column-count))))
       (range 0 (count cfg-table)))))
 
 (fg/defaccessorfn map-direction [component dir stcher bgner sfn coord-key size-key]
   (let [stretches? (fn [element] (true? (and (:flags element) (.contains (:flags element) (str stcher)))))
         grouped-by-stretch (group-by stretches? dir)
-        ;_ (println "grouped-by-stretch" grouped-by-stretch)
         stretching (get grouped-by-stretch true)
         stable (get grouped-by-stretch false)
         stable-pref-total (reduce + (map #(sfn (:pref %)) stable))
@@ -166,7 +178,9 @@
          (let [stretch-space (- 1.0 stable-pref-total)
                index-range (range 0 (count dir))
                sizes (mapv #(if (stretches? %) (* (:stch-weight %) stretch-space) (sfn (:pref %))) dir)
+
                total-sizes (mapv #(if (stretches? %) (* (:total-stch-weight %) stretch-space) (sfn (:pref %))) dir)
+
                coords (mapv #(reduce + (take % total-sizes)) index-range)]
            (map #(assoc (nth dir %) coord-key (nth coords %) size-key (nth sizes %)) index-range))
 
@@ -189,6 +203,7 @@
           x-coord-map (map
                         #(map-direction component % \- \< m/x :x :w)
                         (compute-x-dir (assoc-constraints component layout \-)))
+          _ (println "Y-DIR" (compute-y-dir (assoc-constraints component layout \|)))
           y-coord-map (map
                         #(map-direction component % \| \' m/y :y :h)
                         (rotate-table (compute-y-dir (assoc-constraints component layout \|))))]
@@ -200,7 +215,7 @@
   (if-let [coord-map (get-property [] :coord-map)]
     (if-let [coord ((:id component) coord-map)]
       (let [ps (get-property [] :clip-size)]
-        (m/translation (+ gap (* (:x coord) (m/x ps))) (+ gap (* (:y coord (m/y ps))))))
+        (m/translation (+ gap (* (:x coord) (m/x ps))) (+ 0.375 gap (* (:y coord) (m/y ps)))))   ;TODO see 0.375- container's border
       old-position-matrix)
     old-position-matrix))
 
@@ -208,7 +223,7 @@
   (if-let [coord-map (get-property [] :coord-map)]
     (if-let [coord ((:id component) coord-map)]
       (let [ps (get-property [] :clip-size)]
-        (m/defpoint (- (* (:w coord) (m/x ps)) gap gap) (- (* (:h coord (m/y ps))) gap gap)))
+           (m/defpoint (- (* (:w coord) (m/x ps)) gap gap) (- (* (:h coord) (m/y ps)) gap gap)))
       old-clip-size)
     old-clip-size))
 
