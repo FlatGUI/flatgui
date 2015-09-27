@@ -38,7 +38,7 @@ public class FGLayoutDemo
                 Image logoIcon = ImageIO.read(ClassLoader.getSystemResource("flatgui/samples/images/icon_FlatGUI_32x32.png"));
 
                 Frame frame = new Frame("FlatGUI Demo - Layout Manager");
-                frame.setSize(600, 500);
+                frame.setSize(1200, 800);
                 frame.setLocation(300, 300);
                 frame.setLayout(new BorderLayout());
                 if (logoIcon != null)

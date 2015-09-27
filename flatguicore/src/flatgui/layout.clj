@@ -11,7 +11,7 @@
   flatgui.layout
     (:require [flatgui.base :as fg]
       [flatgui.awt :as awt]
-      [flatgui.util.matrix :as m] [flatgui.base :as fg] [flatgui.awt :as awt])
+      [flatgui.util.matrix :as m])
   (:import (java.util.regex Pattern)))
 
 
@@ -67,6 +67,23 @@
       (/ (m/x abs-min-size) (m/x container-size))
       (/ (m/y abs-min-size) (m/y container-size)))))
 
+(defn- gen-v-reducer [xfn yfn]
+  (fn ([] (m/defpoint 0 0))
+      ([v] v)
+      ([a b] (m/defpoint (xfn (m/x a) (m/x b)) (yfn (m/y a) (m/y b))))))
+
+(fg/defaccessorfn get-element-preferred-size [component element xfn yfn]
+  (if (keyword? element)
+    (get-child-preferred-size component element)
+    (let [;_ (println "sizes: " (map #(get-element-preferred-size component (:element %) xfn yfn) element) )
+          ]
+      (reduce (gen-v-reducer xfn yfn) (map #(get-element-preferred-size component (:element %) xfn yfn) element)))))
+
+(fg/defaccessorfn get-element-minimum-size [component element xfn yfn]
+  (if (keyword? element)
+    (get-child-minimum-size component element)
+    (reduce (gen-v-reducer xfn yfn) (map #(get-element-minimum-size component (:element %) xfn yfn) element))))
+
 (declare cfg->flags)
 
 (defn- cfg->flags-mapper [v]
@@ -82,7 +99,7 @@
           smiles (get grouped true)
           flags (if smiles (reduce combine-flags (map name smiles)))]
         (cond
-          (> elem-count 1) (cfg->flags (mapv (fn [e] (if flags [e (keyword flags)] [e])) elements))
+          (> elem-count 1) {:element (cfg->flags (mapv (fn [e] (if flags [e (keyword flags)] [e])) elements)) :flags flags}
           (and (= elem-count 1) (sequential? (nth elements 0))) (nth (cfg->flags elements) 0)
           (= elem-count 1) {:element (nth elements 0) :flags flags}
           (= elem-count 0) (throw (IllegalArgumentException. (str "Wrong layout cfg (nothing but flags specified): " v)))))
@@ -91,8 +108,25 @@
    (throw (IllegalArgumentException. (str "Wrong layout cfg: '" (if (nil? v) "<nil>" v) "'")))))
 
 (defn cfg->flags [cfg]
-  (if (and (sequential? cfg) (every? keyword? cfg))
+  (cond
+
+    (and (sequential? cfg) (every? keyword? cfg))
     (cfg->flags-mapper cfg)
+
+    (and (sequential? cfg) (some smile? cfg))
+    (let [grouped (group-by smile? cfg)
+          elements (get grouped false)
+          elem-count (count elements)
+          smiles (get grouped true)
+          flags (if smiles (reduce combine-flags (map name smiles)))]
+         {:element (cfg->flags (mapv (fn [e]
+                                         (if (keyword? e)
+                                           (if flags [e (keyword flags)] [e])
+                                           e))
+                                     elements))
+          :flags flags})
+
+    :else
     (mapv cfg->flags-mapper cfg)))
 
 (declare flattenmap)
@@ -110,16 +144,27 @@
 (defn flagnestedvec->coordmap [flags]
   (into {} (map (fn [flg] [(:element flg) (remove-intermediate-data flg)]) (flattenmap flags))))
 
-(fg/defaccessorfn assoc-constraints [component cfg-table stcher]
-  (map
-    (fn [cfg-row] (map
-                    #(assoc
-                      %
-                      :stch-weight (count (filter (fn [f] (= f stcher)) (:flags %)))
-                      :min (get-child-minimum-size component (:element %))
-                      :pref (get-child-preferred-size component (:element %)))
-                    (flattenmap (cfg->flags cfg-row))))
-    cfg-table))
+(fg/defaccessorfn assoc-row-constraints [component cfg-row stcher xfn yfn]
+  (do
+    ;(println "row=" cfg-row)
+    ;(println " ->f row=" (cfg->flags cfg-row))
+    (map
+      #(do
+        ;(println "%=" %)
+        (assoc
+          %
+          :stch-weight (count (filter (fn [f] (= f stcher)) (:flags %)))
+          :min (get-element-minimum-size component (:element %) xfn yfn)
+          :pref (get-element-preferred-size component (:element %) xfn yfn)
+          )
+        )
+      ;(flattenmap (cfg->flags cfg-row))
+      ;(cfg->flags cfg-row)
+      cfg-row
+      )))
+
+(fg/defaccessorfn assoc-constraints [component cfg-table stcher xfn yfn]
+  (map (fn [cfg-row] (assoc-row-constraints component (cfg->flags cfg-row) stcher xfn yfn)) cfg-table))
 
 (defn nth-if-present [coll index not-present] (if (< index (count coll)) (nth coll index) not-present))
 
@@ -197,19 +242,72 @@
         column-count (reduce max (map count t))]
     (mapv (fn [col-index] (mapv (fn [row] (nth-if-present row col-index nil)) t)) (range 0 column-count))))
 
+(fg/defaccessorfn map-row-nested-x [component cfg-row]
+  (map
+    #(let [e (:element %)]
+      (if (coll? e)
+        (assoc
+          %
+          :element
+          (map-row-nested-x
+            component
+            (map
+              (fn [nested-e]
+                (assoc
+                  nested-e
+                  :x (+ (:x nested-e) (:x %))
+                  :w (* (:w nested-e) (:w %))))
+              (map-direction component (first (compute-x-dir [(assoc-row-constraints component e \- + max)])) \- \< m/x :x :w))))
+        %))
+    cfg-row))
+
+(fg/defaccessorfn map-nested-x [component cfg-table]
+  (map (fn [cfg-row] (map-row-nested-x component cfg-row)) cfg-table))
+
+(defn- flatten-mapped-nested [cfg-table]
+  (map
+    (fn [cfg-row] (mapcat #(if (coll? (:element %)) (:element %) [%]) cfg-row))
+    cfg-table))
+
+(defn- process-y-compound-keys [cfg-map]
+  (let [compounds (filter (fn [[k _]] (coll? k)) cfg-map)
+        unrolled (into {}
+                   (mapcat
+                     (fn [[k v]]
+                         (map (fn [e] [(:element e) v]) k))
+                     compounds))
+        ;_ (println "unrolled:" unrolled)
+        ;_ (println "cfg-map" cfg-map)
+        ]
+    (into {}
+      (map
+        (fn [[k v]] [k (if-let [kdata (get unrolled k)] (assoc v :y (:y kdata) :h (:h kdata))  v)])
+        cfg-map))))
+
 (fg/defevolverfn :coord-map
   (if-let [usr-layout (get-property [:this] :layout)]
     (let [;TODO this does not work layout (if usr-layout (map cmd->smile usr-layout))
           layout usr-layout
+
+          ;_ (println "X-constr" (assoc-constraints component layout \- + max))
+          ;_ (println "X-compute" (compute-x-dir (assoc-constraints component layout \- + max)))
+
           x-coord-map (map
                         #(map-direction component % \- \< m/x :x :w)
-                        (compute-x-dir (assoc-constraints component layout \-)))
+                        (compute-x-dir (assoc-constraints component layout \- + max)))
+
+          ;_ (println "X-coord-map" x-coord-map)
+          ;_ (println "X-map-nested-x" (map-nested-x component x-coord-map))
+          ;_ (println "X-map-nested-x-fl" (flatten-mapped-nested (map-nested-x component x-coord-map)))
+
+          x-map-with-nested (flatten-mapped-nested (map-nested-x component x-coord-map))
           y-coord-map (map
                         #(map-direction component % \| \' m/y :y :h)
-                        (rotate-table (compute-y-dir (assoc-constraints component layout \|))))]
-      (merge-with merge
-        (flagnestedvec->coordmap x-coord-map)
-        (flagnestedvec->coordmap y-coord-map)))))
+                        (rotate-table (compute-y-dir (assoc-constraints component layout \| + max))))]
+      (process-y-compound-keys
+        (merge-with merge
+                    (flagnestedvec->coordmap x-map-with-nested)
+                    (flagnestedvec->coordmap y-coord-map))))))
 
 (fg/defevolverfn :position-matrix
   (if-let [coord-map (get-property [] :coord-map)]
