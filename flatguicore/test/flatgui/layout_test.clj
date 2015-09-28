@@ -16,6 +16,14 @@
 ;;; cfg->flags
 
 
+(test/deftest cfg->flags-test0
+  (let [cfg [:a :b :c]
+        expected-flags [{:element :a, :flags nil}
+                        {:element :b, :flags nil}
+                        {:element :c, :flags nil}]
+        flags (layout/cfg->flags cfg)]
+    (test/is (= expected-flags flags))))
+
 (test/deftest cfg->flags-test1
   (let [cfg [:a :b :c :-|]
         expected-flags {:element [{:element :a, :flags "-|"}
@@ -377,6 +385,37 @@
         actual (dissoc raw-result nil)
         filtered (filter (fn [[k _]] (keyword? k)) actual)]
     (test/is (= expected (into {} (for [[k v] filtered] [k (first (num->double [v]))]))))))
+
+(test/deftest coord-map-evolver-test8
+  (let [cfg-1 [[[:a]     [:b]   ]
+               [[:c :|]  [:d :|]]
+               [[:e]            ]]
+        cfg-2 [[ :a       :b   ]
+               [[:c :|]  [:d :|]]
+               [ :e            ]]
+        main-1 (assoc test-component-1 :layout cfg-1)
+        main-2 (assoc test-component-1 :layout cfg-2)
+
+        expected (layout/flagnestedvec->coordmap
+                   (list
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.0 :w 0.2 :y 0.0 :h 0.1 :flags nil}
+                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.3 :w 0.2 :y 0.0 :h 0.1 :flags nil}
+                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.0 :w 0.3 :y 0.1 :h 0.8 :flags "|"}
+                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.3 :w 0.2 :y 0.1 :h 0.8 :flags "|"}
+                     {:element :e :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.0 :w 0.2 :y 0.9 :h 0.1 :flags nil}))
+
+        raw-result-1 (layout/coord-map-evolver main-1)
+        actual-1 (dissoc raw-result-1 nil)
+        filtered-1 (filter (fn [[k _]] (keyword? k)) actual-1)
+        decim-1 (into {} (for [[k v] filtered-1] [k (first (num->double [v]))]))
+
+        raw-result-2 (layout/coord-map-evolver main-2)
+        actual-2 (dissoc raw-result-2 nil)
+        filtered-2 (filter (fn [[k _]] (keyword? k)) actual-2)
+        decim-2 (into {} (for [[k v] filtered-2] [k (first (num->double [v]))]))]
+    (test/is (= expected decim-1))
+    (test/is (= expected decim-2))))
+
 
 
 ;(test/deftest coord-map-evolver-testN

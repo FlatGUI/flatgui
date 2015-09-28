@@ -110,6 +110,9 @@
 (defn cfg->flags [cfg]
   (cond
 
+    (and (sequential? cfg) (every? keyword? cfg) (not (some smile? cfg)))
+    (cfg->flags (mapv (fn [kw] [kw]) cfg))
+
     (and (sequential? cfg) (every? keyword? cfg))
     (cfg->flags-mapper cfg)
 
