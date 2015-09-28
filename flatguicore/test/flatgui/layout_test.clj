@@ -194,6 +194,21 @@
         actual (layout/assoc-constraints main cfg \- + max)]
     (test/is (= expected (map num->double actual)))))
 
+(test/deftest assoc-constraints-test8
+  (let [cfg [[:a :b]
+             [:a :c]]
+        main test-component-1
+        expected (list
+                   (list
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 0.0 :flags nil}
+                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 0.0 :flags nil})
+                   (list
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 0.0 :flags nil}
+                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :stch-weight 0.0 :flags nil}))
+        actual (layout/assoc-constraints main cfg \- + max)]
+    (test/is (= expected (map num->double actual)))))
+
+
 ;;; compute-x-dir
 
 (test/deftest compute-x-dir-test1
