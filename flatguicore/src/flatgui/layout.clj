@@ -181,7 +181,8 @@
 (defn compute-x-dir [cfg-table]
   (let [weight-table (map (fn [cfg-row] (mapv #(:stch-weight %) cfg-row)) cfg-table)
         column-weights (vec (reduce vmax weight-table))
-        stable-size-table (map (fn [cfg-row] (mapv #(m/x (if (:pref %) (:pref %) component-min-size)) cfg-row)) cfg-table)
+        column-count (count column-weights)
+        stable-size-table (map (fn [cfg-row] (mapv #(m/x (if (:pref %) (:pref %) component-no-size)) cfg-row)) cfg-table)
         column-stable-sizes (vec (reduce vmax stable-size-table))
         total-column-weight (reduce + column-weights)
         coeff (if (pos? total-column-weight) (/ 1 total-column-weight) 1)
@@ -189,11 +190,11 @@
     (mapv
       (fn [cfg-row] (mapv
                       #(assoc
-                        (nth cfg-row %)
+                        (if (< % (count cfg-row)) (nth cfg-row %) {:min component-no-size :pref component-no-size})
                         :total-stch-weight (nth norm-column-weights %)
                         :total-stable-pref (nth column-stable-sizes %)
-                        :stch-weight (* coeff (:stch-weight (nth cfg-row %))))
-                      (range 0 (count cfg-row))))
+                        :stch-weight (if (< % (count cfg-row)) (* coeff (:stch-weight (nth cfg-row %))) 0))
+                      (range 0 column-count)))
       cfg-table)))
 
 (defn compute-y-dir [cfg-table]
@@ -255,7 +256,7 @@
               (fn [nested-e]
                 (assoc
                   nested-e
-                  :x (+ (:x nested-e) (:x %))
+                  :x (+ (* (:x nested-e) (:w %)) (:x %))
                   :w (* (:w nested-e) (:w %))))
               (map-direction component (first (compute-x-dir [(assoc-row-constraints component e \- + max)])) \- \< m/x :x :w))))
         %))

@@ -79,13 +79,17 @@
               :children {:a {:id :a :path-to-target [:main] :preferred-size (m/defpoint 2 1) :minimum-size (m/defpoint 1 1)}
                          :b {:id :b :path-to-target [:main] :preferred-size (m/defpoint 2 1) :minimum-size (m/defpoint 1 1)}
                          :c {:id :c :path-to-target [:main] :preferred-size (m/defpoint 3 1) :minimum-size (m/defpoint 1 1)}
-                         :d {:id :d :path-to-target [:main] :preferred-size (m/defpoint 2 1) :minimum-size (m/defpoint 1 1)}}}]
+                         :d {:id :d :path-to-target [:main] :preferred-size (m/defpoint 2 1) :minimum-size (m/defpoint 1 1)}
+                         :e {:id :e :path-to-target [:main] :preferred-size (m/defpoint 2 1) :minimum-size (m/defpoint 1 1)}
+                         :f {:id :f :path-to-target [:main] :preferred-size (m/defpoint 2 1) :minimum-size (m/defpoint 1 1)}
+                         :g {:id :g :path-to-target [:main] :preferred-size (m/defpoint 3 1) :minimum-size (m/defpoint 1 1)}
+                         :h {:id :h :path-to-target [:main] :preferred-size (m/defpoint 2 1) :minimum-size (m/defpoint 1 1)}}}]
     (assoc main :root-container main)))
 
-(defn- suppress-ratios [coll]
+(defn- num->double [coll]
   (map (fn [e] (into {} (for [[k v] e] [k (cond
                                             (#{:min :pref} k) (m/defpoint (double (m/x v)) (double (m/y v)))
-                                            (ratio? v) (double v)
+                                            (number? v) (double v)
                                             :else v)]))) coll))
 
 
@@ -96,12 +100,12 @@
         main test-component-1
         expected (list
                    (list
-                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 0   :flags nil}
-                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 3 :flags "---"}
-                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :stch-weight 0   :flags nil}
-                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 2 :flags "--"}))
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 0.0   :flags nil}
+                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 3.0 :flags "---"}
+                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :stch-weight 0.0   :flags nil}
+                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 2.0 :flags "--"}))
         actual (layout/assoc-constraints main cfg \- + max)]
-    (test/is (= expected (map suppress-ratios actual)))))
+    (test/is (= expected (map num->double actual)))))
 
 (test/deftest assoc-constraints-test2
   (let [cfg [[[:a :-]   [:b :---]]
@@ -109,13 +113,13 @@
         main test-component-1
         expected (list
                    (list
-                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 1 :flags "-"}
-                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 3 :flags "---"})
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 1.0 :flags "-"}
+                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 3.0 :flags "---"})
                    (list
-                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :stch-weight 3 :flags "---"}
-                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 1 :flags "-"}))
+                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :stch-weight 3.0 :flags "---"}
+                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 1.0 :flags "-"}))
         actual (layout/assoc-constraints main cfg \- + max)]
-    (test/is (= expected (map suppress-ratios actual)))))
+    (test/is (= expected (map num->double actual)))))
 
 (test/deftest assoc-constraints-test3
   (let [cfg [[[:a :- :|]      [:b :---- :|]]
@@ -123,13 +127,13 @@
         main test-component-1
         expected (list
                    (list
-                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 1 :flags "-|"}
-                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 1 :flags "----|"})
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 1.0 :flags "-|"}
+                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 1.0 :flags "----|"})
                    (list
-                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :stch-weight 3 :flags "----|||"}
-                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 3 :flags "-|||"}))
+                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :stch-weight 3.0 :flags "----|||"}
+                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 3.0 :flags "-|||"}))
         actual (layout/assoc-constraints main cfg \| + max)]
-    (test/is (= expected (map suppress-ratios actual)))))
+    (test/is (= expected (map num->double actual)))))
 
 (test/deftest assoc-constraints-test4
   (let [cfg [[[:a :-]   ]
@@ -137,11 +141,11 @@
         main test-component-1
         expected (list
                    (list
-                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 1 :flags "-"})
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 1.0 :flags "-"})
                    (list
-                     {:element [{:element :b, :flags "-"} {:element :c, :flags "-"}] :min (m/defpoint 0.2 0.1) :pref (m/defpoint 0.5 0.1) :stch-weight 1 :flags "-"}))
+                     {:element [{:element :b, :flags "-"} {:element :c, :flags "-"}] :min (m/defpoint 0.2 0.1) :pref (m/defpoint 0.5 0.1) :stch-weight 1.0 :flags "-"}))
         actual (layout/assoc-constraints main cfg \- + max)]
-    (test/is (= expected (map suppress-ratios actual)))))
+    (test/is (= expected (map num->double actual)))))
 
 (test/deftest assoc-constraints-test5
   (let [cfg [[[:a :-]              ]
@@ -149,11 +153,11 @@
         main test-component-1
         expected (list
                    (list
-                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 1 :flags "-"})
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 1.0 :flags "-"})
                    (list
-                     {:element [{:element :b, :flags "-"} {:element :c, :flags "--"}] :min (m/defpoint 0.2 0.1) :pref (m/defpoint 0.5 0.1) :stch-weight 1 :flags "-"}))
+                     {:element [{:element :b, :flags "-"} {:element :c, :flags "--"}] :min (m/defpoint 0.2 0.1) :pref (m/defpoint 0.5 0.1) :stch-weight 1.0 :flags "-"}))
         actual (layout/assoc-constraints main cfg \- + max)]
-    (test/is (= expected (map suppress-ratios actual)))))
+    (test/is (= expected (map num->double actual)))))
 
 (test/deftest assoc-constraints-test6
   (let [cfg [[[:a :---- :|]                       ]
@@ -161,13 +165,26 @@
         main test-component-1
         expected (list
                    (list
-                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 4 :flags "----|"})
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 4.0 :flags "----|"})
                    (list
-                     {:element [{:element :c, :flags "-|||"} {:element :d, :flags "----|||"}] :min (m/defpoint 0.2 0.1) :pref (m/defpoint 0.5 0.1) :stch-weight 4 :flags "----"}))
+                     {:element [{:element :c, :flags "-|||"} {:element :d, :flags "----|||"}] :min (m/defpoint 0.2 0.1) :pref (m/defpoint 0.5 0.1) :stch-weight 4.0 :flags "----"}))
         actual (layout/assoc-constraints main cfg \- + max)]
-    (test/is (= expected (map suppress-ratios actual)))))
+    (test/is (= expected (map num->double actual)))))
 
-
+(test/deftest assoc-constraints-test7
+  (let [cfg [[:a [:b :-]      ]
+             [:c [:d :e :-] :f]]
+        main test-component-1
+        expected (list
+                   (list
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 0.0 :flags nil}
+                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 1.0 :flags "-"})
+                   (list
+                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :stch-weight 0.0 :flags nil}
+                     {:element [{:element :d, :flags "-"} {:element :e, :flags "-"}] :min (m/defpoint 0.2 0.1) :pref (m/defpoint 0.4 0.1) :stch-weight 1.0 :flags "-"}
+                     {:element :f :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :stch-weight 0.0 :flags nil}))
+        actual (layout/assoc-constraints main cfg \- + max)]
+    (test/is (= expected (map num->double actual)))))
 
 ;;; compute-x-dir
 
@@ -198,6 +215,21 @@
                   [{:stch-weight 0.5    :total-stch-weight 0.5}
                    {:stch-weight 0.125  :total-stch-weight 0.5}]]
         actual (mapv (fn [cfg-row] (mapv #(dissoc % :total-stable-pref) cfg-row)) (layout/compute-x-dir cfg))]
+    (test/is (= expected actual))))
+
+(test/deftest compute-x-dir-test3
+  (let [cfg (list
+              (list
+                {:stch-weight 0 :pref (m/defpoint 0.2 0.1)} {:stch-weight 1})
+              (list
+                {:stch-weight 0 :pref (m/defpoint 0.3 0.1)} {:stch-weight 1} {:stch-weight 0 :pref (m/defpoint 0.2 0.1)}))
+        expected [[{:stch-weight 0 :total-stch-weight 0 :total-stable-pref 0.3 :pref (m/defpoint 0.2 0.1)}
+                   {:stch-weight 1 :total-stch-weight 1 :total-stable-pref 0}
+                   {:stch-weight 0 :total-stch-weight 0 :total-stable-pref 0.2 :pref (m/defpoint 0 0) :min (m/defpoint 0 0)}]
+                  [{:stch-weight 0 :total-stch-weight 0 :total-stable-pref 0.3 :pref (m/defpoint 0.3 0.1)}
+                   {:stch-weight 1 :total-stch-weight 1 :total-stable-pref 0}
+                   {:stch-weight 0 :total-stch-weight 0 :total-stable-pref 0.2 :pref (m/defpoint 0.2 0.1)}]]
+        actual (layout/compute-x-dir cfg)]
     (test/is (= expected actual))))
 
 (test/deftest compute-y-dir-test1
@@ -248,13 +280,13 @@
         main (assoc test-component-1 :layout cfg)
         expected (layout/flagnestedvec->coordmap
                    (list
-                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0   :w 0.2 :y 0 :h 0.1 :flags nil}
-                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.2 :w 0.3 :y 0 :h 0.1 :flags "---"}
-                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.5 :w 0.3 :y 0 :h 0.1 :flags nil}
-                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.8 :w 0.2 :y 0 :h 0.1 :flags "--"}))
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.0 :w 0.2 :y 0.0 :h 0.1 :flags nil}
+                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.2 :w 0.3 :y 0.0 :h 0.1 :flags "---"}
+                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.5 :w 0.3 :y 0.0 :h 0.1 :flags nil}
+                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.8 :w 0.2 :y 0.0 :h 0.1 :flags "--"}))
         actual (layout/coord-map-evolver main)]
     (test/is (= (m/defpoint 2 1) (fg/get-property-private main [:this :a] :preferred-size)))
-    (test/is (= expected (into {} (for [[k v] actual] [k (first (suppress-ratios [v]))]))))))
+    (test/is (= expected (into {} (for [[k v] actual] [k (first (num->double [v]))]))))))
 
 (test/deftest coord-map-evolver-test2
   (let [cfg [[[:a :-]    [:b :----]]
@@ -262,13 +294,13 @@
         main (assoc test-component-1 :layout cfg)
         expected (layout/flagnestedvec->coordmap
                    (list
-                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0   :w 0.125 :y 0   :h 0.1 :flags "-"}
-                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.5 :w 0.5   :y 0   :h 0.1 :flags "----"}
-                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0   :w 0.5   :y 0.1 :h 0.1 :flags "----"}
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.0 :w 0.125 :y 0.0   :h 0.1 :flags "-"}
+                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.5 :w 0.5   :y 0.0   :h 0.1 :flags "----"}
+                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.0 :w 0.5   :y 0.1 :h 0.1 :flags "----"}
                      {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.5 :w 0.125 :y 0.1 :h 0.1 :flags "-"}))
         actual (layout/coord-map-evolver main)]
     (test/is (= (m/defpoint 2 1) (fg/get-property-private main [:this :a] :preferred-size)))
-    (test/is (= expected (into {} (for [[k v] actual] [k (first (suppress-ratios [v]))]))))))
+    (test/is (= expected (into {} (for [[k v] actual] [k (first (num->double [v]))]))))))
 
 (test/deftest coord-map-evolver-test3
   (let [cfg [[[:a :- :|]      [:b :---- :|]]
@@ -276,12 +308,12 @@
         main (assoc test-component-1 :layout cfg)
         expected (layout/flagnestedvec->coordmap
                    (list
-                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0   :w 0.125 :y 0    :h 0.25 :flags "-|"}
-                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.5 :w 0.5   :y 0    :h 0.25 :flags "----|"}
-                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0   :w 0.5   :y 0.25 :h 0.75 :flags "----|||"}
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.0 :w 0.125 :y 0.0  :h 0.25 :flags "-|"}
+                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.5 :w 0.5   :y 0.0  :h 0.25 :flags "----|"}
+                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.0 :w 0.5   :y 0.25 :h 0.75 :flags "----|||"}
                      {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.5 :w 0.125 :y 0.25 :h 0.75 :flags "-|||"}))
         actual (layout/coord-map-evolver main)]
-    (test/is (= expected (into {} (for [[k v] actual] [k (first (suppress-ratios [v]))]))))))
+    (test/is (= expected (into {} (for [[k v] actual] [k (first (num->double [v]))]))))))
 
 (test/deftest coord-map-evolver-test4
   (let [cfg [[[:a :- :|                  ]]
@@ -289,13 +321,13 @@
         main (assoc test-component-1 :layout cfg)
         expected (layout/flagnestedvec->coordmap
                    (list
-                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0   :w 1.0 :y 0    :h 0.25 :flags "-|"}
-                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0   :w 0.8 :y 0.25 :h 0.75 :flags "----"}
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.0 :w 1.0 :y 0.0  :h 0.25 :flags "-|"}
+                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.0 :w 0.8 :y 0.25 :h 0.75 :flags "----"}
                      {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.8 :w 0.2 :y 0.25 :h 0.75 :flags "-"}))
         raw-result (layout/coord-map-evolver main)
         actual (dissoc raw-result nil)
         filtered (filter (fn [[k _]] (keyword? k)) actual)]
-    (test/is (= expected (into {} (for [[k v] filtered] [k (first (suppress-ratios [v]))]))))))
+    (test/is (= expected (into {} (for [[k v] filtered] [k (first (num->double [v]))]))))))
 
 (test/deftest coord-map-evolver-test5
   (let [cfg [[[ :a :---- :|                      ]]
@@ -303,27 +335,63 @@
         main (assoc test-component-1 :layout cfg)
         expected (layout/flagnestedvec->coordmap
                    (list
-                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0   :w 1.0 :y 0    :h 0.9 :flags "----|"}
-                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0   :w 0.2 :y 0.9 :h 0.1 :flags "-|||"}
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.0 :w 1.0 :y 0.0 :h 0.9 :flags "----|"}
+                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.0 :w 0.2 :y 0.9 :h 0.1 :flags "-|||"}
                      {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.2 :w 0.8 :y 0.9 :h 0.1 :flags "----|||"}))
         raw-result (layout/coord-map-evolver main)
         actual (dissoc raw-result nil)
         filtered (filter (fn [[k _]] (keyword? k)) actual)]
-    (test/is (= expected (into {} (for [[k v] filtered] [k (first (suppress-ratios [v]))]))))))
+    (test/is (= expected (into {} (for [[k v] filtered] [k (first (num->double [v]))]))))))
 
-;(test/deftest coord-map-evolver-test6
+(test/deftest coord-map-evolver-test6
+  (let [cfg [[[ :a :---- :|                      ]]
+             [[[:c :- :|||] [:d :---- :|||] :----]]
+             [[[:e :-] [:f :-] [:g :--] :----    ]]]
+        main (assoc test-component-1 :layout cfg)
+        expected (layout/flagnestedvec->coordmap
+                   (list
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.0  :w 1.0  :y 0.0 :h 0.8 :flags "----|"}
+                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.0  :w 0.2  :y 0.8 :h 0.1 :flags "-|||"}
+                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.2  :w 0.8  :y 0.8 :h 0.1 :flags "----|||"}
+                     {:element :e :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.0  :w 0.25 :y 0.9 :h 0.1 :flags "-"}
+                     {:element :f :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.25 :w 0.25 :y 0.9 :h 0.1 :flags "-"}
+                     {:element :g :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.5  :w 0.5  :y 0.9 :h 0.1 :flags "--"}))
+        raw-result (layout/coord-map-evolver main)
+        actual (dissoc raw-result nil)
+        filtered (filter (fn [[k _]] (keyword? k)) actual)]
+    (test/is (= expected (into {} (for [[k v] filtered] [k (first (num->double [v]))]))))))
+
+(test/deftest coord-map-evolver-test7
+  (let [cfg [[:a [:b :-]      ]
+             [:c [:d :e :-] :f]]
+        main (assoc test-component-1 :layout cfg)
+        expected (layout/flagnestedvec->coordmap
+                   (list
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.0  :w 0.2  :y 0.0 :h 0.1 :flags nil}
+                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.3  :w 0.5  :y 0.0 :h 0.1 :flags "-"}
+                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.0  :w 0.3  :y 0.1 :h 0.1 :flags nil}
+                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.3  :w 0.25 :y 0.1 :h 0.1 :flags "-"}
+                     {:element :e :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.55 :w 0.25 :y 0.1 :h 0.1 :flags "-"}
+                     {:element :f :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.8  :w 0.2  :y 0.1 :h 0.1 :flags nil}))
+        raw-result (layout/coord-map-evolver main)
+        actual (dissoc raw-result nil)
+        filtered (filter (fn [[k _]] (keyword? k)) actual)]
+    (test/is (= expected (into {} (for [[k v] filtered] [k (first (num->double [v]))]))))))
+
+
+;(test/deftest coord-map-evolver-testN
 ;  (let [cfg [[[:a :---- :|] [:a :---- :|] ]                 ;TODO combine two :a with + by x and max by y
 ;             [[:c :- :|||] [:d :---- :|||]]]
 ;        main (assoc test-component-1 :layout cfg)
 ;        expected (layout/flagnestedvec->coordmap
 ;                   (list
-;                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0   :w 0.8 :y 0    :h 0.25 :flags "-|"}
-;                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0   :w 0.2 :y 0.25 :h 0.75 :flags "----|||"}
+;                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.0 :w 0.8 :y 0.0  :h 0.25 :flags "-|"}
+;                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.0 :w 0.2 :y 0.25 :h 0.75 :flags "----|||"}
 ;                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.2 :w 0.8 :y 0.25 :h 0.75 :flags "-|||"}))
 ;        raw-result (layout/coord-map-evolver main)
 ;        _ (println "Empty: " (get raw-result nil))
 ;        actual (dissoc raw-result nil)]
-;    (test/is (= expected (into {} (for [[k v] actual] [k (first (suppress-ratios [v]))]))))))
+;    (test/is (= expected (into {} (for [[k v] actual] [k (first (num->double [v]))]))))))
 ;
 
 
