@@ -85,35 +85,52 @@
         (< (:y a) (:y b)) (> (:h a) (:h b)))
     a))
 
-(defn rect+ [a b]
-  (cond
-    (fully-contains? a b)
-    a
-    (fully-contains? b a)
-    b
-    :else
-    (let [h-inter (line& (:x a) (+ (:x a) (:w a)) (:x b) (+ (:x b) (:w b)))
-          v-inter (line& (:y a) (+ (:y a) (:h a)) (:y b) (+ (:y b) (:h b)))
-          v-edge (and (nil? v-inter) (or
-                                       (= (:y b) (+ (:y a) (:h a)))
-                                       (= (:y a) (+ (:y b) (:h b)))))]
-      (if (and h-inter (or v-inter v-edge))
-        {:x (first h-inter)
-         :y (min (:y a) (:y b))
-         :w (- (nth h-inter 1) (nth h-inter 0))
-         :h (if v-edge
-              (+ (:h a) (:h b))
-              (- (+ (:h a) (:h b)) (- (nth v-inter 1) (nth v-inter 0))))}
-        (let [h-edge (and (nil? h-inter) (or
-                                           (= (:x b) (+ (:x a) (:w a)))
-                                           (= (:x a) (+ (:x b) (:w b)))))]
-          (if (and v-inter (or h-inter h-edge))
-            {:x (min (:x a) (:x b))
-             :y (nth v-inter 0)
-             :w (if h-edge
-                  (+ (:w a) (:w b))
-                  (- (+ (:w a) (:w b)) (- (nth h-inter 1) (nth h-inter 0))))
-             :h (- (nth v-inter 1) (nth v-inter 0))}))))))
+(defn rect+
+  ([a b]
+   (cond
+     (fully-contains? a b)
+     a
+     (fully-contains? b a)
+     b
+     :else
+     (let [h-inter (line& (:x a) (+ (:x a) (:w a)) (:x b) (+ (:x b) (:w b)))
+           v-inter (line& (:y a) (+ (:y a) (:h a)) (:y b) (+ (:y b) (:h b)))
+           v-edge (and (nil? v-inter) (or
+                                        (= (:y b) (+ (:y a) (:h a)))
+                                        (= (:y a) (+ (:y b) (:h b)))))]
+       (if (and h-inter (or v-inter v-edge))
+         {:x (first h-inter)
+          :y (min (:y a) (:y b))
+          :w (- (nth h-inter 1) (nth h-inter 0))
+          :h (if v-edge
+               (+ (:h a) (:h b))
+               (- (+ (:h a) (:h b)) (- (nth v-inter 1) (nth v-inter 0))))}
+         (let [h-edge (and (nil? h-inter) (or
+                                            (= (:x b) (+ (:x a) (:w a)))
+                                            (= (:x a) (+ (:x b) (:w b)))))]
+           (if (and v-inter (or h-inter h-edge))
+             {:x (min (:x a) (:x b))
+              :y (nth v-inter 0)
+              :w (if h-edge
+                   (+ (:w a) (:w b))
+                   (- (+ (:w a) (:w b)) (- (nth h-inter 1) (nth h-inter 0))))
+              :h (- (nth v-inter 1) (nth v-inter 0))}))))))
+  ([a] a)
+  ([] {:x 0 :y 0 :w 0 :h 0}))
+
+(defn rect|
+  ([a b]
+    (let [x2a (+ (:x a) (:w a))
+          y2a (+ (:y a) (:h a))
+          x2b (+ (:x b) (:w b))
+          y2b (+ (:y b) (:h b))
+          x1 (min (:x a) (:x b))
+          y1 (min (:y a) (:y b))
+          x2 (max x2a x2b)
+          y2 (max y2a y2b)]
+      {:x x1 :y y1 :w (- x2 x1) :h (- y2 y1)}))
+  ([a] a)
+  ([] {:x 0 :y 0 :w 0 :h 0}))
 
 (defn square [a]
   (if a
