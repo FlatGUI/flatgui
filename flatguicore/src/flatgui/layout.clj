@@ -11,7 +11,9 @@
   flatgui.layout
     (:require [flatgui.base :as fg]
       [flatgui.awt :as awt]
-      [flatgui.util.matrix :as m])
+      [flatgui.util.matrix :as m]
+      [flatgui.util.rectmath :as r]
+      [flatgui.util.decimal :as d])
   (:import (java.util.regex Pattern)))
 
 
@@ -28,9 +30,6 @@
                  :btm-align :.
                  :l-align :<
                  :r-align :>})
-
-(def axis-switch {\- \|   ; "stretcher by x flag" -> "stretcher by y flag"
-                  \< \'}) ; "beginner by x flag" -> "beginner by y flag"
 
 (def smile-pattern (Pattern/compile "(\\||\\-|\\.|'|\\<|\\>)+"))
 
@@ -119,7 +118,6 @@
     (and (sequential? cfg) (some smile? cfg))
     (let [grouped (group-by smile? cfg)
           elements (get grouped false)
-          elem-count (count elements)
           smiles (get grouped true)
           flags (if smiles (reduce combine-flags (map name smiles)))]
          {:element (cfg->flags (mapv (fn [e]
@@ -145,26 +143,31 @@
 (defn- remove-intermediate-data [m] (dissoc m :stch-weight :total-stch-weight :total-stable-pref))
 
 (defn flagnestedvec->coordmap [flags]
-  (into {} (map (fn [flg] [(:element flg) (remove-intermediate-data flg)]) (flattenmap flags))))
+      (let [fm (flattenmap flags)
+            grouped (group-by :element fm)]
+           ;; In addition to storing all data to map by component id, combine multiple cells
+           ;; possibly taken by single component: compute one big area from them
+           (into {}
+                 (map
+                   (fn [[k v]]
+                       (let [cm (remove-intermediate-data (first v))]
+                            (if (:x cm)
+                              (let [cx (apply min (map :x v))
+                                    rmost (apply max-key (fn [e] (+ (:x e) (:w e))) v)]
+                                   [k (assoc cm :x cx :w (- (+ (:x rmost) (:w rmost)) cx))])
+                              (let [cy (apply min (map :y v))
+                                    bmost (apply max-key (fn [e] (+ (:y e) (:h e))) v)]
+                                   [k (assoc cm :y cy :h (- (+ (:y bmost) (:h bmost)) cy))]))))
+                   grouped))))
 
 (fg/defaccessorfn assoc-row-constraints [component cfg-row stcher xfn yfn]
-  (do
-    ;(println "row=" cfg-row)
-    ;(println " ->f row=" (cfg->flags cfg-row))
-    (map
-      #(do
-        ;(println "%=" %)
-        (assoc
-          %
-          :stch-weight (count (filter (fn [f] (= f stcher)) (:flags %)))
-          :min (get-element-minimum-size component (:element %) xfn yfn)
-          :pref (get-element-preferred-size component (:element %) xfn yfn)
-          )
-        )
-      ;(flattenmap (cfg->flags cfg-row))
-      ;(cfg->flags cfg-row)
-      cfg-row
-      )))
+  (map
+    #(assoc
+      %
+      :stch-weight (count (filter (fn [f] (= f stcher)) (:flags %)))
+      :min (get-element-minimum-size component (:element %) xfn yfn)
+      :pref (get-element-preferred-size component (:element %) xfn yfn))
+    cfg-row))
 
 (fg/defaccessorfn assoc-constraints [component cfg-table stcher xfn yfn]
   (map (fn [cfg-row] (assoc-row-constraints component (cfg->flags cfg-row) stcher xfn yfn)) cfg-table))
@@ -242,8 +245,7 @@
               nil))))
 
 (defn rotate-table [t]
-  (let [row-count (count t)
-        column-count (reduce max (map count t))]
+  (let [column-count (reduce max (map count t))]
     (mapv (fn [col-index] (mapv (fn [row] (nth-if-present row col-index nil)) t)) (range 0 column-count))))
 
 (fg/defaccessorfn map-row-nested-x [component cfg-row]
@@ -316,16 +318,28 @@
 (fg/defevolverfn :position-matrix
   (if-let [coord-map (get-property [] :coord-map)]
     (if-let [coord ((:id component) coord-map)]
-      (let [ps (get-property [] :clip-size)]
-        (m/translation (+ gap (* (:x coord) (m/x ps))) (+ 0.375 gap (* (:y coord) (m/y ps)))))   ;TODO see 0.375- container's border
+      (let [ps (get-property [] :clip-size)
+            btop 0.375;TODO see 0.375 - window border
+            bbtm 0.0
+            bleft 0.0
+            bright 0.0]
+        (m/translation
+          (d/round-granular (+ bleft gap (* (:x coord) (- (m/x ps) bleft bright))) (awt/px))
+          (d/round-granular (+ btop gap (* (:y coord) (- (m/y ps) btop bbtm))) (awt/px))))
       old-position-matrix)
     old-position-matrix))
 
 (fg/defevolverfn :clip-size
   (if-let [coord-map (get-property [] :coord-map)]
     (if-let [coord ((:id component) coord-map)]
-      (let [ps (get-property [] :clip-size)]
-           (m/defpoint (- (* (:w coord) (m/x ps)) gap gap) (- (* (:h coord) (m/y ps)) gap gap)))
+      (let [ps (get-property [] :clip-size)
+            btop 0.375;TODO see 0.375 - window border
+            bbtm 0.0
+            bleft 0.0
+            bright 0.0]
+        (m/defpoint
+          (d/round-granular (- (* (:w coord) (- (m/x ps) bleft bright)) gap gap) (awt/px))
+          (d/round-granular (- (* (:h coord) (- (m/y ps) btop bbtm)) gap gap) (awt/px))))
       old-clip-size)
     old-clip-size))
 

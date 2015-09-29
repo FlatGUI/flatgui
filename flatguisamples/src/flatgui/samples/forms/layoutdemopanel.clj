@@ -19,32 +19,17 @@
             [flatgui.widgets.button :as button]
             [flatgui.widgets.scrollpanel :as scrollpanel]))
 
-;[[:name-label       [:name-editor :-]]
-; [:password-label   [:password-textfield :-]                  :show-chars-btn]
-; [:position-label   [:x :y :-]                                :edit-pos-btn] ;[:x :y :-] actually means [[:x :-] [:y :-] :-]
-; [:dimensions-label [:w-label [:w :---] :h-label [:h :--] :-] :edit-dim-btn]
-; [[:one :two :']    [:notes-entry :-|]]
-; [[:upper-ed :-']   [:notes-entry]]     <--- :notes-entry takes more than one row
-; [[:three :four]    [:notes-entry]]
-; [[:five :six :-.]  [:notes-entry]]
-; [[:long-editor]    [:long-editor]] <--- :long-editor takes two columns
-; [:bottom-labels    [[:bleft :<] [:bright :>]]]]
-;                   /|\
-;                    | Need to know width of first column to align x coord for second.
-;                      Same is with rows
-
 (def layout-cfg
   [[:name-label       [:name-editor :-]]
    [:password-label   [:password-textfield :-]                      :show-chars-btn]
    [:position-label   [:x :y :-]                                    :edit-pos-btn]
    [:dimensions-label [[:w-label] [:w :---] [:h-label] [:h :--] :-] :edit-dim-btn]
    [[:one :two :']    [:notes-entry :-|]]
-   ;[[:upper-ed :-']   [:notes-entry]]
-   ;[[:three :four]    [:notes-entry]]
-   ;[[:five :six :-.]  [:notes-entry]]
-   ;[[:long-editor]    [:long-editor]]
-   ;[:bottom-labels    [[:bleft :<] [:bright :>]]]
-   ])
+   [[:upper-ed :-']   [:notes-entry]]
+   [[:three :four]    [:notes-entry]]
+   [[:five :six :-.]  [:notes-entry]]
+   [[:long-editor :-] [:long-editor :-]]
+   [:bottom-labels    [[:bleft :<] [:bright :>]]]])
 
 (def demo-window
   (fg/defcomponent
@@ -67,7 +52,7 @@
     (fg/defcomponent textfield/textfield :y {})
     (fg/defcomponent button/button :edit-pos-btn {:text "..."})
 
-    (fg/defcomponent label/label :dimensions-label {:text "Dimensions:"})
+    (fg/defcomponent checkbox/checkbox :dimensions-label {:text "Dimensions:"})
     (fg/defcomponent label/label :w-label {:text "W:"})
     (fg/defcomponent textfield/textfield :w {})
     (fg/defcomponent label/label :h-label {:text "H:"})
@@ -77,20 +62,21 @@
     (fg/defcomponent checkbox/checkbox :one {:text "One"})
     (fg/defcomponent checkbox/checkbox :two {:text "Two"})
 
-    ;(fg/defcomponent textfield/textfield :upper-ed {})
-    ;
-    ;(fg/defcomponent checkbox/checkbox :three {:text "Three"})
-    ;(fg/defcomponent checkbox/checkbox :four {:text "Four"})
-    ;
-    ;(fg/defcomponent textfield/textfield :five {})
-    ;(fg/defcomponent textfield/textfield :six {})
-    ;
-    ;(fg/defcomponent label/label :bottom-labels {:text "Bottom labels:"})
-    ;(fg/defcomponent label/label :bleft {:text "Left"})
-    ;(fg/defcomponent label/label :bright {:text "Right"})
-    ;
-    (fg/defcomponent textfield/textfield :notes-entry {:multiline true})
-    ))
+    (fg/defcomponent textfield/textfield :upper-ed {})
+
+    (fg/defcomponent checkbox/checkbox :three {:text "Three"})
+    (fg/defcomponent checkbox/checkbox :four {:text "Four"})
+
+    (fg/defcomponent textfield/textfield :five {})
+    (fg/defcomponent textfield/textfield :six {})
+
+    (fg/defcomponent textfield/textfield :long-editor {})
+
+    (fg/defcomponent label/label :bottom-labels {:text "Bottom labels:"})
+    (fg/defcomponent label/label :bleft {:text "Left"})
+    (fg/defcomponent label/label :bright {:text "Right"})
+
+    (fg/defcomponent textfield/textfield :notes-entry {:multiline true})))
 
 (def layout-window
   (fg/defcomponent

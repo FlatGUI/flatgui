@@ -10,7 +10,8 @@
   (:require [clojure.test :as test]
             [flatgui.base :as fg]
             [flatgui.layout :as layout]
-            [flatgui.util.matrix :as m]))
+            [flatgui.util.matrix :as m]
+            [flatgui.util.decimal :as d]))
 
 
 ;;; cfg->flags
@@ -97,8 +98,10 @@
 (defn- num->double [coll]
   (map (fn [e] (into {} (for [[k v] e] [k (cond
                                             (#{:min :pref} k) (m/defpoint (double (m/x v)) (double (m/y v)))
-                                            (number? v) (double v)
+                                            (number? v) (double (d/round-granular v 0.0001))
                                             :else v)]))) coll))
+
+(defn- normalize-nums [coordmap] (into {} (for [[k v] coordmap] [k (first (num->double [v]))])))
 
 
 ;;; assoc-constraints
@@ -309,7 +312,7 @@
                      {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.8 :w 0.2 :y 0.0 :h 0.1 :flags "--"}))
         actual (layout/coord-map-evolver main)]
     (test/is (= (m/defpoint 2 1) (fg/get-property-private main [:this :a] :preferred-size)))
-    (test/is (= expected (into {} (for [[k v] actual] [k (first (num->double [v]))]))))))
+    (test/is (= (normalize-nums expected) (normalize-nums actual)))))
 
 (test/deftest coord-map-evolver-test2
   (let [cfg [[[:a :-]    [:b :----]]
@@ -323,7 +326,7 @@
                      {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.5 :w 0.125 :y 0.1 :h 0.1 :flags "-"}))
         actual (layout/coord-map-evolver main)]
     (test/is (= (m/defpoint 2 1) (fg/get-property-private main [:this :a] :preferred-size)))
-    (test/is (= expected (into {} (for [[k v] actual] [k (first (num->double [v]))]))))))
+    (test/is (= (normalize-nums expected) (normalize-nums actual)))))
 
 (test/deftest coord-map-evolver-test3
   (let [cfg [[[:a :- :|]      [:b :---- :|]]
@@ -336,7 +339,7 @@
                      {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.0 :w 0.5   :y 0.25 :h 0.75 :flags "----|||"}
                      {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.5 :w 0.125 :y 0.25 :h 0.75 :flags "-|||"}))
         actual (layout/coord-map-evolver main)]
-    (test/is (= expected (into {} (for [[k v] actual] [k (first (num->double [v]))]))))))
+    (test/is (= (normalize-nums expected) (normalize-nums actual)))))
 
 (test/deftest coord-map-evolver-test4
   (let [cfg [[[:a :- :|                  ]]
@@ -350,7 +353,7 @@
         raw-result (layout/coord-map-evolver main)
         actual (dissoc raw-result nil)
         filtered (filter (fn [[k _]] (keyword? k)) actual)]
-    (test/is (= expected (into {} (for [[k v] filtered] [k (first (num->double [v]))]))))))
+    (test/is (= (normalize-nums expected) (normalize-nums filtered)))))
 
 (test/deftest coord-map-evolver-test5
   (let [cfg [[[ :a :---- :|                      ]]
@@ -364,7 +367,7 @@
         raw-result (layout/coord-map-evolver main)
         actual (dissoc raw-result nil)
         filtered (filter (fn [[k _]] (keyword? k)) actual)]
-    (test/is (= expected (into {} (for [[k v] filtered] [k (first (num->double [v]))]))))))
+    (test/is (= (normalize-nums expected) (normalize-nums filtered)))))
 
 (test/deftest coord-map-evolver-test6
   (let [cfg [[[ :a :---- :|                      ]]
@@ -382,7 +385,7 @@
         raw-result (layout/coord-map-evolver main)
         actual (dissoc raw-result nil)
         filtered (filter (fn [[k _]] (keyword? k)) actual)]
-    (test/is (= expected (into {} (for [[k v] filtered] [k (first (num->double [v]))]))))))
+    (test/is (= (normalize-nums expected) (normalize-nums filtered)))))
 
 (test/deftest coord-map-evolver-test7
   (let [cfg [[:a [:b :-]      ]
@@ -399,7 +402,7 @@
         raw-result (layout/coord-map-evolver main)
         actual (dissoc raw-result nil)
         filtered (filter (fn [[k _]] (keyword? k)) actual)]
-    (test/is (= expected (into {} (for [[k v] filtered] [k (first (num->double [v]))]))))))
+    (test/is (= (normalize-nums expected) (normalize-nums filtered)))))
 
 (test/deftest coord-map-evolver-test8
   (let [cfg-1 [[[:a]     [:b]   ]
@@ -411,26 +414,39 @@
         main-1 (assoc test-component-1 :layout cfg-1)
         main-2 (assoc test-component-1 :layout cfg-2)
 
-        expected (layout/flagnestedvec->coordmap
-                   (list
-                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.0 :w 0.2 :y 0.0 :h 0.1 :flags nil}
-                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.3 :w 0.2 :y 0.0 :h 0.1 :flags nil}
-                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.0 :w 0.3 :y 0.1 :h 0.8 :flags "|"}
-                     {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.3 :w 0.2 :y 0.1 :h 0.8 :flags "|"}
-                     {:element :e :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.0 :w 0.2 :y 0.9 :h 0.1 :flags nil}))
+        expected (normalize-nums
+                   (layout/flagnestedvec->coordmap
+                     (list
+                       {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.0 :w 0.2 :y 0.0 :h 0.1 :flags nil}
+                       {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.3 :w 0.2 :y 0.0 :h 0.1 :flags nil}
+                       {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.0 :w 0.3 :y 0.1 :h 0.8 :flags "|"}
+                       {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.3 :w 0.2 :y 0.1 :h 0.8 :flags "|"}
+                       {:element :e :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.0 :w 0.2 :y 0.9 :h 0.1 :flags nil})))
 
         raw-result-1 (layout/coord-map-evolver main-1)
         actual-1 (dissoc raw-result-1 nil)
         filtered-1 (filter (fn [[k _]] (keyword? k)) actual-1)
-        decim-1 (into {} (for [[k v] filtered-1] [k (first (num->double [v]))]))
+        decim-1 (normalize-nums filtered-1)
 
         raw-result-2 (layout/coord-map-evolver main-2)
         actual-2 (dissoc raw-result-2 nil)
         filtered-2 (filter (fn [[k _]] (keyword? k)) actual-2)
-        decim-2 (into {} (for [[k v] filtered-2] [k (first (num->double [v]))]))]
+        decim-2 (normalize-nums filtered-2)]
     (test/is (= expected decim-1))
     (test/is (= expected decim-2))))
 
+(test/deftest coord-map-evolver-test9
+  (let [cfg [[:a :b]
+             [:a :c]]
+        main (assoc test-component-1 :layout cfg)
+        expected (layout/flagnestedvec->coordmap
+                   (list
+                     {:element :a :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.0 :w 0.2 :y 0.0 :h 0.2 :flags nil}
+                     {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.2 :w 0.2 :y 0.0 :h 0.1 :flags nil}
+                     {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.2 :w 0.3 :y 0.1 :h 0.1 :flags nil}))
+        actual (layout/coord-map-evolver main)]
+    (test/is (= (m/defpoint 2 1) (fg/get-property-private main [:this :a] :preferred-size)))
+    (test/is (= (normalize-nums expected) (normalize-nums actual)))))
 
 
 ;(test/deftest coord-map-evolver-testN
