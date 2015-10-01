@@ -257,13 +257,25 @@
           :element
           (map-row-nested-x
             component
-            (map
-              (fn [nested-e]
-                (assoc
-                  nested-e
-                  :x (+ (* (:x nested-e) (:w %)) (:x %))
-                  :w (* (:w nested-e) (:w %))))
-              (map-direction component (first (compute-x-dir [(assoc-row-constraints component e \- + max)])) \- \< m/x :x :w))))
+            (let [mdir (vec (map-direction component (first (compute-x-dir [(assoc-row-constraints component e \- + max)])) \- \< m/x :x :w))
+                  irange (range 0 (count mdir))
+                  min-widths (mapv (fn [nested-e] (if (pos? (:stch-weight nested-e)) (* (:w nested-e) (:w %)) (:w nested-e))) mdir)
+                  min-preceding-width (mapv (fn [i] (reduce + (take i min-widths))) irange)]
+              (map
+                (fn [i]
+                  ;; Scale nested components sizes to the width of column in which they are placed, but scale only ones that are stretchable.
+                  ;; Shift all components to the beginning of their column.
+                  ;; Apply scaled shift only if there are stretchable components to the left of the processed one.
+                  (let [nested-e (nth mdir i)]
+                    (if (pos? (:stch-weight nested-e))
+                      (assoc
+                        nested-e
+                        :x (+ (nth min-preceding-width i) (:x %))
+                        :w (nth min-widths i))
+                      (assoc
+                        nested-e
+                        :x (+ (nth min-preceding-width i) (:x %))))))
+                irange))))
         %))
     cfg-row))
 
