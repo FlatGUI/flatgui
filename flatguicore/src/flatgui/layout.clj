@@ -249,9 +249,10 @@
                                (not (begins? (nth dir %))) (/ extra 2)
                                :esle 0)
                              0))
-                        index-range)]
-              ;(map #(assoc (nth dir %) coord-key (+ (nth coords %) (nth shifts %)) size-key (nth sizes %)) index-range)
-              (map #(assoc (nth dir %) coord-key (nth coords %) size-key (nth sizes %)) index-range)
+                        index-range)
+               _ (println "shifts = " (mapv #(str stcher (:element (nth dir %)) "-" (nth shifts %)) index-range))]
+              (map #(assoc (nth dir %) coord-key (+ (nth coords %) (nth shifts %)) size-key (nth sizes %)) index-range)
+              ;(map #(assoc (nth dir %) coord-key (nth coords %) size-key (nth sizes %)) index-range)
               )
 
          ;; TODO maybe one of three container policies when there is lack of space
