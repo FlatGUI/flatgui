@@ -8,4 +8,8 @@
 
 (ns flatgui.util.decimal)
 
-(defn round-granular [n g] (* g (Math/round (/ n g))))
+(defn round-granular [n g]
+  (let [r (* g (Math/round (/ n g)))
+        fg (/ 1 g); Without second stage of rounding 0.34999999999999987 -> 0.35000000000000003
+        ]
+       (/ (Math/round (* r fg)) fg)))

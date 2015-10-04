@@ -24,6 +24,8 @@
 
 (def component-no-size (m/defpoint 0 0))
 
+;; TODO ' . < >  should work only when there are no stcheching component in the row. Otherwise stretching component(s) take all space
+
 (def cmd->smile {:h-stretch :-
                  :v-stretch :|
                  :top-align :'
@@ -222,8 +224,12 @@
             (range 0 column-count))))
       (range 0 (count cfg-table)))))
 
-(fg/defaccessorfn map-direction [component dir stcher bgner sfn coord-key size-key]
-  (let [stretches? (fn [element] (true? (and (:flags element) (.contains (:flags element) (str stcher)))))
+(defn has-flag? [element flg] (true? (and (:flags element) (.contains (:flags element) (str flg)))))
+
+(fg/defaccessorfn map-direction [component dir stcher bgner ender sfn coord-key size-key]
+  (let [stretches? (fn [element] (has-flag? element stcher))
+        begins? (fn [element] (has-flag? element bgner))
+        ends? (fn [element] (has-flag? element ender))
         grouped-by-stretch (group-by (fn [e] (pos? (:total-stch-weight e))) dir) ; Meaning whole column/row stretch (if there is at least one stretching element)
         stretching (get grouped-by-stretch true)
         stable (get grouped-by-stretch false)
@@ -234,8 +240,19 @@
                index-range (range 0 (count dir))
                sizes (mapv #(if (stretches? %) (* (:stch-weight %) stretch-space) (sfn (:pref %))) dir)
                total-sizes (mapv #(if (pos? (:total-stch-weight %)) (* (:total-stch-weight %) stretch-space) (:total-stable-pref %)) dir)
-               coords (mapv #(reduce + (take % total-sizes)) index-range)]
-           (map #(assoc (nth dir %) coord-key (nth coords %) size-key (nth sizes %)) index-range))
+               coords (mapv #(reduce + (take % total-sizes)) index-range)
+               shifts (mapv
+                        #(let [extra (- (nth total-sizes %) (nth sizes %))]
+                           (if (pos? extra)
+                             (cond
+                               (ends? (nth dir %)) extra
+                               (not (begins? (nth dir %))) (/ extra 2)
+                               :esle 0)
+                             0))
+                        index-range)]
+              ;(map #(assoc (nth dir %) coord-key (+ (nth coords %) (nth shifts %)) size-key (nth sizes %)) index-range)
+              (map #(assoc (nth dir %) coord-key (nth coords %) size-key (nth sizes %)) index-range)
+              )
 
          ;; TODO maybe one of three container policies when there is lack of space
          ;;  1. shrink
@@ -257,9 +274,15 @@
           :element
           (map-row-nested-x
             component
-            (let [mdir (vec (map-direction component (first (compute-x-dir [(assoc-row-constraints component e \- + max)])) \- \< m/x :x :w))
+            (let [mdir (vec (map-direction component (first (compute-x-dir [(assoc-row-constraints component e \- + max)])) \- \< \> m/x :x :w))
                   irange (range 0 (count mdir))
-                  min-widths (mapv (fn [nested-e] (if (pos? (:stch-weight nested-e)) (* (:w nested-e) (:w %)) (:w nested-e))) mdir)
+                  pref-widths (mapv (fn [nested-e] (if (pos? (:stch-weight nested-e)) (* (:w nested-e) (:w %)) (:w nested-e))) mdir)
+                  total-pref-w (reduce + pref-widths)
+                  min-widths (if (> total-pref-w (:w %))
+                               (let [n-stretching (count (filter (fn [nested-e] (pos? (:stch-weight nested-e))) mdir))
+                                     cut-share (if (pos? n-stretching) (max 0 (/ (- total-pref-w (:w %)) n-stretching)) 0)]
+                                 (mapv (fn [i] (if (pos? (:stch-weight (nth mdir i))) (- (nth pref-widths i) cut-share) (nth pref-widths i)) ) irange))
+                               pref-widths)
                   min-preceding-width (mapv (fn [i] (reduce + (take i min-widths))) irange)]
               (map
                 (fn [i]
@@ -311,7 +334,7 @@
           ;_ (println "X-compute" (compute-x-dir (assoc-constraints component layout \- + max)))
 
           x-coord-map (map
-                        #(map-direction component % \- \< m/x :x :w)
+                        #(map-direction component % \- \< \> m/x :x :w)
                         (compute-x-dir (assoc-constraints component layout \- + max)))
 
           ;_ (println "X-coord-map" x-coord-map)
@@ -320,7 +343,7 @@
 
           x-map-with-nested (flatten-mapped-nested (map-nested-x component x-coord-map))
           y-coord-map (map
-                        #(map-direction component % \| \' m/y :y :h)
+                        #(map-direction component % \| \' \. m/y :y :h)
                         (rotate-table (compute-y-dir (assoc-constraints component layout \| + max))))]
       (process-y-compound-keys
         (merge-with merge
