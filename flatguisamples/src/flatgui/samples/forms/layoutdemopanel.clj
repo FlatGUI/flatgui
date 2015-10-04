@@ -20,16 +20,16 @@
             [flatgui.widgets.scrollpanel :as scrollpanel]))
 
 (def layout-cfg
-  [[:name-label       [:name-editor :-]]
-   [:password-label   [:password-textfield :-]                      :show-chars-btn]
-   [:position-label   [:x :y :-]                                    :edit-pos-btn]
-   [:dimensions-label [[:w-label] [:w :---] [:h-label] [:h :--] :-] :edit-dim-btn]
-   [[:one :two :']    [:notes-entry :-|]]
-   [[:upper-ed :-']   [:notes-entry]]
-   [[:three :four]    [:notes-entry]]
-   [[:five :six :-.]  [:notes-entry]]
-   [[:long-editor :-] [:long-editor :-]]
-   [:bottom-labels    [[:bleft :<] [:bright :>]]]])
+  [[[:name-label :>]       [:name-editor :-]]
+   [[:password-label :>]   [:password-textfield :-]                      :show-chars-btn]
+   [:position-label        [:x :y :-]                                    :edit-pos-btn]
+   [:dimensions-label      [[:w-label] [:w :---] [:h-label] [:h :--] :-] :edit-dim-btn]
+   [[:one :two :']         [:notes-entry :-|]]
+   [[:upper-ed :-']        [:notes-entry]]
+   [[:three :four]         [:notes-entry]]
+   [[:five :six :-.]       [:notes-entry]]
+   [[:long-editor :-]      [:long-editor :-]]
+   [[:bottom-labels :<]    [:bleft :bright :-]]])
 
 (def demo-window
   (fg/defcomponent
