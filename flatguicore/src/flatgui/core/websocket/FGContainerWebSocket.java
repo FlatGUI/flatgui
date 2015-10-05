@@ -257,5 +257,11 @@ public class FGContainerWebSocket implements WebSocketListener
         public Future<Set<List<Keyword>>> feedEvent(Object repaintReason) {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public List<Keyword> getLastMouseTargetIdPath()
+        {
+            throw new UnsupportedOperationException();
+        }
     }
 }

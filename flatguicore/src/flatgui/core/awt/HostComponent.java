@@ -10,26 +10,44 @@
 
 package flatgui.core.awt;
 
-import flatgui.core.FGContainer;
-import flatgui.core.FGHostStateEvent;
-import flatgui.core.IFGContainer;
-import flatgui.core.IFGInteropUtil;
-import flatgui.core.awt.FGDefaultPrimitivePainter;
-import flatgui.core.awt.IFGPrimitivePainter;
+import clojure.lang.Keyword;
+import clojure.lang.Var;
+import flatgui.core.*;
+import flatgui.core.util.Tuple;
 
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
 * @author Denis Lebedev
 */
 public class HostComponent extends Canvas
 {
+    private static final Var extractCursor_ = clojure.lang.RT.var(IFGModule.RESPONSE_FEED_NS, "extract-cursor");
+
+    private static final Map<Keyword, Integer> FG_TO_AWT_CUSROR_MAP;
+    static
+    {
+        Map<Keyword, Integer> m = new HashMap<>();
+
+        m.put(Keyword.intern("wait"), Cursor.WAIT_CURSOR);
+        m.put(Keyword.intern("ns-resize"), Cursor.N_RESIZE_CURSOR);
+        m.put(Keyword.intern("ew-resize"), Cursor.W_RESIZE_CURSOR);
+        m.put(Keyword.intern("nesw-resize"), Cursor.NE_RESIZE_CURSOR);
+        m.put(Keyword.intern("nwse-resize"), Cursor.NW_RESIZE_CURSOR);
+
+        FG_TO_AWT_CUSROR_MAP = Collections.unmodifiableMap(m);
+    }
+
+
     private IFGContainer fgContainer_;
     private IFGPrimitivePainter primitivePainter_;
 
@@ -40,6 +58,10 @@ public class HostComponent extends Canvas
     private final FGAWTInteropUtil interopUtil_;
 
     private Font lastUserDefinedFont_ = null;
+
+    private Function<Object, Future<Set<List<Keyword>>>> feedFn_;
+
+    Future<Set<List<Keyword>>> changedPathsFuture_;
 
     public HostComponent()
     {
@@ -67,8 +89,12 @@ public class HostComponent extends Canvas
         return e -> repaint();
     }
 
-    public void setInputEventConsumer(Consumer<Object> eventConsumer)
+    public void setInputEventConsumer(Function<Object, Future<Set<List<Keyword>>>> feedFn)
     {
+        feedFn_ = feedFn;
+
+        Consumer<Object> eventConsumer = this::acceptEvolveReason;
+
         addMouseListener(new ContainerMouseListener(eventConsumer));
         addMouseMotionListener(new ContainerMouseMotionListener(eventConsumer));
         addMouseWheelListener(new ContainerMouseWheelListener(eventConsumer));
@@ -122,6 +148,29 @@ public class HostComponent extends Canvas
 
             appTriggered_ = true;
             paint(g);
+
+            Map<java.util.List<Keyword>, Map<Keyword, Object>> idPathToComponent =
+                fgContainer_.getFGModule().getComponentIdPathToComponent(changedPathsFuture_.get());
+            Map<java.util.List<Keyword>, Keyword> componentToCursor =
+                idPathToComponent.entrySet().stream()
+                .map(e -> Tuple.pair(e.getKey(), extractCursor_.invoke(e.getValue())))
+                .filter(t -> t.getSecond() != null)
+                .collect(Collectors.toMap(t -> t.getFirst(), t -> t.getSecond()));
+
+            if (componentToCursor.isEmpty())
+            {
+                setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+            }
+            else
+            {
+                Keyword c = componentToCursor.get(fgContainer_.getLastMouseTargetIdPath());
+                if (c == null)
+                {
+                    c = componentToCursor.values().stream().findAny().orElse(null);
+                }
+                Integer cursor = c != null ? FG_TO_AWT_CUSROR_MAP.get(c) : null;
+                setCursor(cursor != null ? Cursor.getPredefinedCursor(cursor.intValue()) : Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+            }
         }
         catch (InterruptedException | ExecutionException e)
         {
@@ -168,6 +217,11 @@ public class HostComponent extends Canvas
       //  System.out.println("paintSequence ends at " + System.currentTimeMillis());
 
         return painted;
+    }
+
+    private void acceptEvolveReason(Object evolveReason)
+    {
+        changedPathsFuture_ = feedFn_.apply(evolveReason);
     }
 
     // Inner classes

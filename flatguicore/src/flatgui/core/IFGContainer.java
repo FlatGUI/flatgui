@@ -50,4 +50,6 @@ public interface IFGContainer
     Future<Set<List<Keyword>>> feedEvent(Object repaintReason);
 
     Future<Set<List<Keyword>>> feedTargetedEvent(Collection<Object> targetCellIdPath, Object repaintReason);
+
+    List<Keyword> getLastMouseTargetIdPath();
 }

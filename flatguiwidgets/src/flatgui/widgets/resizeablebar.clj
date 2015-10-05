@@ -55,8 +55,20 @@
       old-clip-size)
     old-clip-size))
 
+(fg/defevolverfn :cursor
+  (if-let [mce (get-property component [:this] :mouse-capture-edges)]
+    (cond
+      (and (:top (:edges mce)) (:left (:edges mce))) :nwse-resize
+      (and (:bottom (:edges mce)) (:right (:edges mce))) :nwse-resize
+      (and (:top (:edges mce)) (:right (:edges mce))) :nesw-resize
+      (and (:bottom (:edges mce)) (:left (:edges mce))) :nesw-resize
+      (or (:top (:edges mce)) (:bottom (:edges mce))) :ns-resize
+      (or (:left (:edges mce)) (:right (:edges mce))) :ew-resize
+      :else nil)))
+
 (fg/defwidget "resizeablebar"
   {:mouse-capture-edges nil
    :evolvers {:mouse-capture-edges mouse-capture-edges-evolver
-              :clip-size resizeablebar-clip-size-evolver}}
+              :clip-size resizeablebar-clip-size-evolver
+              :cursor cursor-evolver}}
   flatgui.widgets.component/component)

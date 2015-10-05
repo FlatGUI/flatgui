@@ -831,7 +831,7 @@ public class FGWebContainerWrapper
 
     static class FGContainerStateTransmitter
     {
-        private static final String RESPONSE_FEED_NS = "flatgui.responsefeed";
+        private static final String RESPONSE_FEED_NS = IFGModule.RESPONSE_FEED_NS;
 
         private static final Var extractPositionMatrix_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-position-matrix");
         private static final Var extractViewportMatrix_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-viewport-matrix");
@@ -840,6 +840,7 @@ public class FGWebContainerWrapper
         private static final Var extractChildCount_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-child-count");
         private static final Var extractBitFlags_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-bit-flags");
         private static final Var extractStringPool_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-string-pool");
+        private static final Var extractCursor_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-cursor");
 
         private static final BinaryOperator THROWING_MERGER = (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u));};
 

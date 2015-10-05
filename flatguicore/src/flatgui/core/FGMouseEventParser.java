@@ -100,6 +100,11 @@ class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
         return map;
     }
 
+    Object getLastTargetIdPath()
+    {
+        return lastTargetIdPath_;
+    }
+
     private MouseEvent deriveWithIdAndNoButton(MouseEvent e, int id)
     {
         return new MouseEvent((Component) e.getSource(), id, e.getWhen(), 0,

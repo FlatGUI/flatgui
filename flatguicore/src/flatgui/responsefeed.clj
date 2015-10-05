@@ -67,3 +67,6 @@
 
 (defn extract-string-pool [container]
   (extract-single :look-vec extract-strings container))
+
+(defn extract-cursor [container]
+  (extract-single :cursor identity container))

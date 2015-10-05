@@ -49,6 +49,8 @@ public class FGContainer implements IFGContainer
 
     private List<IFGEvolveConsumer> evolveConsumers_;
 
+    private FGMouseEventParser mouseEventParser_;
+
     public FGContainer(IFGTemplate template, IFGInteropUtil interopUtil)
     {
         this(template, template.getContainerVarName(), interopUtil);
@@ -68,8 +70,9 @@ public class FGContainer implements IFGContainer
 
         interopUtil_ = interopUtil;
 
+        mouseEventParser_ = new FGMouseEventParser(UNIT_SIZE_PX);
         reasonParser_ = new FGInputEventParser();
-        reasonParser_.registerReasonClassParser(MouseEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
+        reasonParser_.registerReasonClassParser(MouseEvent.class, mouseEventParser_);
         reasonParser_.registerReasonClassParser(MouseWheelEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
         reasonParser_.registerReasonClassParser(KeyEvent.class, new FGKeyEventParser());
         reasonParser_.registerReasonClassParser(FGClipboardEvent.class, new FGClipboardEventEventParser());
@@ -144,9 +147,16 @@ public class FGContainer implements IFGContainer
         return this::feedEvent;
     }
 
+    @Override
     public <T> Future<T> submitTask(Callable<T> callable)
     {
         return evolverExecutorService_.submit(callable);
+    }
+
+    @Override
+    public List<Keyword> getLastMouseTargetIdPath()
+    {
+        return (List<Keyword>) mouseEventParser_.getLastTargetIdPath();
     }
 
     // Private
