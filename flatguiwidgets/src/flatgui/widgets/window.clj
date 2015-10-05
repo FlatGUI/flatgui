@@ -25,12 +25,12 @@
 
 (fg/defevolverfn window-position-matrix-evolver :position-matrix
   (if (mouse/is-mouse-event? component)
-    (let [ mce (get-property component [:this] :mouse-capture-edges)]
+    (let [mce (get-property component [:this] :mouse-capture-edges)]
       (if mce
-        (condp = (:edge mce)
-          :left (m/mx*
-                  (:position-matrix mce)
-                  (m/translation-matrix (- (mouse/get-mouse-x component) (:x mce)) 0))
+        (if (:left (:edges mce))
+          (m/mx*
+            (:position-matrix mce)
+            (m/translation-matrix (- (mouse/get-mouse-x component) (:x mce)) 0))
           old-position-matrix)
         (flatgui.widgets.floatingbar/position-matrix-evolver component)))
     (flatgui.widgets.floatingbar/position-matrix-evolver component)))
