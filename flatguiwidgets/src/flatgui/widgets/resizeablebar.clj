@@ -27,37 +27,28 @@
         (let [mabsx (mouse/get-mouse-x component)
               mabsy (mouse/get-mouse-y component)
               mrelx (mouse/get-mouse-rel-x component)
-              mrely (mouse/get-mouse-rel-y component)]
-          (cond
-            (flatgui.widgets.floatingbar/mouse-in-area capture-area-left mrelx mrely) {:edge :left :x mabsx :y mabsy :position-matrix pm :clip-size cs}
-            (flatgui.widgets.floatingbar/mouse-in-area capture-area-right mrelx mrely) {:edge :right :x mabsx :y mabsy :position-matrix pm :clip-size cs}
-            (flatgui.widgets.floatingbar/mouse-in-area capture-area-top mrelx mrely) {:edge :top :x mabsx :y mabsy :position-matrix pm :clip-size cs}
-            (flatgui.widgets.floatingbar/mouse-in-area capture-area-bottom mrelx mrely) {:edge :bottom :x mabsx :y mabsy :position-matrix pm :clip-size cs}
-            :else old-mouse-capture-edges))
+              mrely (mouse/get-mouse-rel-y component)
+              left (flatgui.widgets.floatingbar/mouse-in-area capture-area-left mrelx mrely)
+              right (flatgui.widgets.floatingbar/mouse-in-area capture-area-right mrelx mrely)
+              top (flatgui.widgets.floatingbar/mouse-in-area capture-area-top mrelx mrely)
+              bottom (flatgui.widgets.floatingbar/mouse-in-area capture-area-bottom mrelx mrely)]
+          (if (or left right top bottom)
+            {:edges {:left left :right right :top top :bottom bottom} :x mabsx :y mabsy :position-matrix pm :clip-size cs}
+            old-mouse-capture-edges))
         old-mouse-capture-edges))))
 
 (fg/defevolverfn resizeablebar-clip-size-evolver :clip-size
   (if (mouse/is-mouse-event? component)
     (if-let [mce (get-property component [:this] :mouse-capture-edges)]
-      (let [new-size (condp = (:edge mce)
-
-                       ;; TODO temporarily disabled, because table does not behave well when _decreasing_ vertical size
-                       ;;
-                       :bottom (m/defpoint
-                                 (m/x old-clip-size)
-                                 (do ;(println " (get-mouse-y component) " (float (get-mouse-y component)) " (:y mce) " (float (:y mce)))
-                                   (+ (m/y (:clip-size mce)) (- (mouse/get-mouse-y component) (:y mce)))))
-                       :top (m/defpoint
-                              (m/x old-clip-size)
-                              (do ;(println " (get-mouse-y component) " (float (get-mouse-y component)) " (:y mce) " (float (:y mce)))
-                                (+ (m/y (:clip-size mce)) (max 0 (- (mouse/get-mouse-y component) (:y mce))))))
-                       :left (m/defpoint
-                               (- (m/x (:clip-size mce)) (- (mouse/get-mouse-x component) (:x mce)))
-                               (m/y old-clip-size))
-                       :right (m/defpoint
-                                (+ (m/x (:clip-size mce)) (- (mouse/get-mouse-x component) (:x mce)))
-                                (m/y old-clip-size))
-                       old-clip-size)]
+      (let [new-size (m/defpoint
+                       (cond
+                         (:left (:edges mce)) (- (m/x (:clip-size mce)) (- (mouse/get-mouse-x component) (:x mce)))
+                         (:right (:edges mce)) (+ (m/x (:clip-size mce)) (- (mouse/get-mouse-x component) (:x mce)))
+                         :else (m/x old-clip-size))
+                       (cond
+                         (:bottom (:edges mce)) (+ (m/y (:clip-size mce)) (- (mouse/get-mouse-y component) (:y mce)))
+                         (:top (:edges mce)) (+ (m/y (:clip-size mce)) (max 0 (- (mouse/get-mouse-y component) (:y mce))))
+                         :else (m/y old-clip-size)))]
         (m/defpoint
           (if (< (m/x new-size) (m/x old-clip-size)) (if (layout/can-shrink-x component) (m/x new-size) (m/x old-clip-size)) (m/x new-size))
           (if (< (m/y new-size) (m/y old-clip-size)) (if (layout/can-shrink-y component) (m/y new-size) (m/y old-clip-size)) (m/y new-size))))
