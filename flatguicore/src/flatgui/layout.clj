@@ -12,7 +12,6 @@
     (:require [flatgui.base :as fg]
       [flatgui.awt :as awt]
       [flatgui.util.matrix :as m]
-      [flatgui.util.rectmath :as r]
       [flatgui.util.decimal :as d])
   (:import (java.util.regex Pattern)))
 
@@ -234,33 +233,25 @@
         stretching (get grouped-by-stretch true)
         stable (get grouped-by-stretch false)
         stable-pref-total (reduce + (map #(:total-stable-pref %) stable))
-        stretching-min-total (reduce + (map #(sfn (:min %)) stretching))]
-       (if (< (+ stable-pref-total stretching-min-total) 1.0)
-         (let [stretch-space (- 1.0 stable-pref-total)
-               index-range (range 0 (count dir))
-               sizes (mapv #(if (stretches? %) (* (:stch-weight %) stretch-space) (sfn (:pref %))) dir)
-               total-sizes (mapv #(if (pos? (:total-stch-weight %)) (* (:total-stch-weight %) stretch-space) (:total-stable-pref %)) dir)
-               coords (mapv #(reduce + (take % total-sizes)) index-range)
-               shifts (mapv
-                        #(let [extra (- (nth total-sizes %) (nth sizes %))]
-                           (if (pos? extra)
-                             (cond
-                               (ends? (nth dir %)) extra
-                               (not (begins? (nth dir %))) (/ extra 2)
-                               :esle 0)
-                             0))
-                        index-range)
-               _ (println "shifts = " (mapv #(str stcher (:element (nth dir %)) "-" (nth shifts %)) index-range))]
-              (map #(assoc (nth dir %) coord-key (+ (nth coords %) (nth shifts %)) size-key (nth sizes %)) index-range)
-              ;(map #(assoc (nth dir %) coord-key (nth coords %) size-key (nth sizes %)) index-range)
-              )
-
-         ;; TODO maybe one of three container policies when there is lack of space
-         ;;  1. shrink
-         ;;  2. ignore
-         ;;  3. line-wrap
-         (let [_ (println " <<<<TODO space lack>>>>")]
-              nil))))
+        stretching-min-total (reduce + (map #(sfn (:min %)) stretching))
+        mapped (let [stretch-space (- 1.0 stable-pref-total)
+                     index-range (range 0 (count dir))
+                     sizes (mapv #(if (stretches? %) (* (:stch-weight %) stretch-space) (sfn (:pref %))) dir)
+                     total-sizes (mapv #(if (pos? (:total-stch-weight %)) (* (:total-stch-weight %) stretch-space) (:total-stable-pref %)) dir)
+                     coords (mapv #(reduce + (take % total-sizes)) index-range)
+                     shifts (mapv
+                              #(let [extra (- (nth total-sizes %) (nth sizes %))]
+                                (if (pos? extra)
+                                  (cond
+                                    (ends? (nth dir %)) extra
+                                    (not (begins? (nth dir %))) (/ extra 2)
+                                    :esle 0)
+                                  0))
+                              index-range)]
+                    (map #(assoc (nth dir %) coord-key (+ (nth coords %) (nth shifts %)) size-key (nth sizes %)) index-range))
+        required-w (+ stable-pref-total stretching-min-total)]
+       (if (<= required-w 1.0)
+         mapped)))
 
 (defn rotate-table [t]
   (let [column-count (reduce max (map count t))]
@@ -341,15 +332,20 @@
           ;_ (println "X-coord-map" x-coord-map)
           ;_ (println "X-map-nested-x" (map-nested-x component x-coord-map))
           ;_ (println "X-map-nested-x-fl" (flatten-mapped-nested (map-nested-x component x-coord-map)))
+          x-nofit (some nil? x-coord-map)
 
-          x-map-with-nested (flatten-mapped-nested (map-nested-x component x-coord-map))
+          x-map-with-nested (if x-nofit nil (flatten-mapped-nested (map-nested-x component x-coord-map)))
           y-coord-map (map
                         #(map-direction component % \| \' \. m/y :y :h)
-                        (rotate-table (compute-y-dir (assoc-constraints component layout \| + max))))]
-      (process-y-compound-keys
-        (merge-with merge
-                    (flagnestedvec->coordmap x-map-with-nested)
-                    (flagnestedvec->coordmap y-coord-map))))))
+                        (rotate-table (compute-y-dir (assoc-constraints component layout \| + max))))
+          y-nofit (some nil? y-coord-map)]
+      (if (or x-nofit y-nofit)
+        (assoc old-coord-map :x-nofit x-nofit :y-nofit y-nofit)
+        ;old-coord-map
+        (process-y-compound-keys
+          (merge-with merge
+                      (flagnestedvec->coordmap x-map-with-nested)
+                      (flagnestedvec->coordmap y-coord-map)))))))
 
 (fg/defevolverfn :position-matrix
   (if-let [coord-map (get-property [] :coord-map)]
@@ -378,6 +374,20 @@
           (d/round-granular (- (* (:h coord) (- (m/y ps) btop bbtm)) gap gap) (awt/px))))
       old-clip-size)
     old-clip-size))
+
+;; In case :layout is not used at all, this method returns true because there is no :coord-map
+(fg/defaccessorfn can-shrink-x [component]
+  (let [coord-map (get-property component [:this] :coord-map)]
+    (if (and coord-map (:x-nofit coord-map))
+      (= (get-property component [:this] :layout-shrink-policy) :shrink)
+      true)))
+
+;; In case :layout is not used at all, this method returns true because there is no :coord-map
+(fg/defaccessorfn can-shrink-y [component]
+  (let [coord-map (get-property component [:this] :coord-map)]
+    (if (and coord-map (:y-nofit coord-map))
+      (= (get-property component [:this] :layout-shrink-policy) :shrink)
+      true)))
 
 
 ;;; 1. After map-direction is used for elements of each row, each row will

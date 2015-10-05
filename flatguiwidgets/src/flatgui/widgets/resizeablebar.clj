@@ -8,6 +8,7 @@
 
 (ns flatgui.widgets.resizeablebar
   (:require [flatgui.base :as fg]
+            [flatgui.layout :as layout]
             [flatgui.widgets.component]
             [flatgui.widgets.floatingbar]
             [flatgui.util.matrix :as m]
@@ -37,28 +38,30 @@
 
 (fg/defevolverfn resizeablebar-clip-size-evolver :clip-size
   (if (mouse/is-mouse-event? component)
-    (let [ mce (get-property component [:this] :mouse-capture-edges)]
-      (if mce
-        (condp = (:edge mce)
+    (if-let [mce (get-property component [:this] :mouse-capture-edges)]
+      (let [new-size (condp = (:edge mce)
 
-          ;; TODO temporarily disabled, because table does not behave well when _decreasing_ vertical size
-          ;;
-          :bottom (m/defpoint
-                    (m/x old-clip-size)
-                    (do ;(println " (get-mouse-y component) " (float (get-mouse-y component)) " (:y mce) " (float (:y mce)))
-                      (+ (m/y (:clip-size mce)) (- (mouse/get-mouse-y component) (:y mce)))))
-          :top (m/defpoint
-                    (m/x old-clip-size)
-                    (do ;(println " (get-mouse-y component) " (float (get-mouse-y component)) " (:y mce) " (float (:y mce)))
-                      (+ (m/y (:clip-size mce)) (max 0 (- (mouse/get-mouse-y component) (:y mce))))))
-          :left (m/defpoint
-                  (- (m/x (:clip-size mce)) (- (mouse/get-mouse-x component) (:x mce)))
-                  (m/y old-clip-size))
-          :right (m/defpoint
-                   (+ (m/x (:clip-size mce)) (- (mouse/get-mouse-x component) (:x mce)))
-                   (m/y old-clip-size))
-          old-clip-size)
-        old-clip-size))
+                       ;; TODO temporarily disabled, because table does not behave well when _decreasing_ vertical size
+                       ;;
+                       :bottom (m/defpoint
+                                 (m/x old-clip-size)
+                                 (do ;(println " (get-mouse-y component) " (float (get-mouse-y component)) " (:y mce) " (float (:y mce)))
+                                   (+ (m/y (:clip-size mce)) (- (mouse/get-mouse-y component) (:y mce)))))
+                       :top (m/defpoint
+                              (m/x old-clip-size)
+                              (do ;(println " (get-mouse-y component) " (float (get-mouse-y component)) " (:y mce) " (float (:y mce)))
+                                (+ (m/y (:clip-size mce)) (max 0 (- (mouse/get-mouse-y component) (:y mce))))))
+                       :left (m/defpoint
+                               (- (m/x (:clip-size mce)) (- (mouse/get-mouse-x component) (:x mce)))
+                               (m/y old-clip-size))
+                       :right (m/defpoint
+                                (+ (m/x (:clip-size mce)) (- (mouse/get-mouse-x component) (:x mce)))
+                                (m/y old-clip-size))
+                       old-clip-size)]
+        (m/defpoint
+          (if (< (m/x new-size) (m/x old-clip-size)) (if (layout/can-shrink-x component) (m/x new-size) (m/x old-clip-size)) (m/x new-size))
+          (if (< (m/y new-size) (m/y old-clip-size)) (if (layout/can-shrink-y component) (m/y new-size) (m/y old-clip-size)) (m/y new-size))))
+      old-clip-size)
     old-clip-size))
 
 (fg/defwidget "resizeablebar"

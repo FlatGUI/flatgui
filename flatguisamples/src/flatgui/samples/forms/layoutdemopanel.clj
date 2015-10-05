@@ -38,6 +38,7 @@
     {:clip-size (m/defpoint 5.125 5.5)
      :position-matrix (m/translation 5 1)
      :layout layout-cfg
+     ;:layout-shrink-policy :shrink
      :text "Layout"}
 
     (fg/defcomponent label/label :name-label {:text "Name:"})
