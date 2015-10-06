@@ -463,6 +463,42 @@ var STRING_POOL_MAP_COMMAND_CODE = 7;
 
 var PAINT_ALL_LIST_COMMAND_CODE = 64;
 var REPAINT_CACHED_COMMAND_CODE = 65;
+var SET_CURSOR_COMMAND_CODE = 66;
+
+var CURSORS_BY_CODE = [
+  "alias",
+  "all-scroll",
+  "auto",
+  "cell",
+  "context-menu",
+  "col-resize",
+  "copy",
+  "crosshair",
+  "default",
+  "e-resize",
+  "ew-resize",
+  "help",
+  "move",
+  "n-resize",
+  "ne-resize",
+  "nw-resize",
+  "ns-resize",
+  "no-drop",
+  "none",
+  "not-allowed",
+  "pointer",
+  "progress",
+  "row-resize",
+  "s-resize",
+  "se-resize",
+  "sw-resize",
+  "text",
+  "vertical-text",
+  "w-resize",
+  "wait",
+  "zoom-in",
+  "zoom-out"
+];
 
 // TODO track removed components
 
@@ -752,6 +788,11 @@ function decodeCommandVector(stream, byteLength)
             break;
         case REPAINT_CACHED_COMMAND_CODE:
             repaintWholeCache();
+            break;
+        case SET_CURSOR_COMMAND_CODE:
+            var cursorCode = stream[c];
+            c++;
+            canvas.style.cursor = CURSORS_BY_CODE[cursorCode];
             break;
         default:
            throw new Error("Unknown command code: " + stream[0]);

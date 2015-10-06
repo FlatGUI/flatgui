@@ -12,6 +12,7 @@ package flatgui.core;
 
 import clojure.lang.Keyword;
 import clojure.lang.Var;
+import flatgui.core.awt.HostComponent;
 import flatgui.core.util.IFGChangeListener;
 import flatgui.core.websocket.FGPaintVectorBinaryCoder;
 
@@ -41,6 +42,7 @@ public class FGWebContainerWrapper
 
     public static final byte PAINT_ALL_LIST_COMMAND_CODE = 64;
     public static final byte REPAINT_CACHED_COMMAND_CODE = 65;
+    public static final byte SET_CURSOR_COMMAND_CODE = 66;
 
 
     private static Set<String> RECT_COMMANDS;
@@ -68,7 +70,7 @@ public class FGWebContainerWrapper
         fgContainer_ = fgContainer;
         eventConsumer_ = fgContainer_.connect(e -> {}, this);
 
-        stateTransmitter_ = new FGContainerStateTransmitter(fgContainer_.getFGModule());
+        stateTransmitter_ = new FGContainerStateTransmitter(fgContainer_);
     }
 
     //
@@ -840,17 +842,61 @@ public class FGWebContainerWrapper
         private static final Var extractChildCount_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-child-count");
         private static final Var extractBitFlags_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-bit-flags");
         private static final Var extractStringPool_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-string-pool");
-        private static final Var extractCursor_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-cursor");
+
+        private static final byte DEFAULT_CURSOR_CODE = 8;
+        private static final Map<String, Integer> CURSOR_NAME_TO_CODE;
+        static
+        {
+            Map<String, Integer> m = new HashMap<>();
+            m.put("alias", Integer.valueOf(0));
+            m.put("all-scroll", Integer.valueOf(1));
+            m.put("auto", Integer.valueOf(2));
+            m.put("cell", Integer.valueOf(3));
+            m.put("context-menu", Integer.valueOf(4));
+            m.put("col-resize", Integer.valueOf(5));
+            m.put("copy", Integer.valueOf(6));
+            m.put("crosshair", Integer.valueOf(7));
+            m.put("default", Integer.valueOf(DEFAULT_CURSOR_CODE));
+            m.put("e-resize", Integer.valueOf(9));
+            m.put("ew-resize", Integer.valueOf(10));
+            m.put("help", Integer.valueOf(11));
+            m.put("move", Integer.valueOf(12));
+            m.put("n-resize", Integer.valueOf(13));
+            m.put("ne-resize", Integer.valueOf(14));
+            m.put("nw-resize", Integer.valueOf(15));
+            m.put("nwse-resize", m.get("nw-resize"));
+            m.put("ns-resize", Integer.valueOf(16));
+            m.put("no-drop", Integer.valueOf(17));
+            m.put("none", Integer.valueOf(18));
+            m.put("not-allowed", Integer.valueOf(19));
+            m.put("pointer", Integer.valueOf(20));
+            m.put("progress", Integer.valueOf(21));
+            m.put("row-resize", Integer.valueOf(22));
+            m.put("s-resize", Integer.valueOf(23));
+            m.put("se-resize", Integer.valueOf(24));
+            m.put("sw-resize", Integer.valueOf(25));
+            m.put("nesw-resize", m.get("sw-resize"));
+            m.put("text", Integer.valueOf(26));
+            m.put("vertical-text", Integer.valueOf(27));
+            m.put("w-resize", Integer.valueOf(28));
+            m.put("wait", Integer.valueOf(29));
+            m.put("zoom-in", Integer.valueOf(30));
+            m.put("zoom-out", Integer.valueOf(31));
+            CURSOR_NAME_TO_CODE = Collections.unmodifiableMap(m);
+        }
 
         private static final BinaryOperator THROWING_MERGER = (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u));};
 
         private IKeyCache keyCache_;
 
+        private final IFGContainer fgContainer_;
         private final IFGModule fgModule_;
 
         // TODO track removed components, otherwise memory leak here
         //
         private Map<Byte, ?> cmdToLastData_;
+
+        private byte lastCursor_ = -1;
 
         private Map<Byte, IDataTransmitter<Object>> cmdToDataTransmitter_;
         private FGPaintVectorBinaryCoder.StringPoolIdSupplier stringPoolIdSupplier_;
@@ -861,15 +907,16 @@ public class FGWebContainerWrapper
 
         boolean initialCycle_;
 
-        public FGContainerStateTransmitter(IFGModule fgModule)
+        public FGContainerStateTransmitter(IFGContainer fgContainer)
         {
             initialCycle_ = true;
 
-            fgModule_ = fgModule;
+            fgContainer_ = fgContainer;
+            fgModule_ = fgContainer.getFGModule();
             keyCache_ = new KeyCahe();
             cmdToDataTransmitter_ = new LinkedHashMap<>();
 
-            stringPoolIdSupplier_ = fgModule::getStringPoolId;
+            stringPoolIdSupplier_ = fgModule_::getStringPoolId;
 
             addDataTransmitter(new PositionMatrixMapTrasmitter(keyCache_,
                     () -> idPathToComponent_.entrySet().stream()
@@ -897,12 +944,12 @@ public class FGWebContainerWrapper
                     () -> idPathToComponent_.entrySet().stream()
                             .collect(Collectors.toMap(e -> e.getKey(), e -> extractBitFlags_.invoke(e.getValue())))));
 
-            addDataTransmitter(new PaintAllTransmitter(keyCache_, fgModule::getPaintAllSequence2));
+            addDataTransmitter(new PaintAllTransmitter(keyCache_, fgModule_::getPaintAllSequence2));
 
             Supplier<Map<Object, Object>> stringPoolSupplier = () -> {
                 Map<List<Keyword>, List<String>> idPathToString = new HashMap<>();
                 idPathToComponent_.forEach((k, v) -> idPathToString.put(k, (List<String>) extractStringPool_.invoke(v)));
-                return fgModule.getStringPoolDiffs(idPathToString);
+                return fgModule_.getStringPoolDiffs(idPathToString);
             };
             addDataTransmitter(new StringPoolMapTransmitter(keyCache_,
                     stringPoolSupplier));
@@ -940,6 +987,16 @@ public class FGWebContainerWrapper
                     .filter(b -> b != null)
                     .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
             cmdToLastData_ = newDatas;
+
+            Keyword cursor = HostComponent.resolveCursor(idPathToComponent_, fgContainer_);
+            Integer cursorCode = cursor != null ? CURSOR_NAME_TO_CODE.get(cursor.getName()) : null;
+            byte cursorCodeByte = cursorCode != null ? cursorCode.byteValue() : DEFAULT_CURSOR_CODE;
+            if (cursorCodeByte != lastCursor_)
+            {
+                result.add(ByteBuffer.wrap(new byte[]{SET_CURSOR_COMMAND_CODE, cursorCodeByte}));
+                lastCursor_ = cursorCodeByte;
+            }
+
             return result;
         }
 

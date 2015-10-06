@@ -151,30 +151,38 @@ public class HostComponent extends Canvas
 
             Map<java.util.List<Keyword>, Map<Keyword, Object>> idPathToComponent =
                 fgContainer_.getFGModule().getComponentIdPathToComponent(changedPathsFuture_.get());
-            Map<java.util.List<Keyword>, Keyword> componentToCursor =
-                idPathToComponent.entrySet().stream()
-                .map(e -> Tuple.pair(e.getKey(), extractCursor_.invoke(e.getValue())))
-                .filter(t -> t.getSecond() != null)
-                .collect(Collectors.toMap(t -> t.getFirst(), t -> t.getSecond()));
-
-            if (componentToCursor.isEmpty())
-            {
-                setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-            }
-            else
-            {
-                Keyword c = componentToCursor.get(fgContainer_.getLastMouseTargetIdPath());
-                if (c == null)
-                {
-                    c = componentToCursor.values().stream().findAny().orElse(null);
-                }
-                Integer cursor = c != null ? FG_TO_AWT_CUSROR_MAP.get(c) : null;
-                setCursor(cursor != null ? Cursor.getPredefinedCursor(cursor.intValue()) : Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-            }
+            Keyword c = resolveCursor(idPathToComponent, fgContainer_);
+            Integer cursor = c != null ? FG_TO_AWT_CUSROR_MAP.get(c) : null;
+            setCursor(cursor != null ? Cursor.getPredefinedCursor(cursor.intValue()) : Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
         }
         catch (InterruptedException | ExecutionException e)
         {
             e.printStackTrace();
+        }
+    }
+
+    public static Keyword resolveCursor(Map<java.util.List<Keyword>, Map<Keyword, Object>> idPathToComponent,
+                                        IFGContainer fgContainer)
+    {
+        Map<java.util.List<Keyword>, Keyword> componentToCursor =
+            idPathToComponent.entrySet().stream()
+                .map(e -> Tuple.pair(e.getKey(), extractCursor_.invoke(e.getValue())))
+                .filter(t -> t.getSecond() != null)
+                .collect(Collectors.toMap(t -> t.getFirst(), t -> t.getSecond()));
+
+        if (componentToCursor.isEmpty())
+        {
+            // Default cursor
+            return null;
+        }
+        else
+        {
+            Keyword c = componentToCursor.get(fgContainer.getLastMouseTargetIdPath());
+            if (c == null)
+            {
+                c = componentToCursor.values().stream().findAny().orElse(null);
+            }
+            return c;
         }
     }
 
