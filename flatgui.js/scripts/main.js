@@ -911,8 +911,10 @@ var lastMouseX = -1;
 var lastMouseY = -1;
 var lastMouseDragTime = 0;
 var lastUnprocessedMouseDrag;
+var lastUnprocessedMouseMove;
 var lastIndexUnderMouse = -1;
 var lastMousePosWasOnEdge = false;
+var MOUSE_INTERVAL_MILLIS = 50;
 
 function getEncodedMouseEvent(x, y, id)
 {
@@ -944,13 +946,33 @@ function sendMouseDownEventToServer(evt)
     sendEventToServer(storeMouseEventAndGetEncoded(evt, 501));
 }
 
-function sendMouseUpEventToServer(evt)
+function commitLastUnprocessedMouseMove()
+{
+    if (lastUnprocessedMouseMove)
+    {
+        sendEventToServer(storeMouseEventAndGetEncoded(lastUnprocessedMouseMove, 503));
+        lastUnprocessedMouseMove = null;
+    }
+}
+
+function commitLastUnprocessedMouseDrag()
 {
     if (lastUnprocessedMouseDrag)
     {
         sendEventToServer(storeMouseEventAndGetEncoded(lastUnprocessedMouseDrag, 506));
         lastUnprocessedMouseDrag = null;
     }
+}
+
+function commitPendingMouseEvents()
+{
+    commitLastUnprocessedMouseMove();
+    commitLastUnprocessedMouseDrag();
+}
+
+function sendMouseUpEventToServer(evt)
+{
+    commitLastUnprocessedMouseDrag();
     mouseDown = false;
     sendEventToServer(storeMouseEventAndGetEncoded(evt, 502));
 }
@@ -962,9 +984,7 @@ function sendMouseClickEventToServer(evt)
 
 function isComponentReadyForMouseRollover(i)
 {
-    // Here childCounts[i] check is just a hack needed to cut off containers
-    // Eventually something more sophisticated may be implemented (tree traversal)
-    return absPositions[i] && childCounts[i] === 0 && !checkFlagForComponent(i, STATE_FLAGS_ROLLOVER_DISABLED_MASK);
+    return absPositions[i] && !checkFlagForComponent(i, STATE_FLAGS_ROLLOVER_DISABLED_MASK);
 }
 
 function sendMouseMoveEventToServer(evt)
@@ -983,7 +1003,7 @@ function sendMouseMoveEventToServer(evt)
         if (mouseDown)
         {
             var nowTime = Date.now();
-            if (nowTime - lastMouseDragTime > 15)
+            if (nowTime - lastMouseDragTime > MOUSE_INTERVAL_MILLIS)
             {
                 lastUnprocessedMouseDrag = null;
                 sendEventToServer(storeMouseEventAndGetEncoded(evt, 506));
@@ -999,7 +1019,8 @@ function sendMouseMoveEventToServer(evt)
             var indexUnderMouse;
             var onEdge = false;
             var t = function(a,b) {return Math.abs(a-b) < 2;};
-            for (var i=0; i<absPositions.length; i++)
+            // Iterate from the end to hit tompost children first. Root is always at i=0.
+            for (var i=absPositions.length-1; i>=0; i--)
             {
                 if (isComponentReadyForMouseRollover(i))
                 {
@@ -1032,9 +1053,15 @@ function sendMouseMoveEventToServer(evt)
                 lastIndexUnderMouse = indexUnderMouse;
                 lastMousePosWasOnEdge = onEdge;
             }
+            else
+            {
+                lastUnprocessedMouseMove = evt;
+            }
         }
     }
 }
+
+window.setInterval(commitPendingMouseEvents, MOUSE_INTERVAL_MILLIS);
 
 var CLIPBOARD_PASTE_EVENT_CODE = 403;
 
