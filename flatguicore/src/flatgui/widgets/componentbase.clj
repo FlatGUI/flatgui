@@ -328,12 +328,13 @@
                has-changes (or prev-has-changes new-has-changes)
                with-evolved-target (assoc with-evolved-target-fresh :has-changes has-changes)
                new-aux (:aux-container with-evolved-target)
-;               _ (if (= [:main :tiket :ticket-panel :aggr-slider :base] target-id-path)
-;                   (println " JUST EVOLVED target-id-path " target-id-path
-;                     " new-has-changes " new-has-changes
-;                     " init " initialization
-;                     " props " (:clip-size (get-in new-aux (fgc/conjv k :latest-changed-properties)))
-;                     ))
+               ;_ (if (= [:main :app-panel :hello] target-id-path)
+               ;    (println " JUST EVOLVED target-id-path " target-id-path
+               ;      " new-has-changes " new-has-changes
+               ;      " init " initialization
+               ;      " props " (:position-matrix (get-in new-aux (fgc/conjv k :latest-changed-properties)))
+               ;      " val " (get-in container (fgc/conjv k :position-matrix))
+               ;      ))
                ]
               ;@todo Without this initialization check :children for table content pane do not get evolved on initialization. Why?
               (if (or new-has-changes (and initialization has-changes))
