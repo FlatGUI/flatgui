@@ -120,8 +120,8 @@ flatgui.widgets.component
 
 (fg/defevolverfn default-content-size-evolver :content-size
   (let [
-;         _ (if (= (:path-to-target component) [:main :tiket :ticket-panel :aggr-slider])
-;            (println " Evolving content size for " (:id component) (get-property component [:this] :clip-size)  " reason: " (get-reason)) )
+         ;_ (if (= (:id component) :app-panel)
+         ;   (println "Evolving content size for " (:id component) (get-property component [:this] :clip-size)  " reason: " (fg/get-reason)) )
         ]
     (get-property component [:this] :clip-size)))
 

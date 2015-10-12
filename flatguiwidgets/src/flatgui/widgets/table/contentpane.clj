@@ -156,10 +156,15 @@
 (defn- fill-child-info-for-rows [from to header-ids]
   (mapcat (fn [h] (for [c (range from to)] {:id (get-cell-component-id h c) :header-id h :cbuf-index c})) header-ids))
 
+(defn- inv-merge
+  ([a b] (merge-with concat a b))
+  ([a] a)
+  ([] {}))
+
 (defn- invert-map [m]
   (if m (do
           ;(println ">>>>>> " (reduce #(merge-with concat %1 %2) (mapcat (fn [[k v]] (for [ve v] {ve [k]})) m)))
-          (reduce #(merge-with concat %1 %2) (mapcat (fn [[k v]] (for [ve v] {ve [k]})) m)))))
+          (reduce inv-merge (mapcat (fn [[k v]] (for [ve v] {ve [k]})) m)))))
 
 (defn- self-dependency? [c-path dependency]
   (and

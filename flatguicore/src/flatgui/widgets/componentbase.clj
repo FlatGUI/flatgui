@@ -58,31 +58,34 @@
   (let [
          ;@todo Experiment1
          ;targret-access-key (fgc/get-access-key target-id-path)
-         targret-visible-access-key (fgc/conjv targret-access-key :visible)
+        ;targret-visible-access-key (fgc/conjv targret-access-key :visible)
 
-         properties (if initialization
-                      (let [ target-properties-already-evovled (fgc/get-evolved-properties container targret-access-key)
-                             to-evolve (if target-properties-already-evovled
-                                         (vec (remove target-properties-already-evovled (:properties dependents)))
-                                         (:properties dependents))]
-                        (if (empty? to-evolve) nil to-evolve))
-
-                      ;
-                      ;@todo Experiment1. Have some :_parameter in :content-pane that tells this is allowed. Not allowed by default
-                      ;
-                      ;
-                      ;(if (get-in container targret-visible-access-key)
-                      ;  (:properties dependents)
-                      ;  (do ;(println " Limiting properties for " target-id-path " because it is not visible")
-                      ;    (if (some #(= :visible %1) (:properties dependents)) (:properties dependents)))
-                      ;  )
-                      ;
-                      ; It causes bugs with cell :visible :achor :selection when grouping/ungrouping and when
-                      ; selecting a row and then scrolling down
-                      ;
-                      (:properties dependents)
-
-                      )
+        ; TODO October 12, 2015 initialization check should not be needed since  remove the following comment, but Review Experiment1 for regular evolving
+         ;properties (if initialization
+         ;             (let [ target-properties-already-evovled (fgc/get-evolved-properties container targret-access-key)
+         ;                    to-evolve (if target-properties-already-evovled
+         ;                                (vec (remove target-properties-already-evovled (:properties dependents)))
+         ;                                (:properties dependents))]
+         ;               (if (empty? to-evolve) nil to-evolve))
+         ;
+         ;             ;
+         ;             ;@todo Experiment1. Have some :_parameter in :content-pane that tells this is allowed. Not allowed by default
+         ;             ;
+         ;             ;
+         ;             ;(if (get-in container targret-visible-access-key)
+         ;             ;  (:properties dependents)
+         ;             ;  (do ;(println " Limiting properties for " target-id-path " because it is not visible")
+         ;             ;    (if (some #(= :visible %1) (:properties dependents)) (:properties dependents)))
+         ;             ;  )
+         ;             ;
+         ;             ; It causes bugs with cell :visible :achor :selection when grouping/ungrouping and when
+         ;             ; selecting a row and then scrolling down
+         ;             ;
+         ;             (:properties dependents)
+         ;
+         ;             )
+        properties (:properties dependents)
+        ;_ (if (= [:main :hello] target-id-path) (println "ev-out" properties))
 
          dependent-children1 (:children dependents)
 
@@ -178,10 +181,13 @@
 (defn evolve-component [original-container container original-target-id-path target-id-path reason properties-to-evolve debug-shift initialization]
   (let [ k (fgc/get-access-key target-id-path)
          pre-target-component (get-in container k)]
-    ; Absence of :path-to-target means that target is a newly created component that has
-    ; not passed container initialization yet and hence cannot be evolved yet
+    ;; Absence of :path-to-target means that target is a newly created component that has
+    ;; not passed container initialization yet and hence cannot be evolved yet
     (if (and pre-target-component (:path-to-target pre-target-component))
-      (let [ evolved-properties-key (fgc/conjv k :evolved-properties)
+      (let [;; During initialization, if a property appears among :evolved-properties then:
+            ;; - it is aready initialized, i.e. transitioned from nil to explicitly specified initial value
+            ;; - it is not necessarily entirely initialized and may be updated because of the dependencies being initialized
+            evolved-properties-key (fgc/conjv k :evolved-properties)
              changed-properties-key (fgc/conjv k :changed-properties)
              latest-changed-properties-key (fgc/conjv k :latest-changed-properties)
              aux-container (update-in! (:aux-container container) latest-changed-properties-key (transient #{}))
@@ -201,15 +207,23 @@
                          pk (fgc/conjv k p)
                          evolver (p (:evolvers tgt))]
                     (if (or initialization evolver)
-                      (let [ old-value (p tgt);(if (and initialization (nil? reason)) nil (p tgt))
-                             ;evolver (p (:evolvers tgt))
+                      (let [;; Remember: cannot use get in :evolved-properties check because of http://dev.clojure.org/jira/browse/CLJ-700
+                            ;; We don track :children change during initialization. Current implementation of initialization
+                            ;; that calls account-struc-changes runs into stack overflow if we do this here
+                            old-value (if (and initialization (not= p :children))
+                                        (let [evolved (get-in aux evolved-properties-key)]
+                                          (if (or (nil? evolved) (not (evolved p)))
+                                            nil
+                                            (p tgt)))
+                                        (p tgt))
                              aux-with-p (update-in! aux evolved-properties-key fgc/set-conj! p)
                              root-p (assoc ret :aux-container aux-with-p)
                              aux-with-evolved-dependencies (:aux-container root-p)
                              ;@todo maybe use original value from original-container for currently evolved property while up-to-date for other, probably this is more honest
                              new-value (if evolver (evolver (assoc tgt :root-container root-p :aux-container aux-with-evolved-dependencies)) (p tgt))
+                             ;; TODO October 15, 2015: looks like it is the same from now on
                              has-changes-raw (not (= old-value new-value))
-                             has-changes (or initialization has-changes-raw)
+                             has-changes has-changes-raw ;(or initialization has-changes-raw)
 
 ;                             _ (if (and has-changes (= p :children)) (println " Evolved children count from " (count old-value) " to " (count new-value) " str change "
 ;                                                                       (and has-changes-raw (= p :children) (or (not (:_flexible-childset tgt)) (empty? old-value)))))
@@ -233,7 +247,6 @@
                                                       :consumed
                                                       (or (:consumed aux-with-evolved-dependencies) ((:consumes? tgt) tgt)))
                                                     aux-with-evolved-dependencies)
-                             ;_ (if (= :base (:id tgt)) (println "evolve-component" target-id-path "Reason" reason " Property " p "old" old-value "new" new-value " has-changes " has-changes))
 
                              new-aux (if has-changes
                                        (->
@@ -241,7 +254,15 @@
                                          (update-in! latest-changed-properties-key fgc/set-conj! p)
                                          (update-in! [:_changed-paths] fgc/set-conj! target-id-path))
                                        new-aux-with-consume)
-                             new-ret (if has-changes
+
+                            ;_ (if (and (= :hello (:id tgt)) (= p :position-bound))
+                            ;    (println "evolve-component" target-id-path "Reason" reason " Property " p "old" old-value "new" new-value " has-changes " has-changes
+                            ;             (if (get-in new-aux latest-changed-properties-key)
+                            ;               (str "position-bound?" ((get-in new-aux latest-changed-properties-key) :position-bound))
+                            ;                                 )))
+
+
+                            new-ret (if has-changes
                                        (let [ fin-ret1 (assoc (assoc-in root-p pk new-value)
                                                          :has-structure-changes (or (:has-structure-changes root-p) has-structure-changes)
                                                          :flex-structure-changes (merge (:flex-structure-changes root-p) flex-structure-changes)
@@ -328,20 +349,24 @@
                has-changes (or prev-has-changes new-has-changes)
                with-evolved-target (assoc with-evolved-target-fresh :has-changes has-changes)
                new-aux (:aux-container with-evolved-target)
-               ;_ (if (= [:main :app-panel :hello] target-id-path)
-               ;    (println " JUST EVOLVED target-id-path " target-id-path
-               ;      " new-has-changes " new-has-changes
-               ;      " init " initialization
-               ;      " props " (:position-matrix (get-in new-aux (fgc/conjv k :latest-changed-properties)))
-               ;      " val " (get-in container (fgc/conjv k :position-matrix))
-               ;      ))
+              ; _ (if (and
+              ;         (= [:main :hello] target-id-path)
+              ;         (get-in new-aux (fgc/conjv k :latest-changed-properties))
+              ;         ((get-in new-aux (fgc/conjv k :latest-changed-properties)) :position-bound))
+              ;     (println " JUST EVOLVED target-id-path " target-id-path
+              ;       " new-has-changes " new-has-changes
+              ;       " init " initialization
+              ;       (if (:position-bound (get-in new-aux (fgc/conjv k :latest-changed-properties)))
+              ;                               ((get-in new-aux (fgc/conjv k :latest-changed-properties)) :position-bound))
+              ;       " position-bound " (get-in container (fgc/conjv k :position-bound)) "->" (get-in with-evolved-target (fgc/conjv k :position-bound))
+              ;       ))
                ]
               ;@todo Without this initialization check :children for table content pane do not get evolved on initialization. Why?
               (if (or new-has-changes (and initialization has-changes))
-                (let [ all-out-dependents (:out-dependents new-aux)
-                       changed-properties (get-in new-aux (fgc/conjv k :latest-changed-properties))
-                       properties (if changed-properties (vec (seq (filter changed-properties (for [[k v] all-out-dependents] k)))) [])
-                       container-id (:id with-evolved-target)]
+                (let [all-out-dependents (:out-dependents new-aux)
+                      changed-properties (get-in new-aux (fgc/conjv k :latest-changed-properties))
+                      properties (if changed-properties (vec (seq (filter changed-properties (for [[k v] all-out-dependents] k)))) [])
+                      container-id (:id with-evolved-target)]
                   (loop [ pi (dec (count properties))
                           ret with-evolved-target]
                     (if (>= pi 0)
@@ -498,8 +523,8 @@
   ([root-container target-id-path] (evolve-all-component-only root-container target-id-path nil)))
 
 (defn- evolve-all
-  ([root-container target-id-path component]
-    (let [ fresh-root-container (evolve-all-component-only root-container target-id-path)]
+  ([root-container target-id-path component properties]
+    (let [ fresh-root-container (evolve-all-component-only root-container target-id-path properties)]
       (loop [ ret fresh-root-container
               children (seq (:children component))]
         (if children
@@ -507,10 +532,10 @@
                  child-id (first child-pair)
                  child-component (second child-pair)]
             (recur
-              (evolve-all ret (fgc/conjv target-id-path child-id) child-component)
+              (evolve-all ret (fgc/conjv target-id-path child-id) child-component properties)
               (next children)))
           ret))))
-  ([root-container] (evolve-all root-container [(:id root-container)] root-container)))
+  ([root-container] (evolve-all root-container [(:id root-container)] root-container nil)))
 
 (declare initialize-internal)
 

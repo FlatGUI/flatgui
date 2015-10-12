@@ -29,8 +29,8 @@
   {:x ax :y ay :w aw :h ah})
 
 (fg/defevolverfn :position-bound
-  (let [ parent-content-size (get-property component [] :content-size)
-         size (get-property component [:this] :clip-size)]
+  (let [parent-content-size (get-property component [] :content-size)
+        size (get-property component [:this] :clip-size)]
     (m/point-op - parent-content-size size)))
 
 (fg/defevolverfn :capture-area
@@ -49,28 +49,27 @@
         old-mouse-capture))))
 
 (fg/defevolverfn :position-matrix
-  (let [ mouse-capture (get-property component [:this] :mouse-capture)]
+  (let [mouse-capture (get-property component [:this] :mouse-capture)]
     (if (or (nil? mouse-capture) (not (mouse/is-mouse-event? component)))
-      (let [ position-bound (get-property component [:this] :position-bound)
-             x-bound (m/x position-bound)
-             y-bound (m/y position-bound)
-             size (get-property component [:this] :clip-size)]
-        (m/mx-set
-          (m/mx-set
-            old-position-matrix
-            0 3 (keep-range (m/mx-get old-position-matrix 0 3) 0 x-bound))
-          1 3 (keep-range (m/mx-get old-position-matrix 1 3) 0 y-bound)))
-      (let [ position-bound (get-property component [:this] :position-bound)
-             x-bound (m/x position-bound)
-             y-bound (m/y position-bound)
-             size (get-property component [:this] :clip-size)
-             new-pos-mx (m/mx*
-                          (:position-matrix mouse-capture)
-                          (m/translation-matrix
-                            ;(if (< (m/x size) x-bound) (- (get-mouse-x component) (:x mouse-capture)) 0.0)
-                            (- (mouse/get-mouse-x component) (:x mouse-capture))
-                            ;(if (< (m/y size) y-bound) (- (get-mouse-y component) (:y mouse-capture)) 0.0)
-                            (- (mouse/get-mouse-y component) (:y mouse-capture))))]
+      (let [position-bound (get-property component [:this] :position-bound)
+            x-bound (m/x position-bound)
+            y-bound (m/y position-bound)
+            r (m/mx-set
+                (m/mx-set
+                  old-position-matrix
+                  0 3 (keep-range (m/mx-get old-position-matrix 0 3) 0 x-bound))
+                1 3 (keep-range (m/mx-get old-position-matrix 1 3) 0 y-bound))]
+        r)
+      (let [position-bound (get-property component [:this] :position-bound)
+            x-bound (m/x position-bound)
+            y-bound (m/y position-bound)
+            new-pos-mx (m/mx*
+                         (:position-matrix mouse-capture)
+                         (m/translation-matrix
+                           ;(if (< (m/x size) x-bound) (- (get-mouse-x component) (:x mouse-capture)) 0.0)
+                           (- (mouse/get-mouse-x component) (:x mouse-capture))
+                           ;(if (< (m/y size) y-bound) (- (get-mouse-y component) (:y mouse-capture)) 0.0)
+                           (- (mouse/get-mouse-y component) (:y mouse-capture))))]
         (m/mx-set
           (m/mx-set
             new-pos-mx
