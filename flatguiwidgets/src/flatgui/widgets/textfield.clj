@@ -15,6 +15,7 @@
             [flatgui.widgets.scrollpanel]
             [flatgui.inputchannels.keyboard :as keyboard]
             [flatgui.inputchannels.mouse :as mouse]
+            [flatgui.inputchannels.timer :as timer]
             [flatgui.inputchannels.clipboard :as clipboard]
             [flatgui.inputchannels.awtbase :as inputbase]
             [flatgui.util.matrix :as m]
@@ -332,11 +333,12 @@
         (m/defpoint parent-w parent-h)))
     ((:clip-size (:evolvers flatgui.widgets.component/component)) component)))
 
-;;;
-;;;TODO listen to timer
-;;;
 (fg/defevolverfn :caret-visible
-  (= :has-focus (:mode (get-property [:this] :focus-state))))
+  (if (= :has-focus (:mode (get-property [:this] :focus-state)))
+    (if (timer/timer-event? component)
+      (not old-caret-visible)
+      old-caret-visible)
+    false))
 
 (defn textfield-dflt-text-suplier [component]
   (if (not

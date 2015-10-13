@@ -11,7 +11,6 @@ package flatgui.core;
 
 import clojure.lang.Keyword;
 import clojure.lang.Var;
-import flatgui.core.awt.FGAWTInteropUtil;
 
 import java.awt.event.*;
 import java.util.*;
@@ -76,22 +75,12 @@ public class FGContainer implements IFGContainer
         reasonParser_.registerReasonClassParser(MouseWheelEvent.class, new FGMouseEventParser(UNIT_SIZE_PX));
         reasonParser_.registerReasonClassParser(KeyEvent.class, new FGKeyEventParser());
         reasonParser_.registerReasonClassParser(FGClipboardEvent.class, new FGClipboardEventEventParser());
-        reasonParser_.registerReasonClassParser(FGContainer.FGTimerEvent.class, (fgTimerEvent, fgModule) -> Collections.emptyMap());
+        reasonParser_.registerReasonClassParser(FGTimerEvent.class, new FGTimerEventParser());
         reasonParser_.registerReasonClassParser(FGHostStateEvent.class, (fgHostStateEvent, fgModule) -> {
             Map<FGHostStateEvent, Collection<Object>> map = new HashMap<>();
             map.put(fgHostStateEvent, Arrays.asList(containerIdInternal));
             return map;
         });
-
-//        Timer repaintTimer = new Timer("FlatGUI Blink Helper Timer", true);
-//        repaintTimer.schedule(new TimerTask()
-//        {
-//            @Override
-//            public void run()
-//            {
-//                //EventQueue.invokeLater(() -> cycle(new FGTimerEvent()));
-//            }
-//        }, 250, 250);
 
         evolveConsumers_ = new ArrayList<>();
     }
@@ -306,10 +295,4 @@ public class FGContainer implements IFGContainer
         }
         return false;
     }
-
-    static class FGTimerEvent
-    {
-
-    }
-
 }

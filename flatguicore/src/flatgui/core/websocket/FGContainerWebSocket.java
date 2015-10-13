@@ -12,6 +12,8 @@ package flatgui.core.websocket;
 
 import clojure.lang.Keyword;
 import flatgui.core.*;
+import flatgui.core.awt.HostComponent;
+
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 
@@ -55,6 +57,8 @@ public class FGContainerWebSocket implements WebSocketListener
         containerConsumer_ = containerConsumer;
 
         containerAccessor_ = new ContainerAccessor();
+
+        HostComponent.setupBlinkHelperTimer(this::processInputEvent);
 
         FGAppServer.getFGLogger().info("WS Listener created " + System.identityHashCode(this));
     }

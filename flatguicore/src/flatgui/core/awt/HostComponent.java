@@ -100,6 +100,20 @@ public class HostComponent extends Canvas
         addMouseWheelListener(new ContainerMouseWheelListener(eventConsumer));
         addKeyListener(new ContainerKeyListener(eventConsumer));
         addComponentListener(new ContainerComponentListener(eventConsumer));
+        setupBlinkHelperTimer(eventConsumer);
+    }
+
+    public static void setupBlinkHelperTimer(Consumer<Object> timerEventConsumer)
+    {
+        Timer blinkTimer = new Timer("FlatGUI Blink Helper Timer", true);
+        blinkTimer.schedule(new TimerTask()
+        {
+            @Override
+            public void run()
+            {
+                timerEventConsumer.accept(new FGTimerEvent(System.currentTimeMillis()));
+            }
+        }, 530, 530);
     }
 
     @Override
