@@ -207,8 +207,8 @@
                              0)
             click-pos (if (> click-line 0)
                         (+
-                          (apply + (map #(.length %) (take (dec click-line) (:lines old-model)))) ; All previous lines
-                          (dec click-line) ; A linebreak symbol after each previous line
+                          (apply + (map #(.length %) (take click-line (:lines old-model)))) ; All previous lines
+                          click-line ; A linebreak symbol after each previous line
                           click-line-pos)
                         click-line-pos)]
         (merge old-model {:caret-pos click-pos
@@ -335,9 +335,10 @@
 
 (fg/defevolverfn :caret-visible
   (if (= :has-focus (:mode (get-property [:this] :focus-state)))
-    (if (timer/timer-event? component)
-      (not old-caret-visible)
-      old-caret-visible)
+    ;(if (timer/timer-event? component)
+    ;  (not old-caret-visible)
+    ;  old-caret-visible)
+    true
     false))
 
 (defn textfield-dflt-text-suplier [component]
