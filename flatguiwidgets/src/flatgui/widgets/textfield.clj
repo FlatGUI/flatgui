@@ -32,6 +32,16 @@
    :selection-mark-line 0
    :selection-mark-line-pos selection-mark})
 
+(defn create-multi-line-model [lines]
+  {:text (apply str (drop-last (mapcat #(list % "\n") lines)))
+   :lines lines
+   :caret-pos 0
+   :selection-mark 0
+   :caret-line 0
+   :caret-line-pos 0
+   :selection-mark-line 0
+   :selection-mark-line-pos 0})
+
 ;; TODO avoid duplication with skin
 (fg/defaccessorfn get-hgap [component] (awt/halfstrh component))
 

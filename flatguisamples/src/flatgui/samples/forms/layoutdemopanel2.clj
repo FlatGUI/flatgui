@@ -11,6 +11,8 @@
             [flatgui.base :as fg]
             [flatgui.awt :as awt]
             [flatgui.theme]
+            [flatgui.layout]
+            [flatgui.widgets.label :as label]
             [flatgui.widgets.window :as window]
             [flatgui.widgets.abstractbutton :as abtn]
             [flatgui.widgets.textfield :as textfield]
@@ -26,7 +28,7 @@
 
 (fg/defevolverfn :layout
   (if (and
-        (= (fg/get-reason) [:config :scroll :content-pane :textfield])
+        (= (fg/get-reason) [:config :apply])
         (abtn/button-pressed? (get-property [:config :apply] :pressed-trigger)))
     (read-string (get-property [:config :scroll :content-pane :textfield] :text))
     old-layout))
@@ -35,8 +37,8 @@
   (fg/defcomponent
     window/window
     :layoutdemo
-    {:clip-size (m/defpoint 7.125 5.5)
-     :position-matrix (m/translation 6 0.25)
+    {:clip-size (m/defpoint 5 3.5)
+     :position-matrix (m/translation 4.0 0.25)
      :layout layout-cfg
      :text "Layout"
      :evolvers {:layout layout-evolver}}
@@ -61,20 +63,44 @@
     (fg/defcomponent button/button :o {:text ":o"})
     (fg/defcomponent button/button :p {:text ":p"})))
 
+(def text-model (textfield/create-multi-line-model
+                  (mapcat identity [["["] (mapv str layout-cfg) ["]"]])))
+
+(fg/defevolverfn :config-valid
+  (let [cfg-str (get-property [:this :scroll :content-pane :textfield] :text)]
+    (if cfg-str
+      (try ;For now, there is no better way to check config validity
+        (let [cfg (read-string cfg-str)
+              layout-cfg (flatgui.layout/coord-map-evolver
+                           (assoc (get-in (:root-container component) [:children :layoutdemo]) :layout cfg))]
+          (if layout-cfg true false))
+        (catch Exception e (do (println "Config invalid: " (.getMessage e)) false)))
+      false)))
+
+;;; Allow entering only what's releavant for this sample layout config
+(defn sample-only-text-suplier [component]
+  (let [key (textfield/textfield-dflt-text-suplier component)]
+    (if (#{"a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k" "m" "n" "o" "p"
+           " " "[" "]"
+           ":" "-" "|" "<" ">" "'" "."} key) key "")))
+
 (def layout-window
   (fg/defcomponent
     window/window
     :config
-    {:clip-size (m/defpoint 5.125 5.5)
+    {:clip-size (m/defpoint 3.5 3.5)
      :position-matrix (m/translation 0.25 0.25)
-     :text "Config"}
+     :text "Config"
+     :config-valid true
+     :layout [[[:scroll :-|]]
+              [[:validity-indicator :-]]
+              [[:apply :-]]]
+     :evolvers {:config-valid config-valid-evolver}}
 
     (fg/defcomponent
       scrollpanel/scrollpanel
       :scroll
-      {:clip-size (m/defpoint 4.875 4.375)
-       :position-matrix (m/translation 0.125 0.5)
-       :children {:content-pane (fg/defcomponent
+      {:children {:content-pane (fg/defcomponent
                                   scrollpanel/scrollpanelcontent
                                   :content-pane
                                   {:evolvers {:content-size (fg/accessorfn (get-property component [:this :textfield] :clip-size))
@@ -82,16 +108,24 @@
                                    :children {:textfield (fg/defcomponent
                                                            textfield/textfield
                                                            :textfield
-                                                           {:clip-size (m/defpoint 4.875 4.375)
-                                                            :position-matrix (m/translation 0 0)
-                                                            :multiline true
+                                                           {:multiline true
                                                             :auto-size true
-                                                            :paint-border false})}})}})
+                                                            :paint-border false
+                                                            :model text-model
+                                                            :text-supplier sample-only-text-suplier
+                                                            :text (:text text-model)})}})}})
 
-    (fg/defcomponent button/button :apply
-      {:text "Apply"
-       :position-matrix (m/translation 0.125 5.0)
-       :clip-size (m/defpoint 4.875 0.375)})))
+    (fg/defcomponent label/label :validity-indicator
+      {:text "Valid"
+       :foreground (awt/color 64 255 64)
+       :evolvers {:text (fg/accessorfn (if (get-property component [] :config-valid)
+                                         "Valid"
+                                         "Not valid"))
+                  :foreground (fg/accessorfn (if (get-property component [] :config-valid)
+                                               (awt/color 64 255 64)
+                                               (awt/color 255 64 64)))}})
+
+    (fg/defcomponent button/button :apply {:text "Apply"})))
 
 (def root-panel
   (fg/defcomponent
@@ -100,7 +134,6 @@
     {:theme flatgui.theme/dark
      :clip-size (m/defpoint 40 20)
      :background (awt/color 9 17 26)
-     :font "bold 14px sans-serif"
 
      ;; TODO this should be a part defroot probably
      :closed-focus-root true

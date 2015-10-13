@@ -351,10 +351,10 @@
   (if-let [coord-map (get-property [] :coord-map)]
     (if-let [coord ((:id component) coord-map)]
       (let [ps (get-property [] :clip-size)
-            btop 0.375;TODO see 0.375 - window border
-            bbtm 0.0
-            bleft 0.0
-            bright 0.0]
+            btop (+ 0.375 (awt/px) (awt/px)) ;TODO see 0.375 - window border
+            bbtm (+ (awt/px) (awt/px))
+            bleft (+ (awt/px) (awt/px))
+            bright(+ (awt/px) (awt/px))]
         (m/translation
           (d/round-granular (+ bleft gap (* (:x coord) (- (m/x ps) bleft bright))) (awt/px))
           (d/round-granular (+ btop gap (* (:y coord) (- (m/y ps) btop bbtm))) (awt/px))))
@@ -365,10 +365,10 @@
   (if-let [coord-map (get-property [] :coord-map)]
     (if-let [coord ((:id component) coord-map)]
       (let [ps (get-property [] :clip-size)
-            btop 0.375;TODO see 0.375 - window border
-            bbtm 0.0
-            bleft 0.0
-            bright 0.0]
+            btop (+ 0.375 (awt/px) (awt/px)) ;TODO see 0.375 - window border
+            bbtm (+ (awt/px) (awt/px))
+            bleft (+ (awt/px) (awt/px))
+            bright(+ (awt/px) (awt/px))]
         (m/defpoint
           (d/round-granular (- (* (:w coord) (- (m/x ps) bleft bright)) gap gap) (awt/px))
           (d/round-granular (- (* (:h coord) (- (m/y ps) btop bbtm)) gap gap) (awt/px))))
