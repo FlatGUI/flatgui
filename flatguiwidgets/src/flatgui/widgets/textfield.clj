@@ -335,10 +335,9 @@
 
 (fg/defevolverfn :caret-visible
   (if (= :has-focus (:mode (get-property [:this] :focus-state)))
-    ;(if (timer/timer-event? component)
-    ;  (not old-caret-visible)
-    ;  old-caret-visible)
-    true
+    (if (timer/timer-event? component)
+      (not old-caret-visible)
+      old-caret-visible)
     false))
 
 (defn textfield-dflt-text-suplier [component]
