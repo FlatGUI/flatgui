@@ -69,8 +69,9 @@
                             (- old-caret-pos old-selection-mark)
                             0)
         with-ctrl (inputbase/with-ctrl? component)]
-    (if (or typed (clipboard/clipboard-event? component))
-      (+ old-caret-pos (.length supplied-text))
+    (if (or typed (clipboard/clipboard-paste? component))
+      ;; min here to take into account possible selection that is to be replaced with supplied text
+      (+ (min old-selection-mark old-caret-pos) (.length supplied-text))
       (if pressed
         (condp = key
           KeyEvent/VK_BACK_SPACE (if (> fwd-selection-len 0) (- old-caret-pos fwd-selection-len) (deccaretpos old-caret-pos))
@@ -118,16 +119,26 @@
           old-caret-pos)
         old-caret-pos))))
 
+;; Works for outdated/inconsistent selection, it is possible and ok when in evolve-text
+(defn- safe-subs
+  ([s start end] (let [st (min start end)
+                       en (max start end)]
+                   (subs s (max st 0) (min (max en 0) (.length s)))))
+  ([s start] (safe-subs s start (.length s))))
+
 (defn- insert-text [old-text prevcaretpos has-selection sstart send text]
-  (if has-selection
-    (str
-      (subs old-text 0 sstart)
-      text
-      (subs old-text send))
-    (str
-      (subs old-text 0 prevcaretpos)
-      text
-      (subs old-text prevcaretpos))))
+  ;; May be already empty if Del removes selected text. In this case has-selection is still true but that is obsolete.
+  (if (.isEmpty old-text)
+    text
+    (if has-selection
+      (str
+        (safe-subs old-text 0 sstart)
+        text
+        (safe-subs old-text send))
+      (str
+        (safe-subs old-text 0 prevcaretpos)
+        text
+        (safe-subs old-text prevcaretpos)))))
 
 (defn evolve-text [component prevcaretpos caretpos old-selection-mark old-text supplied-text]
   (let [has-selection (not= prevcaretpos old-selection-mark)
@@ -138,17 +149,16 @@
         enter (and (= (keyboard/get-key component) KeyEvent/VK_ENTER) (:multiline component))]
     (if (or
           (and (keyboard/key-typed? component) (not enter))
-          (clipboard/clipboard-event? component))
-      ;; TODO entered text should replace selection - this does not work for some reason
+          (clipboard/clipboard-paste? component))
       (insert-text old-text prevcaretpos has-selection sstart send supplied-text)
       (if (keyboard/key-pressed? component)
         (cond
-          (and (or backspace delete) has-selection) (str (subs old-text 0 sstart) (subs old-text send))
+          (and (or backspace delete) has-selection) (str (safe-subs old-text 0 sstart) (safe-subs old-text send))
           backspace (if (> prevcaretpos 0)
-                      (str (subs old-text 0 caretpos) (subs old-text (+ caretpos 1)))
+                      (str (safe-subs old-text 0 caretpos) (safe-subs old-text (+ caretpos 1)))
                       old-text)
           delete (if (< prevcaretpos (.length old-text))
-                   (str (subs old-text 0 prevcaretpos) (subs old-text (+ caretpos 1)))
+                   (str (safe-subs old-text 0 prevcaretpos) (safe-subs old-text (+ caretpos 1)))
                    old-text)
           enter (insert-text old-text prevcaretpos has-selection sstart send "\n")
           :else old-text)
@@ -159,8 +169,10 @@
     (if (or (nil? key) (= key KeyEvent/VK_CONTROL) (= key KeyEvent/VK_SHIFT)) ; Single CTRL or Shift should not affect selection
       old-selection-mark
       (cond
-        (keyboard/key-typed? component) caret-pos
-        (keyboard/key-pressed? component) (if (inputbase/with-shift? component) old-selection-mark caret-pos)
+        (keyboard/key-typed? component)
+        (if (inputbase/with-ctrl? component) old-selection-mark caret-pos)
+        (keyboard/key-pressed? component)
+        (if (or (inputbase/with-shift? component) (inputbase/with-ctrl? component)) old-selection-mark caret-pos)
         :else old-selection-mark))))
 
 (defn pos->coord [component lines pos]
@@ -220,7 +232,7 @@
       old-model)
 
     :else
-    (let [supplied-text (if (clipboard/clipboard-event? component)
+    (let [supplied-text (if (clipboard/clipboard-paste? component)
                           (clipboard/get-plain-text component)
                           ((:text-supplier component) component))
           prevcaretpos (:caret-pos old-model)
@@ -235,7 +247,11 @@
           caretpos (evovle-caret-pos component h prevcaretpos old-caret-line-pos old-caret-line old-selection-mark old-text old-lines supplied-text)
           text (evolve-text component prevcaretpos caretpos old-selection-mark old-text supplied-text)
           lines (split-to-lines text)
-          selection-mark (evovle-selection-mark component caretpos old-selection-mark)
+          ;; Need to allow Home/End reset selection mark. But not do this when some char is pressed. Press event does not change text;
+          ;; following typed event does that
+          selection-mark (if (and supplied-text (not (.isEmpty supplied-text)) (keyboard/key-pressed? component))
+                           old-selection-mark
+                           (evovle-selection-mark component caretpos old-selection-mark))
           caret-coord (pos->coord component lines caretpos)
           selection-mark-coord (pos->coord component lines selection-mark)]
       {:text text
@@ -340,12 +356,34 @@
       old-caret-visible)
     false))
 
+;; TODO Shift+Del should send replaced text to clipboard
+(fg/defevolverfn :->clipboard
+  (if (clipboard/clipboard-copy? component)
+    (let [model (get-property [:this] :model)
+          selection-mark (:selection-mark model)
+          caret-pos (:caret-pos model)]
+      (if (not= caret-pos selection-mark)
+        (let [sstart (min caret-pos selection-mark)
+              send (max caret-pos selection-mark)
+              text (:text model)]
+          (subs text sstart send))
+        old-->clipboard))))
+
 (defn textfield-dflt-text-suplier [component]
   (if (not
-        (#{KeyEvent/VK_BACK_SPACE KeyEvent/VK_DELETE KeyEvent/VK_LEFT KeyEvent/VK_RIGHT KeyEvent/VK_HOME KeyEvent/VK_END}
+        (#{KeyEvent/VK_BACK_SPACE KeyEvent/VK_DELETE KeyEvent/VK_LEFT KeyEvent/VK_RIGHT
+           KeyEvent/VK_HOME KeyEvent/VK_END KeyEvent/VK_UP KeyEvent/VK_DOWN
+           KeyEvent/VK_PAGE_UP KeyEvent/VK_PAGE_DOWN}
           (keyboard/get-key component)))
     (keyboard/get-key-str component)
     ""))
+
+;; TODO replace selection does not work with this supplier in browser, but seems to work in local AWT app. Check textfield-num-only-text-suplier
+;(defn sample-only-text-suplier [component]
+;  (let [key (textfield/textfield-dflt-text-suplier component)]
+;    (if (#{"a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k" "m" "n" "o" "p"
+;           " " "[" "]"
+;           ":" "-" "|" "<" ">" "'" "."} key) key "")))
 
 (defn textfield-num-only-text-suplier [component]
   (let [key (textfield-dflt-text-suplier component)]
@@ -361,6 +399,7 @@
    :caret-visible false
    :model {:text "" :caret-pos 0 :selection-mark 0 :caret-line 0}
    :text ""
+   :->clipboard nil
    :first-visible-symbol 0
    :focusable true
    :skin-key [:textfield]
@@ -371,5 +410,6 @@
               :text text-evolver
               :first-visible-symbol first-visible-symbol-evolver
               :caret-visible caret-visible-evolver
+              :->clipboard ->clipboard-evolver
               :clip-size auto-size-evolver}}
   flatgui.widgets.component/component)

@@ -221,7 +221,7 @@ public class FGAppServer
                 +  " at the moment) active sessions. Event: " + inputEvent);
             sessionHolder_.forEachActiveSession(s -> {
                 FGAppServer.getFGLogger().debug(" session " + s.toString());
-                s.getAccosiatedWebSocket().collectAndSendResponse(
+                s.getAccosiatedWebSocket().collectAndSendResponse(inputEvent,
                     s.getContainer().feedTargetedEvent(targetCellIdPath, inputEvent), false);
             });
             FGAppServer.getFGLogger().debug("Done feeding event.");

@@ -25,6 +25,8 @@
 
 ;;; ;;;
 
+(defn get-data-for-clipboard [container] (first (:data-for-clipboard container)))
+
 (defn extract-single [property f container]
   (f (property container)))
 

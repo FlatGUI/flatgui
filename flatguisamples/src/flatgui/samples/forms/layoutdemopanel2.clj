@@ -77,13 +77,6 @@
         (catch Exception e (do (println "Config invalid: " (.getMessage e)) false)))
       false)))
 
-;;; Allow entering only what's releavant for this sample layout config
-(defn sample-only-text-suplier [component]
-  (let [key (textfield/textfield-dflt-text-suplier component)]
-    (if (#{"a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k" "m" "n" "o" "p"
-           " " "[" "]"
-           ":" "-" "|" "<" ">" "'" "."} key) key "")))
-
 (def layout-window
   (fg/defcomponent
     window/window
@@ -112,7 +105,6 @@
                                                             :auto-size true
                                                             :paint-border false
                                                             :model text-model
-                                                            :text-supplier sample-only-text-suplier
                                                             :text (:text text-model)})}})}})
 
     (fg/defcomponent label/label :validity-indicator

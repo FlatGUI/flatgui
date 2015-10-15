@@ -16,6 +16,7 @@ import flatgui.core.awt.HostComponent;
 import flatgui.core.util.IFGChangeListener;
 import flatgui.core.websocket.FGPaintVectorBinaryCoder;
 
+import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -43,6 +44,7 @@ public class FGWebContainerWrapper
     public static final byte PAINT_ALL_LIST_COMMAND_CODE = 64;
     public static final byte REPAINT_CACHED_COMMAND_CODE = 65;
     public static final byte SET_CURSOR_COMMAND_CODE = 66;
+    public static final byte PUSH_TEXT_TO_CLIPBOARD = 67;
 
 
     private static Set<String> RECT_COMMANDS;
@@ -107,10 +109,10 @@ public class FGWebContainerWrapper
         return changedPathsFuture;
     }
 
-    public synchronized Collection<ByteBuffer> getResponseForClient(Future<Set<List<Keyword>>> changedPathsFuture)
+    public synchronized Collection<ByteBuffer> getResponseForClient(Object inputEvent, Future<Set<List<Keyword>>> changedPathsFuture)
     {
         Future<Collection<ByteBuffer>> responseFuture =
-                fgContainer_.submitTask(() -> stateTransmitter_.computeDataDiffsToTransmit(changedPathsFuture));
+                fgContainer_.submitTask(() -> stateTransmitter_.computeDataDiffsToTransmit(inputEvent, changedPathsFuture));
         try
         {
             Collection<ByteBuffer> r =  responseFuture.get();
@@ -963,7 +965,7 @@ public class FGWebContainerWrapper
             fgModule_.getPaintAllSequence2().forEach(keyCache_::getUniqueId);
         }
 
-        public Collection<ByteBuffer> computeDataDiffsToTransmit(Future<Set<List<Keyword>>> changedPathsFuture)
+        public Collection<ByteBuffer> computeDataDiffsToTransmit(Object inputEvent, Future<Set<List<Keyword>>> changedPathsFuture)
         {
             try
             {
@@ -994,13 +996,35 @@ public class FGWebContainerWrapper
                     .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
             cmdToLastData_ = newDatas;
 
-            Keyword cursor = HostComponent.resolveCursor(idPathToComponent_, fgContainer_);
-            Integer cursorCode = cursor != null ? CURSOR_NAME_TO_CODE.get(cursor.getName()) : null;
-            byte cursorCodeByte = cursorCode != null ? cursorCode.byteValue() : DEFAULT_CURSOR_CODE;
-            if (cursorCodeByte != lastCursor_)
+            // Cursor
+            if (inputEvent instanceof MouseEvent)
             {
-                result.add(ByteBuffer.wrap(new byte[]{SET_CURSOR_COMMAND_CODE, cursorCodeByte}));
-                lastCursor_ = cursorCodeByte;
+                Keyword cursor = HostComponent.resolveCursor(idPathToComponent_, fgContainer_);
+                Integer cursorCode = cursor != null ? CURSOR_NAME_TO_CODE.get(cursor.getName()) : null;
+                byte cursorCodeByte = cursorCode != null ? cursorCode.byteValue() : DEFAULT_CURSOR_CODE;
+                if (cursorCodeByte != lastCursor_)
+                {
+                    result.add(ByteBuffer.wrap(new byte[]{SET_CURSOR_COMMAND_CODE, cursorCodeByte}));
+                    lastCursor_ = cursorCodeByte;
+                }
+            }
+
+            // Clipboard
+
+            String textForClipboard = HostComponent.getTextForClipboard(fgContainer_);
+            if (textForClipboard != null)
+            {
+                ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                StringTransmitter.writeString(stream, 1, textForClipboard);
+                byte[] textBytes = stream.toByteArray();
+                byte[] cmd = new byte[textBytes.length+1];
+                cmd[0] = PUSH_TEXT_TO_CLIPBOARD;
+                for (int i=0; i<textBytes.length; i++)
+                {
+                    cmd[i+1] = textBytes[i];
+                }
+
+                result.add(ByteBuffer.wrap(cmd));
             }
 
             return result;

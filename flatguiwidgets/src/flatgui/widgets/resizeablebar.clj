@@ -61,17 +61,19 @@
     old-clip-size))
 
 (fg/defevolverfn :cursor
-   (if (and (mouse/is-mouse-event? component) (get-property [:this] :has-mouse))
-     (if-let [mce (get-edges component)]
-       (let [edges (:edges mce)]
-         (cond
-           (and (:top edges) (:left edges)) :nwse-resize
-           (and (:bottom edges) (:right edges)) :nwse-resize
-           (and (:top edges) (:right edges)) :nesw-resize
-           (and (:bottom edges) (:left edges)) :nesw-resize
-           (or (:top edges) (:bottom edges)) :ns-resize
-           (or (:left edges) (:right edges)) :ew-resize
-           :else nil)))))
+   (if (mouse/is-mouse-event? component)
+     (if (get-property [:this] :has-mouse)
+       (if-let [mce (get-edges component)]
+         (let [edges (:edges mce)]
+           (cond
+             (and (:top edges) (:left edges)) :nwse-resize
+             (and (:bottom edges) (:right edges)) :nwse-resize
+             (and (:top edges) (:right edges)) :nesw-resize
+             (and (:bottom edges) (:left edges)) :nesw-resize
+             (or (:top edges) (:bottom edges)) :ns-resize
+             (or (:left edges) (:right edges)) :ew-resize
+             :else nil))))
+     old-cursor))
 
 (fg/defwidget "resizeablebar"
   {:mouse-capture-edges nil

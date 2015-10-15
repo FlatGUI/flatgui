@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 public class HostComponent extends Canvas
 {
     private static final Var extractCursor_ = clojure.lang.RT.var(IFGModule.RESPONSE_FEED_NS, "extract-cursor");
+    private static final Var getDataForClipboard_ = clojure.lang.RT.var(IFGModule.RESPONSE_FEED_NS, "get-data-for-clipboard");
 
     private static final Map<Keyword, Integer> FG_TO_AWT_CUSROR_MAP;
     static
@@ -163,6 +164,7 @@ public class HostComponent extends Canvas
             appTriggered_ = true;
             paint(g);
 
+            // TODO Change cursor only if it is a mouse event. Otherwise it is resolved as null
             Map<java.util.List<Keyword>, Map<Keyword, Object>> idPathToComponent =
                 fgContainer_.getFGModule().getComponentIdPathToComponent(changedPathsFuture_.get());
             Keyword c = resolveCursor(idPathToComponent, fgContainer_);
@@ -198,6 +200,13 @@ public class HostComponent extends Canvas
             }
             return c;
         }
+    }
+
+    // TODO add content type info; support other content types
+    public static String getTextForClipboard(IFGContainer fgContainer)
+    {
+        Object data = getDataForClipboard_.invoke(fgContainer.getFGModule().getContainerObject());
+        return data != null ? data.toString() : null;
     }
 
     Image getPendingImage()

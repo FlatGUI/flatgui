@@ -114,7 +114,7 @@ public class FGContainerWebSocket implements WebSocketListener
 
         container_.resetCache();
 
-        collectAndSendResponse(null, false);
+        collectAndSendResponse(null, null, false);
     }
 
     @Override
@@ -152,14 +152,14 @@ public class FGContainerWebSocket implements WebSocketListener
         //
 
         Future<Set<List<Keyword>>> changedPathsFuture = container_.feedEvent(e);
-        collectAndSendResponse(changedPathsFuture, e instanceof FGHostStateEvent);
+        collectAndSendResponse(e, changedPathsFuture, e instanceof FGHostStateEvent);
 
         //debugMessageCount_++;
     }
 
-    void collectAndSendResponse(Future<Set<List<Keyword>>> changedPathsFuture, boolean forceRepaint)
+    void collectAndSendResponse(Object inputEvent, Future<Set<List<Keyword>>> changedPathsFuture, boolean forceRepaint)
     {
-        Collection<ByteBuffer> response = container_.getResponseForClient(changedPathsFuture);
+        Collection<ByteBuffer> response = container_.getResponseForClient(inputEvent, changedPathsFuture);
 
         if (response.size() > 0)
         {
@@ -205,7 +205,7 @@ public class FGContainerWebSocket implements WebSocketListener
         public Future<Set<List<Keyword>>> feedTargetedEvent(Collection<Object> targetCellIdPath, Object repaintReason)
         {
             Future <Set<List<Keyword>>> changedPathsFuture = container_.feedTargetedEvent(targetCellIdPath, repaintReason);
-            collectAndSendResponse(changedPathsFuture, false);
+            collectAndSendResponse(repaintReason, changedPathsFuture, false);
             return null;
         }
 

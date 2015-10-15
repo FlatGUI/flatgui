@@ -15,18 +15,17 @@ package flatgui.core;
  */
 public class FGClipboardEvent
 {
-    public enum EventType {Resize}
-
     public static final int CLIPBOARD_FIRST = 403;
     public static final int CLIPBOARD_LAST = 405;
 
     public static final int CLIPBOARD_PASTE = CLIPBOARD_FIRST;
+    public static final int CLIPBOARD_COPY = CLIPBOARD_FIRST+1;
 
-    private final EventType type_;
+    private final int type_;
 
     private Object data_;
 
-    private FGClipboardEvent(EventType type, Object data)
+    private FGClipboardEvent(int type, Object data)
     {
         type_ = type;
         data_ = data;
@@ -34,10 +33,15 @@ public class FGClipboardEvent
 
     public static FGClipboardEvent createPasteEvent(Object data)
     {
-        return new FGClipboardEvent(EventType.Resize, data);
+        return new FGClipboardEvent(CLIPBOARD_PASTE, data);
     }
 
-    public EventType getType()
+    public static FGClipboardEvent createCopyEvent()
+    {
+        return new FGClipboardEvent(CLIPBOARD_COPY, null);
+    }
+
+    public int getType()
     {
         return type_;
     }

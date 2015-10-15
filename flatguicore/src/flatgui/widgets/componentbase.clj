@@ -263,7 +263,7 @@
 
 
                             new-ret (if has-changes
-                                       (let [ fin-ret1 (assoc (assoc-in root-p pk new-value)
+                                       (let [fin-ret1 (assoc (assoc-in root-p pk new-value)
                                                          :has-structure-changes (or (:has-structure-changes root-p) has-structure-changes)
                                                          :flex-structure-changes (merge (:flex-structure-changes root-p) flex-structure-changes)
 
@@ -274,9 +274,12 @@
 
                                                          :has-changes (or (:has-changes root-p) has-changes)
                                                          :aux-container new-aux)
-                                              fin-ret (if (and (:popup tgt) (= p :visible))
+                                             fin-ret2 (if (and (:popup tgt) (= p :visible))
                                                         (update-in fin-ret1 [:paths-having-visible-popups] (if new-value conj disj) (fgc/drop-lastv target-id-path))
-                                                        fin-ret1)]
+                                                        fin-ret1)
+                                             fin-ret (if (and (= p :->clipboard) new-value)
+                                                        (update-in fin-ret2 [:data-for-clipboard] conj new-value)
+                                                        fin-ret2)]
                                          (condp = p
                                            ;TODO 1. take into account viewport-matrix when combining?
 
@@ -458,6 +461,7 @@
     :has-structure-changes false
     :flex-structure-changes nil
     :flex-target-id-paths-added nil
+    :data-for-clipboard nil
     ;:dirty-rect nil
     ))
 

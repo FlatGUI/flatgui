@@ -13,7 +13,9 @@ flatgui.inputchannels.clipboard
   (:import (flatgui.core FGClipboardEvent)))
 
 
-(channelbase/definputparser clipboard-event? FGClipboardEvent true)
+(channelbase/definputparser clipboard-paste? FGClipboardEvent (= (.getType repaint-reason) FGClipboardEvent/CLIPBOARD_PASTE))
+
+(channelbase/definputparser clipboard-copy? FGClipboardEvent (= (.getType repaint-reason) FGClipboardEvent/CLIPBOARD_COPY))
 
 (channelbase/definputparser get-event-type FGClipboardEvent (.getType repaint-reason))
 

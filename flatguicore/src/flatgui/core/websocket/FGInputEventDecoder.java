@@ -211,13 +211,15 @@ public class FGInputEventDecoder
                 //    charCode = '.';
                 //}
 
+                // TODO send modifiers from client
+
                 boolean modifierKey = false;
-//                if (keyCode == KeyEvent.VK_CONTROL)
-//                {
-//                    modifierKey = true;
-//                    if (id == KeyEvent.KEY_PRESSED) ctrlPressed_ = true;
-//                    if (id == KeyEvent.KEY_RELEASED) ctrlPressed_ = false;
-//                }
+                if (keyCode == KeyEvent.VK_CONTROL)
+                {
+                    modifierKey = true;
+                    if (id == KeyEvent.KEY_PRESSED) ctrlPressed_ = true;
+                    if (id == KeyEvent.KEY_RELEASED) ctrlPressed_ = false;
+                }
                 if (keyCode == KeyEvent.VK_SHIFT)
                 {
                     modifierKey = true;
@@ -301,6 +303,11 @@ public class FGInputEventDecoder
                         " lenLo = " + lenLo + " lenHi = " + lenHi + " len = " + len);
 
                     return FGClipboardEvent.createPasteEvent(data);
+                }
+                else if (id == FGClipboardEvent.CLIPBOARD_COPY)
+                {
+                    System.out.println("-DLTEMP- ClipboardBinaryParser.parseImpl COPY EVENT");
+                    return FGClipboardEvent.createCopyEvent();
                 }
                 else
                 {

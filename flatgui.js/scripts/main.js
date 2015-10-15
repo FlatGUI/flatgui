@@ -34,6 +34,10 @@ function handleResize(evt)
 
 window.onresize = handleResize;
 
+var pendingServerClipboardObject;
+var lastExternalClipboardObject;
+var userHasNavigatedOut = false;
+var userRequestsDataExport = false;
 
 var currentTransform = [[1, 0, 0],
                         [0, 1, 1],
@@ -464,6 +468,7 @@ var STRING_POOL_MAP_COMMAND_CODE = 7;
 var PAINT_ALL_LIST_COMMAND_CODE = 64;
 var REPAINT_CACHED_COMMAND_CODE = 65;
 var SET_CURSOR_COMMAND_CODE = 66;
+var PUSH_TEXT_TO_CLIPBOARD = 67;
 
 var CURSORS_BY_CODE = [
   "alias",
@@ -794,6 +799,22 @@ function decodeCommandVector(stream, byteLength)
             c++;
             canvas.style.cursor = CURSORS_BY_CODE[cursorCode];
             break;
+        case PUSH_TEXT_TO_CLIPBOARD:
+            var sSize = readShort(stream, c);
+            c+=2;
+            var str = "";
+            for (var j=0; j<sSize; j++)
+            {
+                str += String.fromCharCode(stream[c+j]);
+            }
+            c+=sSize;
+            pendingServerClipboardObject = str;
+            if (userRequestsDataExport)
+            {
+                window.prompt("Copy to clipboard: Ctrl+C, Enter", pendingServerClipboardObject);
+                userRequestsDataExport = false;
+            }
+            break;
         default:
            throw new Error("Unknown command code: " + stream[0]);
     }
@@ -1064,31 +1085,72 @@ function sendMouseMoveEventToServer(evt)
 window.setInterval(commitPendingMouseEvents, MOUSE_INTERVAL_MILLIS);
 
 var CLIPBOARD_PASTE_EVENT_CODE = 403;
+var CLIPBOARD_COPY_EVENT_CODE = 404;
 
 function handlePaste(evt)
 {
+    var text;
+
+    var eData = evt.clipboardData.getData('text/plain');
+
     if (evt && evt.clipboardData && evt.clipboardData.getData)
     {
-        var text = evt.clipboardData.getData('text/plain');
-
-        if (text && text.length)
+        if (pendingServerClipboardObject)
         {
-            var bytearray = new Uint8Array(3 + text.length);
-
-            bytearray[0] = CLIPBOARD_PASTE_EVENT_CODE - 400;
-            bytearray[1] = text.length & 0xFF;
-            bytearray[2] = ((text.length & 0xFF00) >> 8);
-
-            for (var i=0; i<text.length; i++)
+            if (userHasNavigatedOut && eData != lastExternalClipboardObject)
             {
-                bytearray[3+i] = text.charCodeAt(i);
+                // External clipboard content has changed when user navigated out of the window and then back
+                lastExternalClipboardObject = eData;
+                text = eData;
+                pendingServerClipboardObject = null;
             }
-
-            console.log("Sent paste event to erver: " + bytearray[0]);
-            sendEventToServer(bytearray.buffer);
+            else
+            {
+                text = pendingServerClipboardObject;
+                lastExternalClipboardObject = eData;
+            }
+        }
+        else
+        {
+            text = eData;
         }
     }
+    else
+    {
+        text = pendingServerClipboardObject;
+    }
+
+    // Just decided which text to paste, so this flag is not needed any more
+    userHasNavigatedOut = false;
+
+    if (text && text.length)
+    {
+        var bytearray = new Uint8Array(3 + text.length);
+
+        bytearray[0] = CLIPBOARD_PASTE_EVENT_CODE - 400;
+        bytearray[1] = text.length & 0xFF;
+        bytearray[2] = ((text.length & 0xFF00) >> 8);
+
+        for (var i=0; i<text.length; i++)
+        {
+            bytearray[3+i] = text.charCodeAt(i);
+        }
+
+        sendEventToServer(bytearray.buffer);
+    }
 }
+
+function handleCopyEvent()
+{
+    console.log("-- handleCopyEvent");
+
+    // Here we don't know what has to be copied yet. We just sent copy event to server.
+    var bytearray = new Uint8Array(1);
+    bytearray[0] = CLIPBOARD_COPY_EVENT_CODE - 400;
+    sendEventToServer(bytearray.buffer);
+}
+
+window.addEventListener("focus", function(e){userHasNavigatedOut=true;}, false);
 
 canvas.addEventListener("mousedown", sendMouseDownEventToServer, false);
 canvas.addEventListener("mouseup", sendMouseUpEventToServer, false);
@@ -1096,6 +1158,7 @@ canvas.addEventListener("click", sendMouseClickEventToServer, false);
 canvas.addEventListener("mousemove", sendMouseMoveEventToServer, false);
 
 window.addEventListener("paste", handlePaste, false);
+window.addEventListener("copy", handleCopyEvent, false);
 
 canvas.ondragstart = function(e)
 {
@@ -1124,7 +1187,6 @@ function getEncodedKeyEvent(evt, id)
     return bytearray.buffer;
 }
 
-
 function sendKeyDownEventToServer(evt)
 {
     sendEventToServer(getEncodedKeyEvent(evt, 401));
@@ -1133,6 +1195,17 @@ function sendKeyDownEventToServer(evt)
         evt.preventDefault();
         evt.stopPropagation();
     }
+}
+
+function handleKeyDownEvent(evt)
+{
+    // Special handling for CTRL+ALT+SHIFT+C: give user chance to copy text to system clipboard
+    if(evt.shiftKey && evt.altKey && evt.ctrlKey && evt.keyCode == 67)
+    {
+        userRequestsDataExport = true;
+        handleCopyEvent();
+    }
+    sendKeyDownEventToServer(evt);
 }
 
 function sendKeyUpEventToServer(evt)
@@ -1154,7 +1227,7 @@ function sendKeyPressEventToServer(evt)
     sendEventToServer(getEncodedKeyEvent(evt, 400));
 }
 
-window.addEventListener("keydown", sendKeyDownEventToServer, false);
+window.addEventListener("keydown", handleKeyDownEvent, false);
 window.addEventListener("keyup", sendKeyUpEventToServer, false);
 window.addEventListener("keypress", sendKeyPressEventToServer, false);
 
