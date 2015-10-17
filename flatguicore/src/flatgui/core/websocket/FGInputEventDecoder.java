@@ -378,7 +378,7 @@ public class FGInputEventDecoder
         int clickCount = buttonEvent && (id != MouseEvent.MOUSE_DRAGGED) ? 1 : 0;
         int button = buttonEvent ? MouseEvent.BUTTON1 : 0;
         MouseEvent e = new MouseEvent(dummySourceComponent_, id, 0,
-                buttonEvent && id == MouseEvent.MOUSE_DRAGGED ? InputEvent.getMaskForButton(button) : 0,
+                buttonEvent ? InputEvent.getMaskForButton(button) : 0,
                 x, y, x, y,
                 clickCount, false, button);
         return e;

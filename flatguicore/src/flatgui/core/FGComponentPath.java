@@ -37,4 +37,10 @@ public class FGComponentPath
     {
         return targetIdPath_;
     }
+
+    @Override
+    public String toString()
+    {
+        return targetIdPath_.toString();
+    }
 }
