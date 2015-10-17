@@ -40,6 +40,7 @@ public class HostComponent extends Canvas
         Map<Keyword, Integer> m = new HashMap<>();
 
         m.put(Keyword.intern("wait"), Cursor.WAIT_CURSOR);
+        m.put(Keyword.intern("text"), Cursor.TEXT_CURSOR);
         m.put(Keyword.intern("ns-resize"), Cursor.N_RESIZE_CURSOR);
         m.put(Keyword.intern("ew-resize"), Cursor.W_RESIZE_CURSOR);
         m.put(Keyword.intern("nesw-resize"), Cursor.NE_RESIZE_CURSOR);

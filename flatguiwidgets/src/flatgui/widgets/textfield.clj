@@ -369,6 +369,12 @@
           (subs text sstart send))
         old-->clipboard))))
 
+(fg/defevolverfn :cursor
+  (if (mouse/is-mouse-event? component)
+    (let [_ (println "has-mouse" (get-property [:this] :has-mouse))]
+      (if (get-property [:this] :has-mouse) :text))
+    old-cursor))
+
 (defn textfield-dflt-text-suplier [component]
   (if (not
         (#{KeyEvent/VK_BACK_SPACE KeyEvent/VK_DELETE KeyEvent/VK_LEFT KeyEvent/VK_RIGHT
@@ -402,6 +408,7 @@
    :->clipboard nil
    :first-visible-symbol 0
    :focusable true
+   :cursor :text
    :skin-key [:textfield]
    ;; TODO move out
    :foreground :prime-1
@@ -411,5 +418,6 @@
               :first-visible-symbol first-visible-symbol-evolver
               :caret-visible caret-visible-evolver
               :->clipboard ->clipboard-evolver
+              :cursor cursor-evolver
               :clip-size auto-size-evolver}}
   flatgui.widgets.component/component)
