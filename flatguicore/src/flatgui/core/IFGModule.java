@@ -24,13 +24,14 @@ import java.util.Set;
  */
 public interface IFGModule
 {
+    String FG_CORE_NAMESPACE = "flatgui.appcontainer";
     String RESPONSE_FEED_NS = "flatgui.responsefeed";
 
     public void evolve(List<Keyword> targetCellIds, Object inputEvent);
 
     public FGMouseTargetComponentInfo getMouseTargetInfoAt(double x, double y, FGComponentPath knownPath);
 
-    public Object getContainerObject();
+    public Object getContainer();
 
     public List<Keyword> getFocusedPath();
 

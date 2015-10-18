@@ -7,6 +7,7 @@
  * the terms of this license.
  * You must not remove this notice, or any other, from this software.
  */
+
 package flatgui.core;
 
 import java.util.List;
@@ -17,32 +18,35 @@ import clojure.lang.Var;
 /**
  * @author Denis Lebedev
  */
-class FGModule extends FGAbstractModule
+public class FGForkModule extends FGAbstractModule
 {
-    //static final String GET_CONTAINER_FN_NAME = "get-container";
-    private static final Var evolverFn_ = clojure.lang.RT.var(FG_CORE_NAMESPACE, "app-evolve-container");
-    private static final Var getContainerFn_ = clojure.lang.RT.var(FG_CORE_NAMESPACE, "get-container");
+    private static final Var forkFn_ = clojure.lang.RT.var(FG_CORE_NAMESPACE, "app-fork-container");
+    private static final Var getForkFn_ = clojure.lang.RT.var(FG_CORE_NAMESPACE, "get-fork");
 
+    private volatile Object evolveReason_;
 
-    public FGModule(String containerName)
+    public FGForkModule(String containerName)
     {
         super(containerName);
     }
 
     @Override
-    public Object getContainer()
+    public void evolve(List<Keyword> targetCellIds, Object inputEvent)
     {
-        return getContainer(containerName_);
+        evolveReason_ = inputEvent;
+        forkFn_.invoke(containerName_, targetCellIds, inputEvent);
     }
 
     @Override
-    public void evolve(List<Keyword> targetCellIds, Object inputEvent)
+    public Object getContainer()
     {
-        evolverFn_.invoke(containerName_, targetCellIds, inputEvent);
-    }
-
-    public static Object getContainer(String containerName)
-    {
-        return getContainerFn_.invoke(containerName);
+        if (evolveReason_ == null)
+        {
+            return FGModule.getContainer(containerName_);
+        }
+        else
+        {
+            return getForkFn_.invoke(containerName_, evolveReason_);
+        }
     }
 }

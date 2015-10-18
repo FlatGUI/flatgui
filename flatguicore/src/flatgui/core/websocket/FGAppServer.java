@@ -222,7 +222,7 @@ public class FGAppServer
             sessionHolder_.forEachActiveSession(s -> {
                 FGAppServer.getFGLogger().debug(" session " + s.toString());
                 s.getAccosiatedWebSocket().collectAndSendResponse(
-                    s.getContainer().feedTargetedEvent(targetCellIdPath, inputEvent), false);
+                    s.getContainer().feedTargetedEvent(targetCellIdPath, new FGEvolveInputData(inputEvent, false)), false);
             });
             FGAppServer.getFGLogger().debug("Done feeding event.");
         }

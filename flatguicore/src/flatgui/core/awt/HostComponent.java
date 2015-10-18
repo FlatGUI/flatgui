@@ -61,7 +61,7 @@ public class HostComponent extends Canvas
 
     private Font lastUserDefinedFont_ = null;
 
-    private Function<Object, Future<FGEvolveResultData>> feedFn_;
+    private Function<FGEvolveInputData, Future<FGEvolveResultData>> feedFn_;
 
     Future<FGEvolveResultData> changedPathsFuture_;
 
@@ -91,7 +91,7 @@ public class HostComponent extends Canvas
         return e -> repaint();
     }
 
-    public void setInputEventConsumer(Function<Object, Future<FGEvolveResultData>> feedFn)
+    public void setInputEventConsumer(Function<FGEvolveInputData, Future<FGEvolveResultData>> feedFn)
     {
         feedFn_ = feedFn;
 
@@ -211,7 +211,7 @@ public class HostComponent extends Canvas
     // TODO add content type info; support other content types
     public static String getTextForClipboard(IFGContainer fgContainer)
     {
-        Object data = getDataForClipboard_.invoke(fgContainer.getFGModule().getContainerObject());
+        Object data = getDataForClipboard_.invoke(fgContainer.getFGModule().getContainer());
         return data != null ? data.toString() : null;
     }
 
@@ -258,7 +258,7 @@ public class HostComponent extends Canvas
 
     private void acceptEvolveReason(Object evolveReason)
     {
-        changedPathsFuture_ = feedFn_.apply(evolveReason);
+        changedPathsFuture_ = feedFn_.apply(new FGEvolveInputData(evolveReason, false));
     }
 
     // Inner classes

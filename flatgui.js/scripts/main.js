@@ -470,6 +470,13 @@ var REPAINT_CACHED_COMMAND_CODE = 65;
 var SET_CURSOR_COMMAND_CODE = 66;
 var PUSH_TEXT_TO_CLIPBOARD = 67;
 
+var TRANSMISSION_MODE_FIRST = 68;
+var TRANSMISSION_MODE_LAST = 71;
+var FINISH_PREDICTION_TRANSMISSION = TRANSMISSION_MODE_FIRST;
+var MOUSE_LEFT_DOWN_PREDICTION = 69;
+var MOUSE_LEFT_UP_PREDICTION = 70;
+var MOUSE_LEFT_CLICK_PREDICTION = 71;
+
 var CURSORS_BY_CODE = [
   "alias",
   "all-scroll",
@@ -843,6 +850,20 @@ function displayStatus(msg)
 var webSocket;
 var connectionOpen;
 
+var transmissionMode = FINISH_PREDICTION_TRANSMISSION;
+
+var mouseDownPredictionDatas = [];
+var mouseDownPredictionDataSizes = [];
+var mouseDownPredictionCounter = 0;
+
+var mouseUpPredictionDatas = [];
+var mouseUpPredictionDataSizes = [];
+var mouseUpPredictionCounter = 0;
+
+var mouseClickPredictionDatas = [];
+var mouseClickPredictionDataSizes = [];
+var mouseClickPredictionCounter = 0;
+
 function openSocket()
 {
     displayUserTextMessage("Establishing connection...", 10, 20);
@@ -876,7 +897,54 @@ function openSocket()
                 //console.log("Received responce " + time);
 
                 var dataBuffer = new Uint8Array(event.data);
-                decodeCommandVector(dataBuffer, event.data.byteLength);
+
+                if (event.data.byteLength > 0 && dataBuffer[0] >= TRANSMISSION_MODE_FIRST && dataBuffer[0] <= TRANSMISSION_MODE_LAST)
+                {
+                    transmissionMode = dataBuffer[0];
+                    switch (transmissionMode)
+                    {
+                        case MOUSE_LEFT_DOWN_PREDICTION:
+                             mouseDownPredictionCounter = 0;
+                             break;
+                        case MOUSE_LEFT_UP_PREDICTION:
+                             mouseUpPredictionCounter = 0;
+                             break;
+                        case MOUSE_LEFT_CLICK_PREDICTION:
+                             mouseClickPredictionCounter = 0;
+                             break;
+                    }
+                }
+                else
+                {
+                    if (transmissionMode == FINISH_PREDICTION_TRANSMISSION)
+                    {
+                        decodeCommandVector(dataBuffer, event.data.byteLength);
+                    }
+                    else
+                    {
+                        switch (transmissionMode)
+                        {
+                            case MOUSE_LEFT_DOWN_PREDICTION:
+                                 mouseDownPredictionDatas[mouseDownPredictionCounter] = dataBuffer;
+                                 mouseDownPredictionDataSizes[mouseDownPredictionCounter] = event.data.byteLength;
+                                 mouseDownPredictionCounter++;
+                                 console.log("Received predictions for mouse down");
+                                 break;
+                            case MOUSE_LEFT_UP_PREDICTION:
+                                 mouseUpPredictionDatas[mouseUpPredictionCounter] = dataBuffer;
+                                 mouseUpPredictionDataSizes[mouseUpPredictionCounter] = event.data.byteLength;
+                                 mouseUpPredictionCounter++;
+                                 console.log("Received predictions for mouse up");
+                                 break;
+                            case MOUSE_LEFT_CLICK_PREDICTION:
+                                 mouseClickPredictionDatas[mouseClickPredictionCounter] = dataBuffer;
+                                 mouseClickPredictionDataSizes[mouseClickPredictionCounter] = event.data.byteLength;
+                                 mouseClickPredictionCounter++;
+                                 console.log("Received predictions for mouse click");
+                                 break;
+                        }
+                    }
+                }
 
                 //time = Date.now();
                 //console.log("Rendered responce " + time + " cmd =" + dataBuffer[0]);
@@ -963,6 +1031,21 @@ function storeMouseEventAndGetEncoded(evt, id)
 
 function sendMouseDownEventToServer(evt)
 {
+    if (transmissionMode == FINISH_PREDICTION_TRANSMISSION && mouseDownPredictionCounter > 0)
+    {
+        console.log("mouse down - hit prediction (" + mouseDownPredictionCounter + " predictions)");
+        for (var i=0; i<mouseDownPredictionCounter; i++)
+        {
+            decodeCommandVector(mouseDownPredictionDatas[i], mouseDownPredictionDataSizes[i]);
+        }
+        mouseDownPredictionDatas = [];
+        mouseDownPredictionDataSizes = [];
+        mouseDownPredictionCounter = 0;
+    }
+    else
+    {
+        console.log("mouse down - missed prediction");
+    }
     mouseDown = true;
     sendEventToServer(storeMouseEventAndGetEncoded(evt, 501));
 }
@@ -993,6 +1076,21 @@ function commitPendingMouseEvents()
 
 function sendMouseUpEventToServer(evt)
 {
+    if (transmissionMode == FINISH_PREDICTION_TRANSMISSION && mouseUpPredictionCounter > 0)
+    {
+        console.log("mouse Up - hit prediction (" + mouseUpPredictionCounter + " predictions)");
+        for (var i=0; i<mouseUpPredictionCounter; i++)
+        {
+            decodeCommandVector(mouseUpPredictionDatas[i], mouseUpPredictionDataSizes[i]);
+        }
+        mouseUpPredictionDatas = [];
+        mouseUpPredictionDataSizes = [];
+        mouseUpPredictionCounter = 0;
+    }
+    else
+    {
+        console.log("mouse Up - missed prediction");
+    }
     commitLastUnprocessedMouseDrag();
     mouseDown = false;
     sendEventToServer(storeMouseEventAndGetEncoded(evt, 502));
@@ -1000,6 +1098,21 @@ function sendMouseUpEventToServer(evt)
 
 function sendMouseClickEventToServer(evt)
 {
+    if (transmissionMode == FINISH_PREDICTION_TRANSMISSION && mouseClickPredictionCounter > 0)
+    {
+        console.log("mouse Click - hit prediction (" + mouseClickPredictionCounter + " predictions)");
+        for (var i=0; i<mouseClickPredictionCounter; i++)
+        {
+            decodeCommandVector(mouseClickPredictionDatas[i], mouseClickPredictionDataSizes[i]);
+        }
+        mouseClickPredictionDatas = [];
+        mouseClickPredictionDataSizes = [];
+        mouseClickPredictionCounter = 0;
+    }
+    else
+    {
+        console.log("mouse Click - missed prediction");
+    }
     sendEventToServer(storeMouseEventAndGetEncoded(evt, 500));
 }
 
@@ -1021,6 +1134,17 @@ function sendMouseMoveEventToServer(evt)
 
     if ( x != lastMouseX || y != lastMouseY)
     {
+        // Any click predictions are not valid any more
+        mouseDownPredictionDatas = [];
+        mouseDownPredictionDataSizes = [];
+        mouseDownPredictionCounter = 0;
+        mouseUpPredictionDatas = [];
+        mouseUpPredictionDataSizes = [];
+        mouseUpPredictionCounter = 0;
+        mouseClickPredictionDatas = [];
+        mouseClickPredictionDataSizes = [];
+        mouseClickPredictionCounter = 0;
+
         if (mouseDown)
         {
             var nowTime = Date.now();
@@ -1142,8 +1266,6 @@ function handlePaste(evt)
 
 function handleCopyEvent()
 {
-    console.log("-- handleCopyEvent");
-
     // Here we don't know what has to be copied yet. We just sent copy event to server.
     var bytearray = new Uint8Array(1);
     bytearray[0] = CLIPBOARD_COPY_EVENT_CODE - 400;

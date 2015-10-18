@@ -11,19 +11,45 @@
 
 (def container-ns-symbol (symbol "flatgui.appcontainer"))
 
+(def fork-map-prefix "fork-map-")
+
+(defn register-fork-map-internal [container-name]
+  (intern container-ns-symbol (symbol (str fork-map-prefix container-name)) (atom {})))
+
 (defn register-container-internal [container-name container]
   (intern container-ns-symbol (symbol container-name) (atom container)))
 
 (defn- get-container-atom-var [container-name] (find-var (symbol "flatgui.appcontainer" container-name)))
 
+(defn- get-fork-map-atom-var [container-name] (find-var (symbol "flatgui.appcontainer" (str fork-map-prefix container-name))))
+
 (defn- get-container-atom [container-name] (var-get (get-container-atom-var container-name)))
 
+(defn- get-fork-map-atom [container-name] (var-get (get-fork-map-atom-var container-name)))
+
 (defn get-container [container-name] (deref (get-container-atom container-name)))
+
+(defn get-fork [container-name reason] (get (deref (get-fork-map-atom container-name)) reason))
 
 (defn app-evolve-container [container-name target-cell-ids reason]
   (swap!
     (get-container-atom container-name)
     (fn [c] (flatgui.widgets.componentbase/evolve-container c target-cell-ids reason))))
+
+(defn app-fork-container [container-name target-cell-ids reason]
+  (swap!
+    (get-fork-map-atom container-name)
+    (fn [m] (assoc m reason (flatgui.widgets.componentbase/evolve-container (get-container container-name) target-cell-ids reason)))))
+
+(defn app-clear-forks [container-name]
+  (reset!
+    (get-fork-map-atom container-name)
+    {}))
+
+(defn app-use-fork [container-name reason]
+  (reset!
+    (get-container-atom container-name)
+    (get-fork container-name reason)))
 
 (defn- update-interop [container-template interop-util]
   (let [updated (assoc container-template :interop interop-util)
@@ -45,4 +71,5 @@
         (register-container-internal
           container-name
           container)
+        (register-fork-map-internal container-name)
         (flatgui.base/log-debug "Registered container name = " container-name " id = " (:id container) (System/identityHashCode container))))))

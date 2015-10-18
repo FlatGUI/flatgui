@@ -25,7 +25,7 @@ import java.util.List;
  *         Date: 8/11/13
  *         Time: 4:19 PM
  */
-class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
+public class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
 {
     private final int unitSizePx_;
 
@@ -102,9 +102,11 @@ class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
         return map;
     }
 
-    Object getLastTargetIdPath()
+    public static MouseEvent deriveWithIdAndButton(MouseEvent e, int id, int button)
     {
-        return lastTargetIdPath_;
+        return new MouseEvent((Component) e.getSource(), id, e.getWhen(), 0,
+            e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(),
+            0, false, button);
     }
 
     private MouseEvent deriveWithIdAndNoButton(MouseEvent e, int id)
@@ -161,5 +163,8 @@ class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
         }
     }
 
-
+    Object getLastTargetIdPath()
+    {
+        return lastTargetIdPath_;
+    }
 }

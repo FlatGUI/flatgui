@@ -41,15 +41,17 @@ public interface IFGContainer
 
     IFGModule getFGModule();
 
+    IFGModule getForkedFGModule(Object evolveReason);
+
     IFGInteropUtil getInterop();
 
-    Function<Object, Future<FGEvolveResultData>> connect(ActionListener eventFedCallback, Object hostContext);
+    Function<FGEvolveInputData, Future<FGEvolveResultData>> connect(ActionListener eventFedCallback, Object hostContext);
 
     <T> Future<T> submitTask(Callable<T> callable);
 
-    Future<FGEvolveResultData> feedEvent(Object repaintReason);
+    Future<FGEvolveResultData> feedEvent(FGEvolveInputData inputData);
 
-    Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, Object repaintReason);
+    Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, FGEvolveInputData inputData);
 
     List<Keyword> getLastMouseTargetIdPath();
 }

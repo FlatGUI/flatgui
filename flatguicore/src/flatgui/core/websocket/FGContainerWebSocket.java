@@ -18,12 +18,10 @@ import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.Timer;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
@@ -34,16 +32,22 @@ import java.util.function.Function;
  */
 public class FGContainerWebSocket implements WebSocketListener
 {
+    private static final long SEND_PREDICTIONS_THRESHOLD = 500;
+
     private final FGContainerSessionHolder sessionHolder_;
     // TODO have some template provider instead
     private final IFGTemplate template_;
     private final Consumer<IFGContainer> containerConsumer_;
+    private final FGPredictor predictor_;
 
     private volatile Session session_;
     private volatile FGWebContainerWrapper container_;
     private volatile FGInputEventDecoder parser_;
     private volatile FGContainerSession fgSession_;
     private volatile Timer blinkHelperTimer_;
+    private volatile Timer predictorTimer_;
+    private volatile long latestInputEventTimestamp_;
+    private volatile boolean predictionsSent_;
 
     private final ContainerAccessor containerAccessor_;
 
@@ -57,10 +61,21 @@ public class FGContainerWebSocket implements WebSocketListener
         template_ = template;
         sessionHolder_ = sessionHolder;
         containerConsumer_ = containerConsumer;
+        predictor_ = new FGPredictor();
 
         containerAccessor_ = new ContainerAccessor();
 
         blinkHelperTimer_ = HostComponent.setupBlinkHelperTimer(this::processInputEvent);
+
+        predictorTimer_ = new Timer("FlatGUI User Input Predictor Timer", true);
+        predictorTimer_.schedule(new TimerTask()
+        {
+            @Override
+            public void run()
+            {
+                sendPredictionsIfNeeded();
+            }
+        }, SEND_PREDICTIONS_THRESHOLD, SEND_PREDICTIONS_THRESHOLD);
 
         FGAppServer.getFGLogger().info("WS Listener created " + System.identityHashCode(this));
     }
@@ -74,6 +89,7 @@ public class FGContainerWebSocket implements WebSocketListener
                 " reason = " + reason);
 
         blinkHelperTimer_.cancel();
+        predictorTimer_.cancel();
         container_.unInitialize();
         fgSession_.markIdle();
         session_ = null;
@@ -127,12 +143,16 @@ public class FGContainerWebSocket implements WebSocketListener
     }
 
     @Override
-    public void onWebSocketBinary(byte[] payload, int offset, int len)
+    public synchronized void onWebSocketBinary(byte[] payload, int offset, int len)
     {
         //logger_.debug("Received message #" + debugMessageCount_ + ": " + message);
         fgSession_.markAccesed();
+        latestInputEventTimestamp_ = System.currentTimeMillis();
         Object e = parser_.getInputEvent(new FGInputEventDecoder.BinaryInput(payload, offset, len));
+        predictor_.considerInputEvent(e);
         processInputEvent(e);
+        container_.clearForks();
+        predictionsSent_ = false;
     }
 
     @Override
@@ -154,8 +174,21 @@ public class FGContainerWebSocket implements WebSocketListener
         // Feed input event received from the remote endpoint to the engine
         //
 
-        Future<FGEvolveResultData> evolveResultFuture = container_.feedEvent(e);
-        collectAndSendResponse(evolveResultFuture, e instanceof FGHostStateEvent);
+        // TODO for debug
+//        try
+//        {
+//            if (e instanceof MouseEvent && ((MouseEvent) e).getButton() != MouseEvent.NOBUTTON) Thread.sleep(2500);
+//        }
+//        catch (InterruptedException e1)
+//        {
+//            e1.printStackTrace();
+//        }
+
+        Future<FGEvolveResultData> evolveResultFuture = container_.feedEvent(new FGEvolveInputData(e, false));
+        if (evolveResultFuture != null)
+        {
+            collectAndSendResponse(evolveResultFuture, e instanceof FGHostStateEvent);
+        }
 
         //debugMessageCount_++;
     }
@@ -174,6 +207,35 @@ public class FGContainerWebSocket implements WebSocketListener
         else if (forceRepaint)
         {
             sendBytesToRemote(ByteBuffer.wrap(new byte[]{FGWebContainerWrapper.REPAINT_CACHED_COMMAND_CODE}));
+        }
+    }
+
+    void sendPredictionsIfNeeded()
+    {
+        if (System.currentTimeMillis() - latestInputEventTimestamp_ > SEND_PREDICTIONS_THRESHOLD && !predictionsSent_)
+        {
+            synchronized (this)
+            {
+                List<MouseEvent> clickEvents = predictor_.leftClickInLatestPosition();
+                if (clickEvents != null)
+                {
+                    for (int i = 0; i < FGWebContainerWrapper.MOUSE_LEFT_CLICK_PREDICTION_SEQUENCE.length; i++)
+                    {
+                        Object evolveReason = clickEvents.get(i);
+                        Future<FGEvolveResultData> evolveResultFuture = container_.feedEvent(new FGEvolveInputData(evolveReason, true));
+                        Collection<ByteBuffer> response = container_.getForkedResponseForClient(evolveReason, evolveResultFuture);
+                        if (response.size() > 0)
+                        {
+                            sendBytesToRemote(ByteBuffer.wrap(new byte[]{FGWebContainerWrapper.MOUSE_LEFT_CLICK_PREDICTION_SEQUENCE[i]}));
+                            response.forEach(this::sendBytesToRemote);
+                        }
+                    }
+                    sendBytesToRemote(ByteBuffer.wrap(new byte[]{FGWebContainerWrapper.FINISH_PREDICTION_TRANSMISSION}));
+                    predictionsSent_ = true;
+
+                    System.out.println("Sent predictions for mouse click.");
+                }
+            }
         }
     }
 
@@ -205,9 +267,9 @@ public class FGContainerWebSocket implements WebSocketListener
     public class ContainerAccessor implements IFGContainer
     {
         @Override
-        public Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, Object repaintReason)
+        public Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, FGEvolveInputData inputData)
         {
-            Future <FGEvolveResultData> changedPathsFuture = container_.feedTargetedEvent(targetCellIdPath, repaintReason);
+            Future <FGEvolveResultData> changedPathsFuture = container_.feedTargetedEvent(targetCellIdPath, inputData);
             collectAndSendResponse(changedPathsFuture, false);
             return null;
         }
@@ -245,13 +307,19 @@ public class FGContainerWebSocket implements WebSocketListener
         }
 
         @Override
+        public IFGModule getForkedFGModule(Object evolveReason)
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public IFGInteropUtil getInterop()
         {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public Function<Object, Future<FGEvolveResultData>> connect(ActionListener eventFedCallback, Object hostContext) {
+        public Function<FGEvolveInputData, Future<FGEvolveResultData>> connect(ActionListener eventFedCallback, Object hostContext) {
             throw new UnsupportedOperationException();
         }
 
@@ -261,7 +329,7 @@ public class FGContainerWebSocket implements WebSocketListener
         }
 
         @Override
-        public Future<FGEvolveResultData> feedEvent(Object repaintReason) {
+        public Future<FGEvolveResultData> feedEvent(FGEvolveInputData inputData) {
             throw new UnsupportedOperationException();
         }
 

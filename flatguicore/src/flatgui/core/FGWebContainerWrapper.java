@@ -46,6 +46,17 @@ public class FGWebContainerWrapper
     public static final byte SET_CURSOR_COMMAND_CODE = 66;
     public static final byte PUSH_TEXT_TO_CLIPBOARD = 67;
 
+    public static final byte FINISH_PREDICTION_TRANSMISSION = 68;
+    public static final byte MOUSE_LEFT_DOWN_PREDICTION = 69;
+    public static final byte MOUSE_LEFT_UP_PREDICTION = 70;
+    public static final byte MOUSE_LEFT_CLICK_PREDICTION = 71;
+
+    public static final byte[] MOUSE_LEFT_CLICK_PREDICTION_SEQUENCE = new byte[]
+    {
+        MOUSE_LEFT_DOWN_PREDICTION,
+        MOUSE_LEFT_UP_PREDICTION,
+        MOUSE_LEFT_CLICK_PREDICTION
+    };
 
     private static Set<String> RECT_COMMANDS;
     static
@@ -62,10 +73,10 @@ public class FGWebContainerWrapper
 
 
     private final FGContainerStateTransmitter stateTransmitter_;
-
+    private final Map<Object, FGContainerStateTransmitter> stateTransmitterForks_;
 
     private final IFGContainer fgContainer_;
-    private Function<Object, Future<FGEvolveResultData>> eventConsumer_;
+    private Function<FGEvolveInputData, Future<FGEvolveResultData>> eventConsumer_;
 
     public FGWebContainerWrapper(IFGContainer fgContainer)
     {
@@ -73,6 +84,7 @@ public class FGWebContainerWrapper
         eventConsumer_ = fgContainer_.connect(e -> {}, this);
 
         stateTransmitter_ = new FGContainerStateTransmitter(fgContainer_);
+        stateTransmitterForks_ = new HashMap<>();
     }
 
     //
@@ -97,22 +109,59 @@ public class FGWebContainerWrapper
         return fgContainer_.isActive();
     }
 
-    public synchronized Future<FGEvolveResultData> feedEvent(Object repaintReason)
+    /**
+     * @return results future or null if this event has aleady been predicted and results sent to the remote
+     */
+    public synchronized Future<FGEvolveResultData> feedEvent(FGEvolveInputData inputData)
     {
-        Future<FGEvolveResultData> changedPathsFuture = eventConsumer_.apply(repaintReason);
+        // TODO get rid of eventConsumer_, call fgContainer_
+        Future<FGEvolveResultData> changedPathsFuture = eventConsumer_.apply(inputData);
+        obtainForkIfNeeded(inputData);
         return changedPathsFuture;
     }
 
-    public synchronized Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, Object repaintReason)
+    public synchronized Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, FGEvolveInputData inputData)
     {
-        Future<FGEvolveResultData> changedPathsFuture = fgContainer_.feedTargetedEvent(targetCellIdPath, repaintReason);
+        Future<FGEvolveResultData> changedPathsFuture = fgContainer_.feedTargetedEvent(targetCellIdPath, inputData);
+        obtainForkIfNeeded(inputData);
         return changedPathsFuture;
     }
 
     public synchronized Collection<ByteBuffer> getResponseForClient(Future<FGEvolveResultData> evolveResultsFuture)
     {
+        return getResponseForClientImpl(stateTransmitter_, evolveResultsFuture);
+    }
+
+    public synchronized Collection<ByteBuffer> getForkedResponseForClient(Object evolveReason, Future<FGEvolveResultData> evolveResultsFuture)
+    {
+        FGContainerStateTransmitter stateTransmitter = stateTransmitterForks_.get(evolveReason);
+        if (stateTransmitter == null)
+        {
+            throw new IllegalStateException("stateTransmitter is null for " + evolveReason.toString());
+        }
+        return getResponseForClientImpl(stateTransmitter, evolveResultsFuture);
+    }
+
+    public synchronized void clearForks()
+    {
+        stateTransmitterForks_.clear();
+    }
+
+    public synchronized void resetCache()
+    {
+        stateTransmitter_.resetDataCache();
+    }
+
+    public void addFontStrListener(IFGChangeListener<String> listener)
+    {
+        stateTransmitter_.addFontStrListener(listener);
+    }
+
+    public synchronized Collection<ByteBuffer> getResponseForClientImpl(
+        FGContainerStateTransmitter stateTransmitter, Future<FGEvolveResultData> evolveResultsFuture)
+    {
         Future<Collection<ByteBuffer>> responseFuture =
-                fgContainer_.submitTask(() -> stateTransmitter_.computeDataDiffsToTransmit(evolveResultsFuture));
+            fgContainer_.submitTask(() -> stateTransmitter.computeDataDiffsToTransmit(evolveResultsFuture));
         try
         {
             Collection<ByteBuffer> r =  responseFuture.get();
@@ -126,14 +175,14 @@ public class FGWebContainerWrapper
         return Collections.emptyList();
     }
 
-    public synchronized void resetCache()
+    private void obtainForkIfNeeded(FGEvolveInputData evolveInputData)
     {
-        stateTransmitter_.resetDataCache();
-    }
-
-    public void addFontStrListener(IFGChangeListener<String> listener)
-    {
-        stateTransmitter_.addFontStrListener(listener);
+        if (evolveInputData.shouldFork())
+        {
+            Object reason = evolveInputData.getEvolveReason();
+            IFGModule forkedModule = fgContainer_.getForkedFGModule(reason);
+            stateTransmitterForks_.put(reason, stateTransmitter_.fork(forkedModule));
+        }
     }
 
     private void ensureActive()
@@ -806,12 +855,12 @@ public class FGWebContainerWrapper
         }
     }
 
-    static class KeyCahe implements IKeyCache
+    static class KeyCache implements IKeyCache
     {
         private int uid_ = 0;
         private Map<Object, Integer> cache_;
 
-        KeyCahe()
+        KeyCache()
         {
             cache_ = new HashMap<>();
         }
@@ -911,11 +960,16 @@ public class FGWebContainerWrapper
 
         public FGContainerStateTransmitter(IFGContainer fgContainer)
         {
-            initialCycle_ = true;
+            this(true, fgContainer, fgContainer.getFGModule(), null, new KeyCache());
+        }
+
+        public FGContainerStateTransmitter(boolean initialCycle, IFGContainer fgContainer, IFGModule module, Map<Byte, ?> presetDataCache, IKeyCache keyCache)
+        {
+            initialCycle_ = initialCycle;
 
             fgContainer_ = fgContainer;
-            fgModule_ = fgContainer.getFGModule();
-            keyCache_ = new KeyCahe();
+            fgModule_ = module;
+            keyCache_ = keyCache;
             cmdToDataTransmitter_ = new LinkedHashMap<>();
 
             stringPoolIdSupplier_ = fgModule_::getStringPoolId;
@@ -956,13 +1010,25 @@ public class FGWebContainerWrapper
             addDataTransmitter(new StringPoolMapTransmitter(keyCache_,
                     stringPoolSupplier));
 
-            resetDataCache();
+            if (presetDataCache == null)
+            {
+                resetDataCache();
+            }
+            else
+            {
+                cmdToLastData_ = presetDataCache;
+            }
 
             // It is important to initialize component UIDs exactly in the order returned by getPaintAllSequence2.
             // This order always starts from root and the contains children (and children of children recursively)
             // subsequently. So when client iterates components in end-to-beginning direction, if finds the topmost
             // child - the receiver of mouse event
             fgModule_.getPaintAllSequence2().forEach(keyCache_::getUniqueId);
+        }
+
+        public final FGContainerStateTransmitter fork(IFGModule module)
+        {
+            return new FGContainerStateTransmitter(false, fgContainer_, module, cmdToLastData_, keyCache_);
         }
 
         public Collection<ByteBuffer> computeDataDiffsToTransmit(Future<FGEvolveResultData> evolveResultFuture)
@@ -1005,6 +1071,7 @@ public class FGWebContainerWrapper
             cmdToLastData_ = newDatas;
 
             // Cursor
+
             if (evolveResultData != null)
             {
                 Collection<List<Keyword>> targetComponentPaths = evolveResultData.getEvolveReasonToTargetPath().values();

@@ -16,6 +16,7 @@ import java.awt.event.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * @author Denis Lebedev
@@ -34,10 +35,15 @@ public class FGContainer implements IFGContainer
     private static final Var propetyChanged_ = clojure.lang.RT.var(FGC_NS, PROPERTY_CHANGED_FN);
     private static final Var getChangedPropertiesByPath_ = clojure.lang.RT.var(FGC_NS, GET_CHANGED_PROPERTIES_BY_PATH);
 
+    private static final Var clearForks_ = clojure.lang.RT.var(IFGModule.FG_CORE_NAMESPACE, "app-clear-forks");
+    private static final Var useFork_ = clojure.lang.RT.var(IFGModule.FG_CORE_NAMESPACE, "app-use-fork");
+
     private final FGInputEventParser reasonParser_;
 
     private final String containerId_;
     private final IFGModule module_;
+    private final Map<Object, IFGModule> forks_;
+    private final Map<Object, Future<FGEvolveResultData>> forkResults_;
     private final IFGInteropUtil interopUtil_;
 
     private boolean active_ = false;
@@ -66,6 +72,8 @@ public class FGContainer implements IFGContainer
 
         containerId_ = containerId;
         module_ = new FGModule(containerId);
+        forks_ = new HashMap<>();
+        forkResults_ = new HashMap<>();
 
         interopUtil_ = interopUtil;
 
@@ -124,13 +132,19 @@ public class FGContainer implements IFGContainer
     }
 
     @Override
+    public IFGModule getForkedFGModule(Object evolveReason)
+    {
+        return forks_.get(evolveReason);
+    }
+
+    @Override
     public IFGInteropUtil getInterop()
     {
         return interopUtil_;
     }
 
     @Override
-    public Function<Object, Future<FGEvolveResultData>> connect(ActionListener eventFedCallback, Object hostContext)
+    public Function<FGEvolveInputData, Future<FGEvolveResultData>> connect(ActionListener eventFedCallback, Object hostContext)
     {
         eventFedCallback_ = eventFedCallback;
         return this::feedEvent;
@@ -148,9 +162,101 @@ public class FGContainer implements IFGContainer
         return (List<Keyword>) mouseEventParser_.getLastTargetIdPath();
     }
 
+    @Override
+    public synchronized Future<FGEvolveResultData> feedEvent(FGEvolveInputData inputData)
+    {
+        Object evolveReason = inputData != null ? inputData.getEvolveReason() : null;
+        return feedEventImpl(inputData, m -> cycle(evolveReason, reasonParser_, m));
+    }
+
+    @Override
+    public synchronized Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, FGEvolveInputData inputData)
+    {
+        Object evolveReason = inputData != null ? inputData.getEvolveReason() : null;
+        return feedEventImpl(inputData, m -> cycleTargeted(targetCellIdPath, evolveReason, m));
+    }
+
     // Private
 
-    private FGEvolveResultData cycle(Object repaintReason)
+    private Future<FGEvolveResultData> feedEventImpl(FGEvolveInputData inputData, Function<IFGModule, FGEvolveResultData> cycleFn)
+    {
+        IFGModule module = resolveModuleToWorkOn(inputData);
+        Object evolveReason = inputData.getEvolveReason();
+        if (evolveReason instanceof MouseEvent)
+        {
+            System.out.println("FGContainer " + inputData + "->" + module);
+        }
+        boolean useFork = false;
+
+        if (!inputData.shouldFork())
+        {
+            if (forks_.containsKey(evolveReason))
+            {
+                useFork_.invoke(containerId_, evolveReason);
+                useFork = true;
+                System.out.println("Hit prediction for " + evolveReason);
+            }
+            else if (!forks_.isEmpty() && evolveReason instanceof MouseEvent)
+            {
+                System.out.println("Missed prediction for " + evolveReason);
+            }
+        }
+
+        Future<FGEvolveResultData> resultFuture;
+        if (useFork)
+        {
+            //resultFuture = forkResults_.get(evolveReason);
+            // Do not send the same result: already sent is as a prediction.
+            return null;
+        }
+        else
+        {
+            resultFuture = evolverExecutorService_.submit(() -> {
+                try
+                {
+                    FGEvolveResultData resultData = cycleFn.apply(module);
+                    notifyEvolveConsumers();
+                    return resultData;
+                }
+                catch (Throwable ex)
+                {
+                    ex.printStackTrace();
+                    return FGEvolveResultData.EMPTY;
+                }
+            });
+            if (inputData.shouldFork())
+            {
+                forkResults_.put(evolveReason, resultFuture);
+            }
+        }
+
+        if (!inputData.shouldFork())
+        {
+            clearForks_.invoke(containerId_);
+            forks_.clear();
+            forkResults_.clear();
+        }
+
+        eventFedCallback_.actionPerformed(null);
+
+        return resultFuture;
+    }
+
+    private IFGModule resolveModuleToWorkOn(FGEvolveInputData inputData)
+    {
+        if (inputData.shouldFork())
+        {
+            IFGModule forkModule = new FGForkModule(containerId_);
+            forks_.put(inputData.getEvolveReason(), forkModule);
+            return forkModule;
+        }
+        else
+        {
+            return module_;
+        }
+    }
+
+    private static FGEvolveResultData cycle(Object repaintReason, FGInputEventParser reasonParser, IFGModule module)
     {
         if (repaintReason == null)
         {
@@ -160,7 +266,7 @@ public class FGContainer implements IFGContainer
         Map<Object, List<Keyword>> reasonMap;
         try
         {
-            reasonMap = reasonParser_.getTargetCellIds(repaintReason, module_);
+            reasonMap = reasonParser.getTargetCellIds(repaintReason, module);
         }
         catch(Exception ex)
         {
@@ -177,8 +283,8 @@ public class FGContainer implements IFGContainer
             {
                 try
                 {
-                    module_.evolve(targetCellIds, reason);
-                    Set<List<Keyword>> changed = module_.getChangedComponentIdPaths();
+                    module.evolve(targetCellIds, reason);
+                    Set<List<Keyword>> changed = module.getChangedComponentIdPaths();
                     if (changed != null)
                     {
                         changedPaths.addAll(changed);
@@ -193,12 +299,12 @@ public class FGContainer implements IFGContainer
         return new FGEvolveResultData(reasonMap, changedPaths);
     }
 
-    private FGEvolveResultData cycleTargeted(List<Keyword> targetIdPath, Object repaintReason)
+    private static FGEvolveResultData cycleTargeted(List<Keyword> targetIdPath, Object repaintReason, IFGModule module)
     {
         try
         {
-            module_.evolve(targetIdPath, repaintReason);
-            Set<List<Keyword>> changed = module_.getChangedComponentIdPaths();
+            module.evolve(targetIdPath, repaintReason);
+            Set<List<Keyword>> changed = module.getChangedComponentIdPaths();
             if (changed != null)
             {
                 Map<Object, List<Keyword>> reasonMap = new HashMap<>();
@@ -213,67 +319,19 @@ public class FGContainer implements IFGContainer
         return FGEvolveResultData.EMPTY;
     }
 
-    @Override
-    public synchronized Future<FGEvolveResultData> feedEvent(Object repaintReason)
+    private void notifyEvolveConsumers()
     {
-        Future<FGEvolveResultData> resultFuture = evolverExecutorService_.submit(() -> {
-            try
-            {
-                FGEvolveResultData resultData = cycle(repaintReason);
-
-                evolveConsumers_.stream()
-                        .filter(this::shouldInvokeEvolveConsumer)
-                        .forEach(consumer ->
-                                new Thread(() ->
-                                    consumer.acceptEvolveResult(null, module_.getContainerObject()),
-                                    "Evolver consumer notifier").start());
-
-                return resultData;
-            }
-            catch (Throwable ex)
-            {
-                ex.printStackTrace();
-                return FGEvolveResultData.EMPTY;
-            }
-        });
-
-        eventFedCallback_.actionPerformed(null);
-
-        return resultFuture;
-    }
-
-    @Override
-    public synchronized Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, Object repaintReason)
-    {
-        Future<FGEvolveResultData> resultFuture = evolverExecutorService_.submit(() -> {
-            try
-            {
-                FGEvolveResultData resultData = cycleTargeted(targetCellIdPath, repaintReason);
-
-                evolveConsumers_.stream()
-                        .filter(this::shouldInvokeEvolveConsumer)
-                        .forEach(consumer ->
-                                new Thread(() ->
-                                        consumer.acceptEvolveResult(null, module_.getContainerObject()),
-                                        "Evolver consumer notifier").start());
-
-                return resultData;
-            }
-            catch(Throwable ex)
-            {
-                ex.printStackTrace();
-                return FGEvolveResultData.EMPTY;
-            }
-        });
-
-        eventFedCallback_.actionPerformed(null);
-
-        return resultFuture;
+        evolveConsumers_.stream()
+            .filter(this::shouldInvokeEvolveConsumer)
+            .forEach(consumer ->
+                new Thread(() ->
+                    consumer.acceptEvolveResult(null, module_.getContainer()),
+                    "FlatGUI Evolver Consumer Notifier").start());
     }
 
     private boolean shouldInvokeEvolveConsumer(IFGEvolveConsumer consumer)
     {
-        Map<Object, Object> container = (Map<Object, Object>) module_.getContainerObject();
+        Map<Object, Object> container = (Map<Object, Object>) module_.getContainer();
 
         for (List<Keyword> path : consumer.getTargetPaths())
         {
