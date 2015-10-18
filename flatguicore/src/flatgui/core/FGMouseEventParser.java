@@ -9,6 +9,7 @@
  */
 package flatgui.core;
 
+import clojure.lang.Keyword;
 import flatgui.core.awt.FGMouseEvent;
 import flatgui.core.awt.FGMouseTargetComponentInfo;
 import flatgui.core.awt.FGMouseWheelEvent;
@@ -17,6 +18,7 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.util.*;
+import java.util.List;
 
 /**
  * @author Denys Lebediev
@@ -42,7 +44,7 @@ class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
     }
 
     @Override
-    public Map<MouseEvent, Collection<Object>> getTargetCellIds(MouseEvent mouseEvent, IFGModule fgModule)
+    public Map<MouseEvent, List<Keyword>> getTargetCellIds(MouseEvent mouseEvent, IFGModule fgModule)
     {
         boolean newLeftButtonDown = (mouseEvent.getModifiersEx() & MouseEvent.BUTTON1_DOWN_MASK) == MouseEvent.BUTTON1_DOWN_MASK;
 
@@ -71,7 +73,7 @@ class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
 
         //System.out.println("-DLTEMP- FGMouseEventParser.getTargetCellIds PROCESSING " + mouseEvent);
 
-        Map<MouseEvent, Collection<Object>> map = new LinkedHashMap<>();
+        Map<MouseEvent, List<Keyword>> map = new LinkedHashMap<>();
         if (targetPath != null)
         {
             boolean targetChanged = lastTargetIdPath_ != null && !lastTargetIdPath_.equals(targetPath.getTargetIdPath());
@@ -80,13 +82,13 @@ class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
                 map.put(deriveFGEvent(deriveWithIdAndNoButton(lastMouseEvent_, MouseEvent.MOUSE_EXITED),
                         lastXRelativeVec_,
                         lastYRelativeVec_,
-                        (Collection<Object>) lastTargetIdPath_), (Collection<Object>) lastTargetIdPath_);
+                        (Collection<Object>) lastTargetIdPath_), (List<Keyword>) lastTargetIdPath_);
                 map.put(deriveFGEvent(deriveWithIdAndNoButton(mouseEvent, MouseEvent.MOUSE_ENTERED),
                         xRelativeVec,
                         yRelativeVec,
-                        (Collection<Object>) targetPath.getTargetIdPath()), (Collection<Object>) targetPath.getTargetIdPath());
+                        (Collection<Object>) targetPath.getTargetIdPath()), (List<Keyword>) targetPath.getTargetIdPath());
             }
-            map.put(deriveFGEvent(mouseEvent, xRelativeVec, yRelativeVec, (Collection<Object>) targetPath.getTargetIdPath()), (Collection<Object>) targetPath.getTargetIdPath());
+            map.put(deriveFGEvent(mouseEvent, xRelativeVec, yRelativeVec, (Collection<Object>) targetPath.getTargetIdPath()), (List<Keyword>) targetPath.getTargetIdPath());
             lastTargetIdPath_ = targetPath.getTargetIdPath();
             lastXRelativeVec_ = xRelativeVec;
             lastYRelativeVec_ = yRelativeVec;

@@ -10,10 +10,11 @@
 
 package flatgui.core;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import clojure.lang.Keyword;
 
 /**
  * @author Denis Lebedev
@@ -21,10 +22,10 @@ import java.util.Map;
 public abstract class FGFocusTargetedEventParser<E> implements IFGInputEventParser<E>
 {
     @Override
-    public Map<E, Collection<Object>> getTargetCellIds(E event, IFGModule fgModule)
+    public Map<E, List<Keyword>> getTargetCellIds(E event, IFGModule fgModule)
     {
-        Map<E, Collection<Object>> map = new HashMap<>();
-        List focusedPath = fgModule.getFocusedPath();
+        Map<E, List<Keyword>> map = new HashMap<>();
+        List<Keyword> focusedPath = fgModule.getFocusedPath();
         if (focusedPath != null)
         {
             map.put(event, focusedPath);

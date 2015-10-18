@@ -371,8 +371,7 @@
 
 (fg/defevolverfn :cursor
   (if (mouse/is-mouse-event? component)
-    (let [_ (println "has-mouse" (get-property [:this] :has-mouse))]
-      (if (get-property [:this] :has-mouse) :text))
+    (if (get-property [:this] :has-mouse) :text)
     old-cursor))
 
 (defn textfield-dflt-text-suplier [component]

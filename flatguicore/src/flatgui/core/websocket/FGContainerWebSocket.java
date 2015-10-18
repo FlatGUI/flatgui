@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.Timer;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
@@ -42,6 +43,7 @@ public class FGContainerWebSocket implements WebSocketListener
     private volatile FGWebContainerWrapper container_;
     private volatile FGInputEventDecoder parser_;
     private volatile FGContainerSession fgSession_;
+    private volatile Timer blinkHelperTimer_;
 
     private final ContainerAccessor containerAccessor_;
 
@@ -58,7 +60,7 @@ public class FGContainerWebSocket implements WebSocketListener
 
         containerAccessor_ = new ContainerAccessor();
 
-        HostComponent.setupBlinkHelperTimer(this::processInputEvent);
+        blinkHelperTimer_ = HostComponent.setupBlinkHelperTimer(this::processInputEvent);
 
         FGAppServer.getFGLogger().info("WS Listener created " + System.identityHashCode(this));
     }
@@ -71,6 +73,7 @@ public class FGContainerWebSocket implements WebSocketListener
                 " remote: " + session_.getRemoteAddress() +
                 " reason = " + reason);
 
+        blinkHelperTimer_.cancel();
         container_.unInitialize();
         fgSession_.markIdle();
         session_ = null;
@@ -114,7 +117,7 @@ public class FGContainerWebSocket implements WebSocketListener
 
         container_.resetCache();
 
-        collectAndSendResponse(null, null, false);
+        collectAndSendResponse(null, false);
     }
 
     @Override
@@ -151,15 +154,15 @@ public class FGContainerWebSocket implements WebSocketListener
         // Feed input event received from the remote endpoint to the engine
         //
 
-        Future<Set<List<Keyword>>> changedPathsFuture = container_.feedEvent(e);
-        collectAndSendResponse(e, changedPathsFuture, e instanceof FGHostStateEvent);
+        Future<FGEvolveResultData> evolveResultFuture = container_.feedEvent(e);
+        collectAndSendResponse(evolveResultFuture, e instanceof FGHostStateEvent);
 
         //debugMessageCount_++;
     }
 
-    void collectAndSendResponse(Object inputEvent, Future<Set<List<Keyword>>> changedPathsFuture, boolean forceRepaint)
+    void collectAndSendResponse(Future<FGEvolveResultData> evolveResultFuture, boolean forceRepaint)
     {
-        Collection<ByteBuffer> response = container_.getResponseForClient(inputEvent, changedPathsFuture);
+        Collection<ByteBuffer> response = container_.getResponseForClient(evolveResultFuture);
 
         if (response.size() > 0)
         {
@@ -202,10 +205,10 @@ public class FGContainerWebSocket implements WebSocketListener
     public class ContainerAccessor implements IFGContainer
     {
         @Override
-        public Future<Set<List<Keyword>>> feedTargetedEvent(Collection<Object> targetCellIdPath, Object repaintReason)
+        public Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, Object repaintReason)
         {
-            Future <Set<List<Keyword>>> changedPathsFuture = container_.feedTargetedEvent(targetCellIdPath, repaintReason);
-            collectAndSendResponse(repaintReason, changedPathsFuture, false);
+            Future <FGEvolveResultData> changedPathsFuture = container_.feedTargetedEvent(targetCellIdPath, repaintReason);
+            collectAndSendResponse(changedPathsFuture, false);
             return null;
         }
 
@@ -248,7 +251,7 @@ public class FGContainerWebSocket implements WebSocketListener
         }
 
         @Override
-        public Function<Object, Future<Set<List<Keyword>>>> connect(ActionListener eventFedCallback, Object hostContext) {
+        public Function<Object, Future<FGEvolveResultData>> connect(ActionListener eventFedCallback, Object hostContext) {
             throw new UnsupportedOperationException();
         }
 
@@ -258,7 +261,7 @@ public class FGContainerWebSocket implements WebSocketListener
         }
 
         @Override
-        public Future<Set<List<Keyword>>> feedEvent(Object repaintReason) {
+        public Future<FGEvolveResultData> feedEvent(Object repaintReason) {
             throw new UnsupportedOperationException();
         }
 

@@ -11,6 +11,7 @@
 package flatgui.core.awt;
 
 import clojure.lang.Keyword;
+import flatgui.core.FGEvolveResultData;
 import flatgui.core.IFGContainer;
 import flatgui.core.IFGContainerHost;
 
@@ -38,7 +39,7 @@ public class FGAWTContainerHost implements IFGContainerHost<Component>
     {
         c_.initialize(container);
         ActionListener eventFedCallBack = c_.getEventFedCallback();
-        Function<Object, Future<Set<List<Keyword>>>> inputEventConsumer = container.connect(eventFedCallBack, c_);
+        Function<Object, Future<FGEvolveResultData>> inputEventConsumer = container.connect(eventFedCallBack, c_);
         c_.setInputEventConsumer(inputEventConsumer::apply);
         return c_;
     }

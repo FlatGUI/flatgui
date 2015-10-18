@@ -54,7 +54,7 @@ class FGModule implements IFGModule
     }
 
     @Override
-    public void evolve(Collection<Object> targetCellIds, Object inputEvent)
+    public void evolve(List<Keyword> targetCellIds, Object inputEvent)
     {
         evolverFn_.invoke(containerName_, targetCellIds, inputEvent);
     }

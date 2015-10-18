@@ -11,7 +11,10 @@ package flatgui.core;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import clojure.lang.Keyword;
 
 /**
  * @author Denys Lebediev
@@ -34,7 +37,7 @@ public class FGInputEventParser implements IFGInputEventParser<Object>
     }
 
     @Override
-    public Map<Object, Collection<Object>> getTargetCellIds(Object reason, IFGModule fgModule)
+    public Map<Object, List<Keyword>> getTargetCellIds(Object reason, IFGModule fgModule)
     {
         return getRepaintReasonParser(reason).getTargetCellIds(reason, fgModule);
     }

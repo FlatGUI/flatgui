@@ -61,9 +61,9 @@ public class HostComponent extends Canvas
 
     private Font lastUserDefinedFont_ = null;
 
-    private Function<Object, Future<Set<List<Keyword>>>> feedFn_;
+    private Function<Object, Future<FGEvolveResultData>> feedFn_;
 
-    Future<Set<List<Keyword>>> changedPathsFuture_;
+    Future<FGEvolveResultData> changedPathsFuture_;
 
     public HostComponent()
     {
@@ -91,7 +91,7 @@ public class HostComponent extends Canvas
         return e -> repaint();
     }
 
-    public void setInputEventConsumer(Function<Object, Future<Set<List<Keyword>>>> feedFn)
+    public void setInputEventConsumer(Function<Object, Future<FGEvolveResultData>> feedFn)
     {
         feedFn_ = feedFn;
 
@@ -105,7 +105,7 @@ public class HostComponent extends Canvas
         setupBlinkHelperTimer(eventConsumer);
     }
 
-    public static void setupBlinkHelperTimer(Consumer<Object> timerEventConsumer)
+    public static Timer setupBlinkHelperTimer(Consumer<Object> timerEventConsumer)
     {
         Timer blinkTimer = new Timer("FlatGUI Blink Helper Timer", true);
         blinkTimer.schedule(new TimerTask()
@@ -116,6 +116,7 @@ public class HostComponent extends Canvas
                 timerEventConsumer.accept(new FGTimerEvent(System.currentTimeMillis()));
             }
         }, 530, 530);
+        return blinkTimer;
     }
 
     @Override
@@ -165,12 +166,16 @@ public class HostComponent extends Canvas
             appTriggered_ = true;
             paint(g);
 
-            // TODO Change cursor only if it is a mouse event. Otherwise it is resolved as null
-            Map<java.util.List<Keyword>, Map<Keyword, Object>> idPathToComponent =
-                fgContainer_.getFGModule().getComponentIdPathToComponent(changedPathsFuture_.get());
-            Keyword c = resolveCursor(idPathToComponent, fgContainer_);
-            Integer cursor = c != null ? FG_TO_AWT_CUSROR_MAP.get(c) : null;
-            setCursor(cursor != null ? Cursor.getPredefinedCursor(cursor.intValue()) : Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+            FGEvolveResultData evolveResultData = changedPathsFuture_.get();
+            Set<Object> reasons = evolveResultData.getEvolveReasonToTargetPath().keySet();
+            if (!reasons.isEmpty() && reasons.stream().anyMatch(r -> r instanceof MouseEvent))
+            {
+                Collection<List<Keyword>> targetComponentPaths = evolveResultData.getEvolveReasonToTargetPath().values();
+                Map<List<Keyword>, Map<Keyword, Object>> targetIdPathToComponent = fgContainer_.getFGModule().getComponentIdPathToComponent(targetComponentPaths);
+                Keyword c = resolveCursor(targetIdPathToComponent, fgContainer_);
+                Integer cursor = c != null ? FG_TO_AWT_CUSROR_MAP.get(c) : null;
+                setCursor(cursor != null ? Cursor.getPredefinedCursor(cursor.intValue()) : Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+            }
         }
         catch (InterruptedException | ExecutionException e)
         {

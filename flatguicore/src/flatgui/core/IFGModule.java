@@ -26,7 +26,7 @@ public interface IFGModule
 {
     String RESPONSE_FEED_NS = "flatgui.responsefeed";
 
-    public void evolve(Collection<Object> targetCellIds, Object inputEvent);
+    public void evolve(List<Keyword> targetCellIds, Object inputEvent);
 
     public FGMouseTargetComponentInfo getMouseTargetInfoAt(double x, double y, FGComponentPath knownPath);
 

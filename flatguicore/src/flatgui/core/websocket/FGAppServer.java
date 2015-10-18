@@ -215,13 +215,13 @@ public class FGAppServer
             containerConsumer_ = containerConsumer;
         }
 
-        void feedEventToAllInstancesAndSendUpdates(Collection<Object> targetCellIdPath, Object inputEvent)
+        void feedEventToAllInstancesAndSendUpdates(List<Keyword> targetCellIdPath, Object inputEvent)
         {
             FGAppServer.getFGLogger().debug("Started feeding event to all(" + sessionHolder_.getActiveSessionCount()
                 +  " at the moment) active sessions. Event: " + inputEvent);
             sessionHolder_.forEachActiveSession(s -> {
                 FGAppServer.getFGLogger().debug(" session " + s.toString());
-                s.getAccosiatedWebSocket().collectAndSendResponse(inputEvent,
+                s.getAccosiatedWebSocket().collectAndSendResponse(
                     s.getContainer().feedTargetedEvent(targetCellIdPath, inputEvent), false);
             });
             FGAppServer.getFGLogger().debug("Done feeding event.");
@@ -327,9 +327,9 @@ public class FGAppServer
             return PersistentHashMap.create(m);
         }
 
-        private Collection<Object> toTargetIdPath(String[] param)
+        private List<Keyword> toTargetIdPath(String[] param)
         {
-            Collection<Object> result = new ArrayList<>(param.length);
+            List<Keyword> result = new ArrayList<>(param.length);
             for (String p : param)
             {
                 result.add(Keyword.intern(p));

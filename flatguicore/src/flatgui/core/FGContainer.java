@@ -77,7 +77,7 @@ public class FGContainer implements IFGContainer
         reasonParser_.registerReasonClassParser(FGClipboardEvent.class, new FGClipboardEventEventParser());
         reasonParser_.registerReasonClassParser(FGTimerEvent.class, new FGTimerEventParser());
         reasonParser_.registerReasonClassParser(FGHostStateEvent.class, (fgHostStateEvent, fgModule) -> {
-            Map<FGHostStateEvent, Collection<Object>> map = new HashMap<>();
+            Map<FGHostStateEvent, List<Keyword>> map = new HashMap<>();
             map.put(fgHostStateEvent, Arrays.asList(containerIdInternal));
             return map;
         });
@@ -130,7 +130,7 @@ public class FGContainer implements IFGContainer
     }
 
     @Override
-    public Function<Object, Future<Set<List<Keyword>>>> connect(ActionListener eventFedCallback, Object hostContext)
+    public Function<Object, Future<FGEvolveResultData>> connect(ActionListener eventFedCallback, Object hostContext)
     {
         eventFedCallback_ = eventFedCallback;
         return this::feedEvent;
@@ -150,14 +150,14 @@ public class FGContainer implements IFGContainer
 
     // Private
 
-    private Set<List<Keyword>> cycle(Object repaintReason)
+    private FGEvolveResultData cycle(Object repaintReason)
     {
         if (repaintReason == null)
         {
             throw new IllegalArgumentException();
         }
 
-        Map<Object, Collection<Object>> reasonMap;
+        Map<Object, List<Keyword>> reasonMap;
         try
         {
             reasonMap = reasonParser_.getTargetCellIds(repaintReason, module_);
@@ -171,13 +171,13 @@ public class FGContainer implements IFGContainer
         Set<List<Keyword>> changedPaths = new HashSet<>();
         for (Object reason : reasonMap.keySet())
         {
-            Collection<Object> targetCellIds_ = reasonMap.get(reason);
+            List<Keyword> targetCellIds = reasonMap.get(reason);
 
-            if (targetCellIds_ == null || !targetCellIds_.isEmpty())
+            if (targetCellIds == null || !targetCellIds.isEmpty())
             {
                 try
                 {
-                    module_.evolve(targetCellIds_, reason);
+                    module_.evolve(targetCellIds, reason);
                     Set<List<Keyword>> changed = module_.getChangedComponentIdPaths();
                     if (changed != null)
                     {
@@ -190,10 +190,10 @@ public class FGContainer implements IFGContainer
                 }
             }
         }
-        return changedPaths;
+        return new FGEvolveResultData(reasonMap, changedPaths);
     }
 
-    private Set<List<Keyword>> cycleTargeted(Collection<Object> targetIdPath, Object repaintReason)
+    private FGEvolveResultData cycleTargeted(List<Keyword> targetIdPath, Object repaintReason)
     {
         try
         {
@@ -201,23 +201,25 @@ public class FGContainer implements IFGContainer
             Set<List<Keyword>> changed = module_.getChangedComponentIdPaths();
             if (changed != null)
             {
-                return changed;
+                Map<Object, List<Keyword>> reasonMap = new HashMap<>();
+                reasonMap.put(repaintReason, targetIdPath);
+                return new FGEvolveResultData(reasonMap, changed);
             }
         }
         catch (Throwable ex)
         {
             ex.printStackTrace();
         }
-        return Collections.EMPTY_SET;
+        return FGEvolveResultData.EMPTY;
     }
 
     @Override
-    public synchronized Future<Set<List<Keyword>>> feedEvent(Object repaintReason)
+    public synchronized Future<FGEvolveResultData> feedEvent(Object repaintReason)
     {
-        Future<Set<List<Keyword>>> resultFuture = evolverExecutorService_.submit(() -> {
+        Future<FGEvolveResultData> resultFuture = evolverExecutorService_.submit(() -> {
             try
             {
-                Set<List<Keyword>> changedPaths = cycle(repaintReason);
+                FGEvolveResultData resultData = cycle(repaintReason);
 
                 evolveConsumers_.stream()
                         .filter(this::shouldInvokeEvolveConsumer)
@@ -226,12 +228,12 @@ public class FGContainer implements IFGContainer
                                     consumer.acceptEvolveResult(null, module_.getContainerObject()),
                                     "Evolver consumer notifier").start());
 
-                return changedPaths;
+                return resultData;
             }
             catch (Throwable ex)
             {
                 ex.printStackTrace();
-                return Collections.EMPTY_SET;
+                return FGEvolveResultData.EMPTY;
             }
         });
 
@@ -241,12 +243,12 @@ public class FGContainer implements IFGContainer
     }
 
     @Override
-    public synchronized Future<Set<List<Keyword>>> feedTargetedEvent(Collection<Object> targetCellIdPath, Object repaintReason)
+    public synchronized Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, Object repaintReason)
     {
-        Future<Set<List<Keyword>>> resultFuture = evolverExecutorService_.submit(() -> {
+        Future<FGEvolveResultData> resultFuture = evolverExecutorService_.submit(() -> {
             try
             {
-                Set<List<Keyword>> changedPaths = cycleTargeted(targetCellIdPath, repaintReason);
+                FGEvolveResultData resultData = cycleTargeted(targetCellIdPath, repaintReason);
 
                 evolveConsumers_.stream()
                         .filter(this::shouldInvokeEvolveConsumer)
@@ -255,12 +257,12 @@ public class FGContainer implements IFGContainer
                                         consumer.acceptEvolveResult(null, module_.getContainerObject()),
                                         "Evolver consumer notifier").start());
 
-                return changedPaths;
+                return resultData;
             }
             catch(Throwable ex)
             {
                 ex.printStackTrace();
-                return Collections.EMPTY_SET;
+                return FGEvolveResultData.EMPTY;
             }
         });
 

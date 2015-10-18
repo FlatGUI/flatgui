@@ -43,13 +43,13 @@ public interface IFGContainer
 
     IFGInteropUtil getInterop();
 
-    Function<Object, Future<Set<List<Keyword>>>> connect(ActionListener eventFedCallback, Object hostContext);
+    Function<Object, Future<FGEvolveResultData>> connect(ActionListener eventFedCallback, Object hostContext);
 
     <T> Future<T> submitTask(Callable<T> callable);
 
-    Future<Set<List<Keyword>>> feedEvent(Object repaintReason);
+    Future<FGEvolveResultData> feedEvent(Object repaintReason);
 
-    Future<Set<List<Keyword>>> feedTargetedEvent(Collection<Object> targetCellIdPath, Object repaintReason);
+    Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, Object repaintReason);
 
     List<Keyword> getLastMouseTargetIdPath();
 }

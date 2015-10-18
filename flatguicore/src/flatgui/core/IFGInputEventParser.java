@@ -9,8 +9,10 @@
  */
 package flatgui.core;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+
+import clojure.lang.Keyword;
 
 /**
  * @author Denys Lebediev
@@ -35,6 +37,6 @@ public interface IFGInputEventParser<Reason>
      * @return a map of reason to target cell ids. Ids may be null in case all
      *         cells should receive the update.
      */
-    Map<Reason, Collection<Object>> getTargetCellIds(Reason reason, IFGModule fgModule);
+    Map<Reason, List<Keyword>> getTargetCellIds(Reason reason, IFGModule fgModule);
 
 }

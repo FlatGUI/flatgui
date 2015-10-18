@@ -65,7 +65,7 @@ public class FGWebContainerWrapper
 
 
     private final IFGContainer fgContainer_;
-    private Function<Object, Future<Set<List<Keyword>>>> eventConsumer_;
+    private Function<Object, Future<FGEvolveResultData>> eventConsumer_;
 
     public FGWebContainerWrapper(IFGContainer fgContainer)
     {
@@ -97,22 +97,22 @@ public class FGWebContainerWrapper
         return fgContainer_.isActive();
     }
 
-    public synchronized Future<Set<List<Keyword>>> feedEvent(Object repaintReason)
+    public synchronized Future<FGEvolveResultData> feedEvent(Object repaintReason)
     {
-        Future<Set<List<Keyword>>> changedPathsFuture = eventConsumer_.apply(repaintReason);
+        Future<FGEvolveResultData> changedPathsFuture = eventConsumer_.apply(repaintReason);
         return changedPathsFuture;
     }
 
-    public synchronized Future<Set<List<Keyword>>> feedTargetedEvent(Collection<Object> targetCellIdPath, Object repaintReason)
+    public synchronized Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, Object repaintReason)
     {
-        Future<Set<List<Keyword>>> changedPathsFuture = fgContainer_.feedTargetedEvent(targetCellIdPath, repaintReason);
+        Future<FGEvolveResultData> changedPathsFuture = fgContainer_.feedTargetedEvent(targetCellIdPath, repaintReason);
         return changedPathsFuture;
     }
 
-    public synchronized Collection<ByteBuffer> getResponseForClient(Object inputEvent, Future<Set<List<Keyword>>> changedPathsFuture)
+    public synchronized Collection<ByteBuffer> getResponseForClient(Future<FGEvolveResultData> evolveResultsFuture)
     {
         Future<Collection<ByteBuffer>> responseFuture =
-                fgContainer_.submitTask(() -> stateTransmitter_.computeDataDiffsToTransmit(inputEvent, changedPathsFuture));
+                fgContainer_.submitTask(() -> stateTransmitter_.computeDataDiffsToTransmit(evolveResultsFuture));
         try
         {
             Collection<ByteBuffer> r =  responseFuture.get();
@@ -965,17 +965,25 @@ public class FGWebContainerWrapper
             fgModule_.getPaintAllSequence2().forEach(keyCache_::getUniqueId);
         }
 
-        public Collection<ByteBuffer> computeDataDiffsToTransmit(Object inputEvent, Future<Set<List<Keyword>>> changedPathsFuture)
+        public Collection<ByteBuffer> computeDataDiffsToTransmit(Future<FGEvolveResultData> evolveResultFuture)
         {
-            try
+            FGEvolveResultData evolveResultData = null;
+
+            if (!initialCycle_ && evolveResultFuture != null)
             {
-                idPathToComponent_ = fgModule_.getComponentIdPathToComponent(
-                        (initialCycle_ || changedPathsFuture == null) ? null : changedPathsFuture.get());
+                try
+                {
+                    evolveResultData = evolveResultFuture.get();
+                }
+                catch (InterruptedException | ExecutionException e)
+                {
+                    e.printStackTrace();
+                    return Collections.emptyList();
+                }
             }
-            catch (InterruptedException | ExecutionException e)
-            {
-                e.printStackTrace();
-            }
+
+            idPathToComponent_ = fgModule_.getComponentIdPathToComponent(
+                evolveResultData == null ? null : evolveResultData.getChangedPaths());
 
             initialCycle_ = false;
 
@@ -997,15 +1005,21 @@ public class FGWebContainerWrapper
             cmdToLastData_ = newDatas;
 
             // Cursor
-            if (inputEvent instanceof MouseEvent)
+            if (evolveResultData != null)
             {
-                Keyword cursor = HostComponent.resolveCursor(idPathToComponent_, fgContainer_);
-                Integer cursorCode = cursor != null ? CURSOR_NAME_TO_CODE.get(cursor.getName()) : null;
-                byte cursorCodeByte = cursorCode != null ? cursorCode.byteValue() : DEFAULT_CURSOR_CODE;
-                if (cursorCodeByte != lastCursor_)
+                Collection<List<Keyword>> targetComponentPaths = evolveResultData.getEvolveReasonToTargetPath().values();
+                Set<Object> reasons = evolveResultData.getEvolveReasonToTargetPath().keySet();
+                if (!reasons.isEmpty() && reasons.stream().anyMatch(r -> r instanceof MouseEvent))
                 {
-                    result.add(ByteBuffer.wrap(new byte[]{SET_CURSOR_COMMAND_CODE, cursorCodeByte}));
-                    lastCursor_ = cursorCodeByte;
+                    Map<List<Keyword>, Map<Keyword, Object>> targetIdPathToComponent = fgModule_.getComponentIdPathToComponent(targetComponentPaths);
+                    Keyword cursor = HostComponent.resolveCursor(targetIdPathToComponent, fgContainer_);
+                    Integer cursorCode = cursor != null ? CURSOR_NAME_TO_CODE.get(cursor.getName()) : null;
+                    byte cursorCodeByte = cursorCode != null ? cursorCode.byteValue() : DEFAULT_CURSOR_CODE;
+                    if (cursorCodeByte != lastCursor_)
+                    {
+                        result.add(ByteBuffer.wrap(new byte[]{SET_CURSOR_COMMAND_CODE, cursorCodeByte}));
+                        lastCursor_ = cursorCodeByte;
+                    }
                 }
             }
 
