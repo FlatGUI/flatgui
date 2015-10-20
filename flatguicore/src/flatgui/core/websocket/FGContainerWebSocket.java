@@ -275,6 +275,12 @@ public class FGContainerWebSocket implements WebSocketListener
         }
 
         @Override
+        public Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, Object evolveReason)
+        {
+            return feedTargetedEvent(targetCellIdPath, new FGEvolveInputData(evolveReason, false));
+        }
+
+        @Override
         public String getId() {
             throw new UnsupportedOperationException();
         }

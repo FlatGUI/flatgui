@@ -27,6 +27,11 @@ import java.util.List;
  */
 public class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
 {
+    // TODO
+    // It looks like with touch screen it is possible to click component without entering it with mouse-move first. So
+    // we probably need to generate MOUSE_ENTER in this case
+
+
     private final int unitSizePx_;
 
     private boolean leftButtonDown_;

@@ -53,5 +53,7 @@ public interface IFGContainer
 
     Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, FGEvolveInputData inputData);
 
+    Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, Object evolveReason);
+
     List<Keyword> getLastMouseTargetIdPath();
 }

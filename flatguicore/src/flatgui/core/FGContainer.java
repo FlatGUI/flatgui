@@ -176,16 +176,22 @@ public class FGContainer implements IFGContainer
         return feedEventImpl(inputData, m -> cycleTargeted(targetCellIdPath, evolveReason, m));
     }
 
+    @Override
+    public Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, Object evolveReason)
+    {
+        return feedTargetedEvent(targetCellIdPath, new FGEvolveInputData(evolveReason, false));
+    }
+
     // Private
 
     private Future<FGEvolveResultData> feedEventImpl(FGEvolveInputData inputData, Function<IFGModule, FGEvolveResultData> cycleFn)
     {
         IFGModule module = resolveModuleToWorkOn(inputData);
         Object evolveReason = inputData.getEvolveReason();
-        if (evolveReason instanceof MouseEvent)
-        {
-            System.out.println("FGContainer " + inputData + "->" + module);
-        }
+//        if (evolveReason instanceof MouseEvent)
+//        {
+//            System.out.println("-DLTEMP-FGContainer " + inputData + "->" + module);
+//        }
         boolean useFork = false;
 
         if (!inputData.shouldFork())

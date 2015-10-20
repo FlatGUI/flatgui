@@ -279,7 +279,9 @@
               (+
                 old-first-visible-symbol
                 (loop [i 1]
-                  (if (>= (awt/strw component (subs text old-first-visible-symbol (+ old-first-visible-symbol i))) diff)
+                  (if (or
+                        (> (+ old-first-visible-symbol i) (.length text))
+                        (>= (awt/strw component (subs text old-first-visible-symbol (+ old-first-visible-symbol i))) diff))
                     i
                     (recur
                       (inc i))))))
