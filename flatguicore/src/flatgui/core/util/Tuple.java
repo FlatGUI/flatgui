@@ -10,6 +10,8 @@
 
 package flatgui.core.util;
 
+import java.util.Arrays;
+
 /**
  * @author Denis Lebedev
  */
@@ -27,6 +29,11 @@ public class Tuple
         return new Tuple(new Object[]{f, s});
     }
 
+    public static <F,S,T> Tuple triple(F f, S s, T t)
+    {
+        return new Tuple(new Object[]{f, s, t});
+    }
+
     // Ways to access
 
     public <T> T get(int index)
@@ -42,5 +49,13 @@ public class Tuple
     public <S> S getSecond()
     {
         return get(1);
+    }
+
+    // General
+
+    @Override
+    public String toString()
+    {
+        return Arrays.toString(data_);
     }
 }

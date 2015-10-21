@@ -744,7 +744,7 @@ public class FGWebContainerWrapper
         }
     }
 
-    public static class StringPoolMapTransmitter extends MapFullNewTransmitter<Map<Integer, String>>
+    public static class StringPoolMapTransmitter extends MapTransmitter<Map<Integer, String>>//MapFullNewTransmitter<Map<Integer, String>>
     {
         public StringPoolMapTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
         {
@@ -945,9 +945,7 @@ public class FGWebContainerWrapper
 
         // TODO track removed components, otherwise memory leak here
         //
-        private Map<Byte, ?> cmdToLastData_;
-
-        private byte lastCursor_ = -1;
+        private Map<Byte, Object> cmdToLastData_;
 
         private Map<Byte, IDataTransmitter<Object>> cmdToDataTransmitter_;
         private FGPaintVectorBinaryCoder.StringPoolIdSupplier stringPoolIdSupplier_;
@@ -963,7 +961,7 @@ public class FGWebContainerWrapper
             this(true, fgContainer, fgContainer.getFGModule(), null, new KeyCache());
         }
 
-        public FGContainerStateTransmitter(boolean initialCycle, IFGContainer fgContainer, IFGModule module, Map<Byte, ?> presetDataCache, IKeyCache keyCache)
+        public FGContainerStateTransmitter(boolean initialCycle, IFGContainer fgContainer, IFGModule module, Map<Byte, Object> presetDataCache, IKeyCache keyCache)
         {
             initialCycle_ = initialCycle;
 
@@ -1028,7 +1026,21 @@ public class FGWebContainerWrapper
 
         public final FGContainerStateTransmitter fork(IFGModule module)
         {
-            return new FGContainerStateTransmitter(false, fgContainer_, module, cmdToLastData_, keyCache_);
+            Map<Byte, Object> cmdToLastData = new HashMap<>();
+            for (Byte cmd : cmdToLastData_.keySet())
+            {
+                Object data = cmdToLastData_.get(cmd);
+                if (data instanceof Map)
+                {
+                    cmdToLastData.put(cmd, new HashMap<>((Map)data));
+                }
+                else
+                {
+                    cmdToLastData.put(cmd, data);
+                }
+            }
+
+            return new FGContainerStateTransmitter(false, fgContainer_, module, cmdToLastData, keyCache_);
         }
 
         public Collection<ByteBuffer> computeDataDiffsToTransmit(Future<FGEvolveResultData> evolveResultFuture)
@@ -1060,15 +1072,50 @@ public class FGWebContainerWrapper
                     },
                     THROWING_MERGER,
                     LinkedHashMap::new));
+
+
+////            Optional<Map.Entry<Object, Object>> hscrlPmOld = ((Map<Object, Object>)cmdToLastData_.get(POSITION_MATRIX_MAP_COMMAND_CODE)).entrySet().stream()
+////                .filter(e -> e.getKey().toString().equals("[:main :config :scroll :h-scrollbar :scroller]")).findFirst();
+////
+////            Optional<Map.Entry<Object, Object>> hscrlPm = ((Map<Object, Object>)newDatas.get(POSITION_MATRIX_MAP_COMMAND_CODE)).entrySet().stream()
+////                .filter(e -> e.getKey().toString().equals("[:main :config :scroll :h-scrollbar :scroller]")).findFirst();
+
+//            List<Tuple> stats = new ArrayList<>(newDatas.size());
+
             Collection<ByteBuffer> result = newDatas.entrySet().stream()
                     .map(e -> {
                         IDataTransmitter<Object> transmitter = cmdToDataTransmitter_.get(e.getKey());
-                        Object diff = transmitter.getDiffToTransmit(cmdToLastData_.get(e.getKey()), e.getValue());
-                        return diff != null ? transmitter.convertToBinary(e.getKey().byteValue(), diff) : null;
+                        Object prevData = cmdToLastData_.get(e.getKey());
+                        Object newData = e.getValue();
+                        Object diff = transmitter.getDiffToTransmit(prevData, newData);
+                        ByteBuffer bin = diff != null ? transmitter.convertToBinary(e.getKey().byteValue(), diff) : null;
+//                        if (bin != null)
+//                        {
+//                            if (diff instanceof Map)
+//                            {
+//                                stats.add(Tuple.triple(transmitter.getClass().getSimpleName(), bin.capacity(),
+//                                    ((Map)diff).keySet().stream()
+//                                        //.filter(k -> "[:main :config :scroll :h-scrollbar :scroller]".equals(k.toString()))
+//                                        .collect(Collectors.toMap(
+//                                            Function.identity(),
+//                                            k -> "("+((Map)prevData).get(k)+"->"+((Map)newData).get(k)+")") )));
+//                            }
+//                            else
+//                            {
+//                                stats.add(Tuple.pair(transmitter.getClass().getSimpleName(), bin.capacity()));
+//                            }
+//                        }
+                        return bin;
                     })
                     .filter(b -> b != null)
                     .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
-            cmdToLastData_ = newDatas;
+
+//            if (!stats.isEmpty() && fgModule_ instanceof FGForkModule)
+//            {
+//                System.out.println("-DLTEMP- FGContainerStateTransmitter.computeDataDiffsToTransmit coded:"
+//                    //+ hscrlPmOld + "->" + hscrlPm + "\n"
+//                    + stats);
+//            }
 
             // Cursor
 
@@ -1082,10 +1129,11 @@ public class FGWebContainerWrapper
                     Keyword cursor = HostComponent.resolveCursor(targetIdPathToComponent, fgContainer_);
                     Integer cursorCode = cursor != null ? CURSOR_NAME_TO_CODE.get(cursor.getName()) : null;
                     byte cursorCodeByte = cursorCode != null ? cursorCode.byteValue() : DEFAULT_CURSOR_CODE;
-                    if (cursorCodeByte != lastCursor_)
+                    Byte lastCursor = (Byte) cmdToLastData_.get(SET_CURSOR_COMMAND_CODE);
+                    if (lastCursor == null || cursorCodeByte != lastCursor.byteValue())
                     {
                         result.add(ByteBuffer.wrap(new byte[]{SET_CURSOR_COMMAND_CODE, cursorCodeByte}));
-                        lastCursor_ = cursorCodeByte;
+                        cmdToLastData_.put(SET_CURSOR_COMMAND_CODE, Byte.valueOf(cursorCodeByte));
                     }
                 }
             }
@@ -1093,7 +1141,7 @@ public class FGWebContainerWrapper
             // Clipboard
 
             String textForClipboard = HostComponent.getTextForClipboard(fgContainer_);
-            if (textForClipboard != null)
+            if (textForClipboard != null && !textForClipboard.equals(cmdToLastData_.get(PUSH_TEXT_TO_CLIPBOARD)))
             {
                 ByteArrayOutputStream stream = new ByteArrayOutputStream();
                 StringTransmitter.writeString(stream, 1, textForClipboard);
@@ -1106,7 +1154,11 @@ public class FGWebContainerWrapper
                 }
 
                 result.add(ByteBuffer.wrap(cmd));
+
+                newDatas.put(PUSH_TEXT_TO_CLIPBOARD, textForClipboard);
             }
+
+            mergeNewDatasToLast(newDatas);
 
             return result;
         }
@@ -1125,6 +1177,31 @@ public class FGWebContainerWrapper
         private void addDataTransmitter(IDataTransmitter<?> dataTransmitter)
         {
             cmdToDataTransmitter_.put(Byte.valueOf(dataTransmitter.getCommandCode()), (IDataTransmitter<Object>) dataTransmitter);
+        }
+
+        // TODO track removed components otherwise we are keeping all the garbage here!
+        private void mergeNewDatasToLast(Map<Byte, Object> newDatas)
+        {
+            for(Byte cmd : newDatas.keySet())
+            {
+                Object newData = newDatas.get(cmd);
+                if (newData instanceof Map)
+                {
+                    Map<Object, Object> prevData = (Map<Object, Object>) cmdToLastData_.get(cmd);
+                    if (prevData == null)
+                    {
+                        cmdToLastData_.put(cmd, newData);
+                    }
+                    else
+                    {
+                        prevData.putAll((Map<?, ?>) newData);
+                    }
+                }
+                else
+                {
+                    cmdToLastData_.put(cmd, newData);
+                }
+            }
         }
     }
 }

@@ -918,6 +918,11 @@ function openSocket()
                 {
                     if (transmissionMode == FINISH_PREDICTION_TRANSMISSION)
                     {
+//                        if (event.data.byteLength > 0 && mouseDown)
+//                        {
+//                            console.log("Drag bytes received: " + event.data.byteLength);
+//                        }
+
                         decodeCommandVector(dataBuffer, event.data.byteLength);
                     }
                     else
@@ -928,19 +933,19 @@ function openSocket()
                                  mouseDownPredictionDatas[mouseDownPredictionCounter] = dataBuffer;
                                  mouseDownPredictionDataSizes[mouseDownPredictionCounter] = event.data.byteLength;
                                  mouseDownPredictionCounter++;
-                                 console.log("Received predictions for mouse down");
+                                 //console.log("Received predictions for mouse down: " + event.data.byteLength);
                                  break;
                             case MOUSE_LEFT_UP_PREDICTION:
                                  mouseUpPredictionDatas[mouseUpPredictionCounter] = dataBuffer;
                                  mouseUpPredictionDataSizes[mouseUpPredictionCounter] = event.data.byteLength;
                                  mouseUpPredictionCounter++;
-                                 console.log("Received predictions for mouse up");
+                                 //console.log("Received predictions for mouse up: " + event.data.byteLength);
                                  break;
                             case MOUSE_LEFT_CLICK_PREDICTION:
                                  mouseClickPredictionDatas[mouseClickPredictionCounter] = dataBuffer;
                                  mouseClickPredictionDataSizes[mouseClickPredictionCounter] = event.data.byteLength;
                                  mouseClickPredictionCounter++;
-                                 console.log("Received predictions for mouse click");
+                                 //console.log("Received predictions for mouse click: " + event.data.byteLength);
                                  break;
                         }
                     }
@@ -1206,7 +1211,7 @@ function sendMouseMoveEventToServer(evt)
     }
 }
 
-window.setInterval(commitPendingMouseEvents, MOUSE_INTERVAL_MILLIS);
+window.setInterval(commitPendingMouseEvents, MOUSE_INTERVAL_MILLIS * 5);
 
 var CLIPBOARD_PASTE_EVENT_CODE = 403;
 var CLIPBOARD_COPY_EVENT_CODE = 404;

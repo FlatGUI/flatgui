@@ -202,10 +202,10 @@ public class FGContainer implements IFGContainer
                 useFork = true;
                 System.out.println("Hit prediction for " + evolveReason);
             }
-            else if (!forks_.isEmpty() && evolveReason instanceof MouseEvent)
-            {
-                System.out.println("Missed prediction for " + evolveReason);
-            }
+//            else if (!forks_.isEmpty() && evolveReason instanceof MouseEvent)
+//            {
+//                System.out.println("Missed prediction for " + evolveReason);
+//            }
         }
 
         Future<FGEvolveResultData> resultFuture;

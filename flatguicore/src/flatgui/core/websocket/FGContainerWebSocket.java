@@ -73,7 +73,10 @@ public class FGContainerWebSocket implements WebSocketListener
             @Override
             public void run()
             {
-                sendPredictionsIfNeeded();
+                if (System.currentTimeMillis() - latestInputEventTimestamp_ > SEND_PREDICTIONS_THRESHOLD && !predictionsSent_)
+                {
+                    //sendPredictionsIfNeeded();
+                }
             }
         }, SEND_PREDICTIONS_THRESHOLD, SEND_PREDICTIONS_THRESHOLD);
 
@@ -153,6 +156,10 @@ public class FGContainerWebSocket implements WebSocketListener
         processInputEvent(e);
         container_.clearForks();
         predictionsSent_ = false;
+        if (e instanceof MouseEvent)
+        {
+            sendPredictionsIfNeeded();
+        }
     }
 
     @Override
@@ -212,29 +219,33 @@ public class FGContainerWebSocket implements WebSocketListener
 
     void sendPredictionsIfNeeded()
     {
-        if (System.currentTimeMillis() - latestInputEventTimestamp_ > SEND_PREDICTIONS_THRESHOLD && !predictionsSent_)
+        synchronized (this)
         {
-            synchronized (this)
+            List<MouseEvent> clickEvents = predictor_.leftClickInLatestPosition();
+            if (clickEvents != null)
             {
-                List<MouseEvent> clickEvents = predictor_.leftClickInLatestPosition();
-                if (clickEvents != null)
+                boolean anyPrediction = false;
+                for (int i = 0; i < FGWebContainerWrapper.MOUSE_LEFT_CLICK_PREDICTION_SEQUENCE.length; i++)
                 {
-                    for (int i = 0; i < FGWebContainerWrapper.MOUSE_LEFT_CLICK_PREDICTION_SEQUENCE.length; i++)
+                    Object evolveReason = clickEvents.get(i);
+                    Future<FGEvolveResultData> evolveResultFuture = container_.feedEvent(new FGEvolveInputData(evolveReason, true));
+                    Collection<ByteBuffer> response = container_.getForkedResponseForClient(evolveReason, evolveResultFuture);
+                    if (response.size() > 0)
                     {
-                        Object evolveReason = clickEvents.get(i);
-                        Future<FGEvolveResultData> evolveResultFuture = container_.feedEvent(new FGEvolveInputData(evolveReason, true));
-                        Collection<ByteBuffer> response = container_.getForkedResponseForClient(evolveReason, evolveResultFuture);
-                        if (response.size() > 0)
-                        {
-                            sendBytesToRemote(ByteBuffer.wrap(new byte[]{FGWebContainerWrapper.MOUSE_LEFT_CLICK_PREDICTION_SEQUENCE[i]}));
-                            response.forEach(this::sendBytesToRemote);
-                        }
+                        response.forEach(b -> System.out.print(b.capacity() + "|"));
+
+                        sendBytesToRemote(ByteBuffer.wrap(new byte[]{FGWebContainerWrapper.MOUSE_LEFT_CLICK_PREDICTION_SEQUENCE[i]}));
+                        response.forEach(this::sendBytesToRemote);
+                        anyPrediction = true;
                     }
+                }
+                if (anyPrediction)
+                {
                     sendBytesToRemote(ByteBuffer.wrap(new byte[]{FGWebContainerWrapper.FINISH_PREDICTION_TRANSMISSION}));
                     predictionsSent_ = true;
-
-                    System.out.println("Sent predictions for mouse click.");
                 }
+
+                System.out.println("Sent predictions for mouse click.");
             }
         }
     }
