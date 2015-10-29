@@ -6,7 +6,6 @@
 ; the terms of this license.
 ; You must not remove this notice, or any other, from this software.
 
-;breaks IDE (load-string (slurp "../projectcommon.clj"))
 (def flatgui-version "0.1.0-SNAPSHOT")
 
 (def jetty-version "9.2.7.v20150116")
