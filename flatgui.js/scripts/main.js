@@ -471,11 +471,13 @@ var SET_CURSOR_COMMAND_CODE = 66;
 var PUSH_TEXT_TO_CLIPBOARD = 67;
 
 var TRANSMISSION_MODE_FIRST = 68;
-var TRANSMISSION_MODE_LAST = 71;
+var TRANSMISSION_MODE_LAST = 73;
 var FINISH_PREDICTION_TRANSMISSION = TRANSMISSION_MODE_FIRST;
 var MOUSE_LEFT_DOWN_PREDICTION = 69;
 var MOUSE_LEFT_UP_PREDICTION = 70;
 var MOUSE_LEFT_CLICK_PREDICTION = 71;
+var MOUSE_MOVE_OR_DRAG_PREDICTION_HEADER = 72;
+var MOUSE_MOVE_OR_DRAG_PREDICTION = 73;
 
 var CURSORS_BY_CODE = [
   "alias",
@@ -843,6 +845,9 @@ function displayStatus(msg)
     //messages.innerHTML = "Connection status: " + msg;
 }
 
+var lastMouseX = -1;
+var lastMouseY = -1;
+
 /**
  * WebSocket
  */
@@ -863,6 +868,15 @@ var mouseUpPredictionCounter = 0;
 var mouseClickPredictionDatas = [];
 var mouseClickPredictionDataSizes = [];
 var mouseClickPredictionCounter = 0;
+
+var mouseMovePredictionsPerPoint = 0;
+var mouseMovePredictionX = [];
+var mouseMovePredictionY = [];
+var mouseMovePredictionBufIndices = [];
+var mouseMovePredictionBufCount = 0;
+var mouseMovePredictionBufCounter = 0;
+var mouseMovePredictionBufs = [];
+var mouseMovePredictionBufSizes = [];
 
 function openSocket()
 {
@@ -912,17 +926,28 @@ function openSocket()
                         case MOUSE_LEFT_CLICK_PREDICTION:
                              mouseClickPredictionCounter = 0;
                              break;
+                        case MOUSE_MOVE_OR_DRAG_PREDICTION_HEADER:
+                             var c = 1;
+                             mouseMovePredictionsPerPoint = dataBuffer[c];
+                             c++;
+                             for (var pnt=0; pnt<mouseMovePredictionsPerPoint; pnt++)
+                             {
+                                var deltas = dataBuffer[c];
+                                mouseMovePredictionX[pnt] = lastMouseX + (deltas & MASK_LB) - 8;
+                                mouseMovePredictionY[pnt] = lastMouseY + ((deltas & MASK_HB) >> 4) - 8;
+                                c++;
+                                mouseMovePredictionBufIndices[pnt] = dataBuffer[c];
+                                c++;
+                             }
+                             mouseMovePredictionBufCount = dataBuffer[c];
+                             transmissionMode = MOUSE_MOVE_OR_DRAG_PREDICTION;
+                             break;
                     }
                 }
                 else
                 {
                     if (transmissionMode == FINISH_PREDICTION_TRANSMISSION)
                     {
-//                        if (event.data.byteLength > 0 && mouseDown)
-//                        {
-//                            console.log("Drag bytes received: " + event.data.byteLength);
-//                        }
-
                         decodeCommandVector(dataBuffer, event.data.byteLength);
                     }
                     else
@@ -946,6 +971,11 @@ function openSocket()
                                  mouseClickPredictionDataSizes[mouseClickPredictionCounter] = event.data.byteLength;
                                  mouseClickPredictionCounter++;
                                  //console.log("Received predictions for mouse click: " + event.data.byteLength);
+                                 break;
+                            case MOUSE_MOVE_OR_DRAG_PREDICTION:
+                                 mouseMovePredictionBufs[mouseMovePredictionBufCounter] = dataBuffer;
+                                 mouseMovePredictionBufSizes[mouseMovePredictionBufCounter] = event.data.byteLength;
+                                 mouseMovePredictionBufCounter++;
                                  break;
                         }
                     }
@@ -1001,8 +1031,6 @@ function sendEventToServer(evt)
 }
 
 var mouseDown = false;
-var lastMouseX = -1;
-var lastMouseY = -1;
 var lastMouseDragTime = 0;
 var lastUnprocessedMouseDrag;
 var lastUnprocessedMouseMove;
@@ -1038,7 +1066,7 @@ function sendMouseDownEventToServer(evt)
 {
     if (transmissionMode == FINISH_PREDICTION_TRANSMISSION && mouseDownPredictionCounter > 0)
     {
-        console.log("mouse down - hit prediction (" + mouseDownPredictionCounter + " predictions)");
+        //console.log("mouse down - hit prediction (" + mouseDownPredictionCounter + " predictions)");
         for (var i=0; i<mouseDownPredictionCounter; i++)
         {
             decodeCommandVector(mouseDownPredictionDatas[i], mouseDownPredictionDataSizes[i]);
@@ -1046,10 +1074,6 @@ function sendMouseDownEventToServer(evt)
         mouseDownPredictionDatas = [];
         mouseDownPredictionDataSizes = [];
         mouseDownPredictionCounter = 0;
-    }
-    else
-    {
-        console.log("mouse down - missed prediction");
     }
     mouseDown = true;
     sendEventToServer(storeMouseEventAndGetEncoded(evt, 501));
@@ -1083,7 +1107,7 @@ function sendMouseUpEventToServer(evt)
 {
     if (transmissionMode == FINISH_PREDICTION_TRANSMISSION && mouseUpPredictionCounter > 0)
     {
-        console.log("mouse Up - hit prediction (" + mouseUpPredictionCounter + " predictions)");
+        //console.log("mouse Up - hit prediction (" + mouseUpPredictionCounter + " predictions)");
         for (var i=0; i<mouseUpPredictionCounter; i++)
         {
             decodeCommandVector(mouseUpPredictionDatas[i], mouseUpPredictionDataSizes[i]);
@@ -1091,10 +1115,6 @@ function sendMouseUpEventToServer(evt)
         mouseUpPredictionDatas = [];
         mouseUpPredictionDataSizes = [];
         mouseUpPredictionCounter = 0;
-    }
-    else
-    {
-        console.log("mouse Up - missed prediction");
     }
     commitLastUnprocessedMouseDrag();
     mouseDown = false;
@@ -1105,7 +1125,7 @@ function sendMouseClickEventToServer(evt)
 {
     if (transmissionMode == FINISH_PREDICTION_TRANSMISSION && mouseClickPredictionCounter > 0)
     {
-        console.log("mouse Click - hit prediction (" + mouseClickPredictionCounter + " predictions)");
+        //console.log("mouse Click - hit prediction (" + mouseClickPredictionCounter + " predictions)");
         for (var i=0; i<mouseClickPredictionCounter; i++)
         {
             decodeCommandVector(mouseClickPredictionDatas[i], mouseClickPredictionDataSizes[i]);
@@ -1113,10 +1133,6 @@ function sendMouseClickEventToServer(evt)
         mouseClickPredictionDatas = [];
         mouseClickPredictionDataSizes = [];
         mouseClickPredictionCounter = 0;
-    }
-    else
-    {
-        console.log("mouse Click - missed prediction");
     }
     sendEventToServer(storeMouseEventAndGetEncoded(evt, 500));
 }
@@ -1149,6 +1165,29 @@ function sendMouseMoveEventToServer(evt)
         mouseClickPredictionDatas = [];
         mouseClickPredictionDataSizes = [];
         mouseClickPredictionCounter = 0;
+
+        // See if this point is already predicted
+        for (var i=0; i<mouseMovePredictionsPerPoint; i++)
+        {
+            if (mouseMovePredictionX[i] == x && mouseMovePredictionY[i] == y)
+            {
+                var bufIndex = mouseMovePredictionBufIndices[i];
+                if (mouseMovePredictionBufs[bufIndex] && mouseMovePredictionBufSizes[bufIndex])//TODO Not clear why no buffer sometimes
+                {
+                    decodeCommandVector(mouseMovePredictionBufs[bufIndex], mouseMovePredictionBufSizes[bufIndex]);
+                    mouseMovePredictionsPerPoint = 0;
+                    mouseMovePredictionY = [];
+                    mouseMovePredictionY = [];
+                    mouseMovePredictionBufIndices = [];
+                    mouseMovePredictionBufCount = 0;
+                    mouseMovePredictionBufCounter = 0;
+                    mouseMovePredictionBufs = [];
+                    mouseMovePredictionBufSizes = [];
+                    console.log("Used prediction for move " + x + " " + y);
+                    return;
+                }
+            }
+        }
 
         if (mouseDown)
         {

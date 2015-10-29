@@ -51,6 +51,11 @@ public class Tuple
         return get(1);
     }
 
+    public <T> T getThird()
+    {
+        return get(2);
+    }
+
     // General
 
     @Override

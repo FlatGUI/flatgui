@@ -50,6 +50,8 @@ public class FGWebContainerWrapper
     public static final byte MOUSE_LEFT_DOWN_PREDICTION = 69;
     public static final byte MOUSE_LEFT_UP_PREDICTION = 70;
     public static final byte MOUSE_LEFT_CLICK_PREDICTION = 71;
+    public static final byte MOUSE_MOVE_OR_DRAG_PREDICTION_HEADER = 72;
+    public static final byte MOUSE_MOVE_OR_DRAG_PREDICTION = 73;
 
     public static final byte[] MOUSE_LEFT_CLICK_PREDICTION_SEQUENCE = new byte[]
     {
@@ -115,7 +117,7 @@ public class FGWebContainerWrapper
     public synchronized Future<FGEvolveResultData> feedEvent(FGEvolveInputData inputData)
     {
         // TODO get rid of eventConsumer_, call fgContainer_
-        Future<FGEvolveResultData> changedPathsFuture = eventConsumer_.apply(inputData);
+        Future<FGEvolveResultData> changedPathsFuture = fgContainer_.feedEvent(inputData); //eventConsumer_.apply(inputData);
         obtainForkIfNeeded(inputData);
         return changedPathsFuture;
     }

@@ -107,9 +107,16 @@ public class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
         return map;
     }
 
+    public static MouseEvent deriveWithCoordAdjustment(MouseEvent e, int dx, int dy)
+    {
+        return new MouseEvent((Component) e.getSource(), e.getID(), e.getWhen(), e.getModifiers(),
+            e.getX()+dx, e.getY()+dy, e.getXOnScreen(), e.getYOnScreen(),
+            0, false, e.getButton());
+    }
+
     public static MouseEvent deriveWithIdAndButton(MouseEvent e, int id, int button)
     {
-        return new MouseEvent((Component) e.getSource(), id, e.getWhen(), 0,
+        return new MouseEvent((Component) e.getSource(), id, e.getWhen(), e.getModifiers(),
             e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(),
             0, false, button);
     }

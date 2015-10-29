@@ -156,10 +156,11 @@ public class FGContainerWebSocket implements WebSocketListener
         processInputEvent(e);
         container_.clearForks();
         predictionsSent_ = false;
-        if (e instanceof MouseEvent)
-        {
-            sendPredictionsIfNeeded();
-        }
+// TODO This is still experimental
+//        if (e instanceof MouseEvent)
+//        {
+//            sendPredictionsIfNeeded();
+//        }
     }
 
     @Override
@@ -180,16 +181,6 @@ public class FGContainerWebSocket implements WebSocketListener
         //
         // Feed input event received from the remote endpoint to the engine
         //
-
-        // TODO for debug
-//        try
-//        {
-//            if (e instanceof MouseEvent && ((MouseEvent) e).getButton() != MouseEvent.NOBUTTON) Thread.sleep(2500);
-//        }
-//        catch (InterruptedException e1)
-//        {
-//            e1.printStackTrace();
-//        }
 
         Future<FGEvolveResultData> evolveResultFuture = container_.feedEvent(new FGEvolveInputData(e, false));
         if (evolveResultFuture != null)
@@ -221,10 +212,14 @@ public class FGContainerWebSocket implements WebSocketListener
     {
         synchronized (this)
         {
+            int sentForClick = 0;
+            int sentForMove = 0;
+            int movePredictionCount = 0;
+
+            boolean anyPrediction = false;
             List<MouseEvent> clickEvents = predictor_.leftClickInLatestPosition();
             if (clickEvents != null)
             {
-                boolean anyPrediction = false;
                 for (int i = 0; i < FGWebContainerWrapper.MOUSE_LEFT_CLICK_PREDICTION_SEQUENCE.length; i++)
                 {
                     Object evolveReason = clickEvents.get(i);
@@ -232,20 +227,90 @@ public class FGContainerWebSocket implements WebSocketListener
                     Collection<ByteBuffer> response = container_.getForkedResponseForClient(evolveReason, evolveResultFuture);
                     if (response.size() > 0)
                     {
-                        response.forEach(b -> System.out.print(b.capacity() + "|"));
+                        //response.forEach(b -> System.out.print(b.capacity() + "|"));
 
                         sendBytesToRemote(ByteBuffer.wrap(new byte[]{FGWebContainerWrapper.MOUSE_LEFT_CLICK_PREDICTION_SEQUENCE[i]}));
                         response.forEach(this::sendBytesToRemote);
+
+                        sentForClick += 1 + response.stream().map(r -> r.capacity()).reduce((a,b) -> a+b).get();
+
                         anyPrediction = true;
                     }
                 }
-                if (anyPrediction)
-                {
-                    sendBytesToRemote(ByteBuffer.wrap(new byte[]{FGWebContainerWrapper.FINISH_PREDICTION_TRANSMISSION}));
-                    predictionsSent_ = true;
-                }
+            }
 
-                System.out.println("Sent predictions for mouse click.");
+//            List<Tuple> moveAroundEvents = predictor_.moveAroundTheLatestEvent();
+//            if (moveAroundEvents != null)
+//            {
+//                List<Tuple> predictionsPerPoint = new ArrayList<>(moveAroundEvents.size());
+//
+//                for (Tuple moveEvent : moveAroundEvents)
+//                {
+//                    Integer dx = moveEvent.getFirst();
+//                    Integer dy = moveEvent.getSecond();
+//                    Object evolveReason = moveEvent.getThird();
+//
+//                    Future<FGEvolveResultData> evolveResultFuture = container_.feedEvent(new FGEvolveInputData(evolveReason, true));
+//                    Collection<ByteBuffer> response = container_.getForkedResponseForClient(evolveReason, evolveResultFuture);
+//                    if (response.size() > 0)
+//                    {
+//                        predictionsPerPoint.add(Tuple.triple(dx, dy, response));
+//                        anyPrediction = true;
+//                    }
+//                }
+//
+//                if (!predictionsPerPoint.isEmpty())
+//                {
+//                    List<Collection<ByteBuffer>> uniqueResponses = new ArrayList<>(moveAroundEvents.size());
+//
+//                    ByteArrayOutputStream stream = new ByteArrayOutputStream();
+//
+//                    stream.write(FGWebContainerWrapper.MOUSE_MOVE_OR_DRAG_PREDICTION_HEADER);
+//                    stream.write((byte)predictionsPerPoint.size());
+//
+//                    for (Tuple predictionPerPoint : predictionsPerPoint)
+//                    {
+//                        Integer dx = predictionPerPoint.getFirst();
+//                        Integer dy = predictionPerPoint.getSecond();
+//                        Collection<ByteBuffer> response = predictionPerPoint.getThird();
+//                        int index = uniqueResponses.indexOf(response);
+//                        if (index < 0)
+//                        {
+//                            index = uniqueResponses.size();
+//                            uniqueResponses.add(response);
+//                        }
+//                        // Support from -8 to 7 for both axis deltas, and 256 unique indices
+//
+//                        stream.write((byte)((dx + 8) | ((dy + 8) << 4)));
+//                        stream.write((byte)index);
+//
+//                        sentForMove += 3;
+//                    }
+//                    stream.write((byte)uniqueResponses.size());
+//                    sendBytesToRemote(ByteBuffer.wrap(stream.toByteArray()));
+//                    // Here the remote automatically switches to MOUSE_MOVE_OR_DRAG_PREDICTION mode
+//
+//                    movePredictionCount = uniqueResponses.size();
+//
+//                    for (Collection<ByteBuffer> response : uniqueResponses)
+//                    {
+//                        response.forEach(this::sendBytesToRemote);
+//                        for (ByteBuffer b : response)
+//                        {
+//                            sentForMove += b.capacity();
+//                        }
+//                    }
+//                }
+//            }
+
+            if (anyPrediction)
+            {
+                sendBytesToRemote(ByteBuffer.wrap(new byte[]{FGWebContainerWrapper.FINISH_PREDICTION_TRANSMISSION}));
+                predictionsSent_ = true;
+                if (sentForMove > 0)
+                {
+                    //System.out.println("Sent predictions Click=" + sentForClick + "b Move=" + sentForMove + "b MoveCnt=" + movePredictionCount);
+                }
             }
         }
     }

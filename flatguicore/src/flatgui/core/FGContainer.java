@@ -188,10 +188,6 @@ public class FGContainer implements IFGContainer
     {
         IFGModule module = resolveModuleToWorkOn(inputData);
         Object evolveReason = inputData.getEvolveReason();
-//        if (evolveReason instanceof MouseEvent)
-//        {
-//            System.out.println("-DLTEMP-FGContainer " + inputData + "->" + module);
-//        }
         boolean useFork = false;
 
         if (!inputData.shouldFork())
@@ -202,10 +198,6 @@ public class FGContainer implements IFGContainer
                 useFork = true;
                 System.out.println("Hit prediction for " + evolveReason);
             }
-//            else if (!forks_.isEmpty() && evolveReason instanceof MouseEvent)
-//            {
-//                System.out.println("Missed prediction for " + evolveReason);
-//            }
         }
 
         Future<FGEvolveResultData> resultFuture;
@@ -221,7 +213,10 @@ public class FGContainer implements IFGContainer
                 try
                 {
                     FGEvolveResultData resultData = cycleFn.apply(module);
-                    notifyEvolveConsumers();
+                    if (!inputData.shouldFork())
+                    {
+                        notifyEvolveConsumers(module);
+                    }
                     return resultData;
                 }
                 catch (Throwable ex)
@@ -325,19 +320,19 @@ public class FGContainer implements IFGContainer
         return FGEvolveResultData.EMPTY;
     }
 
-    private void notifyEvolveConsumers()
+    private void notifyEvolveConsumers(IFGModule module)
     {
         evolveConsumers_.stream()
-            .filter(this::shouldInvokeEvolveConsumer)
+            .filter(consumer -> shouldInvokeEvolveConsumer(module, consumer))
             .forEach(consumer ->
                 new Thread(() ->
-                    consumer.acceptEvolveResult(null, module_.getContainer()),
+                    consumer.acceptEvolveResult(null, module.getContainer()),
                     "FlatGUI Evolver Consumer Notifier").start());
     }
 
-    private boolean shouldInvokeEvolveConsumer(IFGEvolveConsumer consumer)
+    private static boolean shouldInvokeEvolveConsumer(IFGModule module, IFGEvolveConsumer consumer)
     {
-        Map<Object, Object> container = (Map<Object, Object>) module_.getContainer();
+        Map<Object, Object> container = (Map<Object, Object>) module.getContainer();
 
         for (List<Keyword> path : consumer.getTargetPaths())
         {
