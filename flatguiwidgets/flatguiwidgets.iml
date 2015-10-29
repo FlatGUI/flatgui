@@ -29,6 +29,7 @@
     <orderEntry type="library" name="Leiningen: org.eclipse.jetty/jetty-servlets:9.2.7.v20150116" level="project" />
     <orderEntry type="library" name="Leiningen: org.eclipse.jetty/jetty-util:9.2.7.v20150116" level="project" />
     <orderEntry type="library" name="Leiningen: org.hamcrest/hamcrest-core:1.3" level="project" />
+    <orderEntry type="module" module-name="flatguithemes" />
     <orderEntry type="module" module-name="flatguiskins" />
     <orderEntry type="module" module-name="flatguicore" />
   </component>

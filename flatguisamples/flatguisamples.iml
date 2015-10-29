@@ -9,10 +9,19 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="Clojure-1.7.0" level="project" />
     <orderEntry type="module" module-name="flatguicore" />
     <orderEntry type="module" module-name="flatguiskins" />
     <orderEntry type="module" module-name="flatguithemes" />
     <orderEntry type="module" module-name="flatguiwidgets" />
+    <orderEntry type="library" name="Leiningen: org.clojure/clojure:1.6.0" level="project" />
+    <orderEntry type="library" name="Leiningen: org.eclipse.jetty/jetty-server:9.2.7.v20150116" level="project" />
+    <orderEntry type="library" name="Leiningen: org.eclipse.jetty/jetty-servlet:9.2.7.v20150116" level="project" />
+    <orderEntry type="library" name="Leiningen: org.eclipse.jetty.websocket/websocket-servlet:9.2.7.v20150116" level="project" />
+    <orderEntry type="library" name="Leiningen: org.eclipse.jetty/jetty-util:9.2.7.v20150116" level="project" />
+    <orderEntry type="library" name="Leiningen: javax.servlet/javax.servlet-api:3.1.0" level="project" />
+    <orderEntry type="library" name="Leiningen: org.eclipse.jetty.websocket/websocket-api:9.2.7.v20150116" level="project" />
+    <orderEntry type="library" name="Leiningen: org.eclipse.jetty/jetty-servlets:9.2.7.v20150116" level="project" />
+    <orderEntry type="library" name="org.eclipse.jetty.osgi:jetty-httpservice:9.2.7.v20150116" level="project" />
+    <orderEntry type="library" name="org.eclipse.jetty.websocket:javax-websocket-server-impl:9.2.7.v20150116" level="project" />
   </component>
 </module>
