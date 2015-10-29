@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Leiningen: org.eclipse.jetty.websocket/websocket-servlet:9.2.7.v20150116">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/eclipse/jetty/websocket/websocket-servlet/9.2.7.v20150116/websocket-servlet-9.2.7.v20150116.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
