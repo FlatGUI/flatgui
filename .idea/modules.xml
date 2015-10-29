@@ -4,6 +4,9 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/flatgui.iml" filepath="$PROJECT_DIR$/flatgui.iml" />
       <module fileurl="file://$PROJECT_DIR$/flatguicore/flatguicore.iml" filepath="$PROJECT_DIR$/flatguicore/flatguicore.iml" />
+      <module fileurl="file://$PROJECT_DIR$/flatguisamples/flatguisamples.iml" filepath="$PROJECT_DIR$/flatguisamples/flatguisamples.iml" />
+      <module fileurl="file://$PROJECT_DIR$/flatguiskins/flatguiskins.iml" filepath="$PROJECT_DIR$/flatguiskins/flatguiskins.iml" />
+      <module fileurl="file://$PROJECT_DIR$/flatguithemes/flatguithemes.iml" filepath="$PROJECT_DIR$/flatguithemes/flatguithemes.iml" />
       <module fileurl="file://$PROJECT_DIR$/flatguiwidgets/flatguiwidgets.iml" filepath="$PROJECT_DIR$/flatguiwidgets/flatguiwidgets.iml" />
     </modules>
   </component>
