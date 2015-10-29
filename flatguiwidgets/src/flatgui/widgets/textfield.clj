@@ -377,11 +377,20 @@
     old-cursor))
 
 (defn textfield-dflt-text-suplier [component]
-  (if (not
-        (#{KeyEvent/VK_BACK_SPACE KeyEvent/VK_DELETE KeyEvent/VK_LEFT KeyEvent/VK_RIGHT
-           KeyEvent/VK_HOME KeyEvent/VK_END KeyEvent/VK_UP KeyEvent/VK_DOWN
-           KeyEvent/VK_PAGE_UP KeyEvent/VK_PAGE_DOWN}
-          (keyboard/get-key component)))
+  (if (or
+        ;; temp fix: it kills apostrophe because it's 0x27, same as VK_RIGHT
+        (and
+          (keyboard/key-typed? component)
+          (not
+            (#{KeyEvent/VK_BACK_SPACE KeyEvent/VK_DELETE KeyEvent/VK_LEFT
+               KeyEvent/VK_HOME KeyEvent/VK_END KeyEvent/VK_UP KeyEvent/VK_DOWN
+               KeyEvent/VK_PAGE_UP KeyEvent/VK_PAGE_DOWN}
+              (keyboard/get-key component))))
+        (not
+          (#{KeyEvent/VK_BACK_SPACE KeyEvent/VK_DELETE KeyEvent/VK_LEFT KeyEvent/VK_RIGHT
+             KeyEvent/VK_HOME KeyEvent/VK_END KeyEvent/VK_UP KeyEvent/VK_DOWN
+             KeyEvent/VK_PAGE_UP KeyEvent/VK_PAGE_DOWN}
+            (keyboard/get-key component))))
     (keyboard/get-key-str component)
     ""))
 
