@@ -195,21 +195,23 @@ public class FGInputEventDecoder
                 }
                 charCode = (char)(charCodeHi*256+charCodeLo);
 
+                //System.out.println("-DLTEMP- KeyBinaryParser.parseImpl " + keyCode + " " + charCode + " " + (int)charCode);
+
                 if (keyCode == 0x0D)
                 {
                     keyCode = KeyEvent.VK_ENTER;  // 0x0A
                     charCode = KeyEvent.VK_ENTER; // 0x0A
                 }
-                else if (keyCode == KeyEvent.VK_PERIOD) // Here we get regular Del as num keyboard period key when num lock is off
+                else if (keyCode == KeyEvent.VK_PERIOD && charCode == 0) // Here we get regular Del as num keyboard period key when num lock is off
                 {
                     keyCode = KeyEvent.VK_DELETE;
                     charCode = KeyEvent.VK_DELETE;
                 }
-                /// TODO This does not help for typing period in num keyboard
-                //else if (keyCode == KeyEvent.VK_DECIMAL)
-                //{
-                //    charCode = '.';
-                //}
+                else if (keyCode == 0xBE) // Period in all browsers
+                {
+                    keyCode = KeyEvent.VK_PERIOD;
+                    charCode = '.';
+                }
 
                 // TODO send modifiers from client
 

@@ -10,7 +10,6 @@
 package flatgui.core;
 
 import java.awt.event.KeyEvent;
-import java.util.*;
 
 /**
  * @author Denys Lebediev

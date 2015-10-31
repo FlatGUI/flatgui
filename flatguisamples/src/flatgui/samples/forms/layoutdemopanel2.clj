@@ -10,6 +10,8 @@
   (:require [flatgui.util.matrix :as m]
             [flatgui.base :as fg]
             [flatgui.awt :as awt]
+            [flatgui.inputchannels.keyboard :as keyboard]
+            [flatgui.inputchannels.awtbase :as inputbase]
             [flatgui.theme]
             [flatgui.layout]
             [flatgui.widgets.label :as label]
@@ -18,7 +20,8 @@
             [flatgui.widgets.textfield :as textfield]
             [flatgui.widgets.panel :as panel]
             [flatgui.widgets.button :as button]
-            [flatgui.widgets.scrollpanel :as scrollpanel]))
+            [flatgui.widgets.scrollpanel :as scrollpanel])
+  (:import (java.awt.event KeyEvent)))
 
 (def layout-cfg
   [[[:a :-] [:a :-] [:a :-] [:b :c :d :-]]
@@ -27,9 +30,13 @@
    [[:m :|] [:n :|] [:o :|] [:p :|]]])
 
 (fg/defevolverfn :layout
-  (if (and
-        (= (fg/get-reason) [:config :apply])
-        (abtn/button-pressed? (get-property [:config :apply] :pressed-trigger)))
+  (if (or
+        (and
+          (= (fg/get-reason) [:config :apply])
+          (abtn/button-pressed? (get-property [:config :apply] :pressed-trigger)))
+        (and
+          (= (fg/get-reason) [:config :scroll :content-pane :textfield])
+          (abtn/button-pressed? (get-property [:config :scroll :content-pane :textfield] :pressed-trigger))))
     (read-string (get-property [:config :scroll :content-pane :textfield] :text))
     old-layout))
 
@@ -77,6 +84,15 @@
         (catch Exception e (do (println "Config invalid: " (.getMessage e)) false)))
       false)))
 
+(fg/defevolverfn shortcut-pressed-evolver :pressed
+  (cond
+    (and
+      (keyboard/key-pressed? component)
+      (inputbase/with-ctrl? component)
+      (= (keyboard/get-key component) KeyEvent/VK_A)) true
+    (keyboard/key-released? component) false
+    :else old-pressed))
+
 (def layout-window
   (fg/defcomponent
     window/window
@@ -105,19 +121,21 @@
                                                             :auto-size true
                                                             :paint-border false
                                                             :model text-model
-                                                            :text (:text text-model)})}})}})
+                                                            :text (:text text-model)
+                                                            :evolvers {:pressed shortcut-pressed-evolver
+                                                                       :pressed-trigger abtn/pressed-trigger-evolver}})}})}})
 
     (fg/defcomponent label/label :validity-indicator
       {:text "Valid"
        :foreground (awt/color 64 255 64)
        :evolvers {:text (fg/accessorfn (if (get-property component [] :config-valid)
-                                         "Valid"
-                                         "Not valid"))
+                                         "Current config: valid"
+                                         "Current config: invalid"))
                   :foreground (fg/accessorfn (if (get-property component [] :config-valid)
                                                (awt/color 64 255 64)
                                                (awt/color 255 64 64)))}})
 
-    (fg/defcomponent button/button :apply {:text "Apply"})))
+    (fg/defcomponent button/button :apply {:text "Apply (Ctrl+A)"})))
 
 (def root-panel
   (fg/defcomponent

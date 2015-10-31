@@ -20,7 +20,10 @@
 
 
 
+;; TODO remove this, use mouse-event?
 (definputparser is-mouse-event? MouseEvent true)
+
+(definputparser mouse-event? MouseEvent true)
 
 (definputparser get-mouse-button MouseEvent (.getButton repaint-reason))
 

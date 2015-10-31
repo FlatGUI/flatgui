@@ -352,17 +352,16 @@
                has-changes (or prev-has-changes new-has-changes)
                with-evolved-target (assoc with-evolved-target-fresh :has-changes has-changes)
                new-aux (:aux-container with-evolved-target)
-              ; _ (if (and
-              ;         (= [:main :hello] target-id-path)
-              ;         (get-in new-aux (fgc/conjv k :latest-changed-properties))
-              ;         ((get-in new-aux (fgc/conjv k :latest-changed-properties)) :position-bound))
-              ;     (println " JUST EVOLVED target-id-path " target-id-path
-              ;       " new-has-changes " new-has-changes
-              ;       " init " initialization
-              ;       (if (:position-bound (get-in new-aux (fgc/conjv k :latest-changed-properties)))
-              ;                               ((get-in new-aux (fgc/conjv k :latest-changed-properties)) :position-bound))
-              ;       " position-bound " (get-in container (fgc/conjv k :position-bound)) "->" (get-in with-evolved-target (fgc/conjv k :position-bound))
-              ;       ))
+               ;_ (if (and
+               ;        (= [:main :config :scroll :content-pane :textfield] target-id-path)
+               ;        (get-in new-aux (fgc/conjv k :latest-changed-properties))
+               ;        ((get-in new-aux (fgc/conjv k :latest-changed-properties)) :pressed-trigger))
+               ;    (println " JUST EVOLVED target-id-path " target-id-path
+               ;      " new-has-change: " new-has-changes
+               ;     ;" init " initialization
+               ;      " pressed-trigger among changed:" ((get-in new-aux (fgc/conjv k :latest-changed-properties)) :pressed-trigger)
+               ;      " pressed-trigger: " (get-in container (fgc/conjv k :pressed-trigger)) "->" (get-in with-evolved-target (fgc/conjv k :pressed-trigger))
+               ;      ))
                ]
               ;@todo Without this initialization check :children for table content pane do not get evolved on initialization. Why?
               (if (or new-has-changes (and initialization has-changes))
