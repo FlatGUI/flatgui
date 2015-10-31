@@ -58,8 +58,15 @@ flatgui.widgets.abstractbutton
     :else old-pressed))
 
 (fg/defevolverfn :pressed-trigger
-  (let [ pressed (get-property component [:this] :pressed)]
-    [(nth old-pressed-trigger 1) pressed]))
+  ;; Important: :pressed-trigger should change only as a concequence of :pressed change. Otherwise
+  ;; if it is changed during the same evolve call with :pressed (e.g. input even processing), it is
+  ;; called again by dependency. This means some :pressed-trigger changes are missed (do not invoke
+  ;; dependents). This is why it has if (= (fg/get-reason) [:this]) check. This will not be needed
+  ;; when evolvers are called only for input events they are interested in.
+  (if (= (fg/get-reason) [:this])
+    (let [ pressed (get-property component [:this] :pressed)]
+      [(nth old-pressed-trigger 1) pressed])
+    old-pressed-trigger))
 
 
 (defn button-pressed? [trigger-value]
