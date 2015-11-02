@@ -30,6 +30,10 @@ public class FGCompoundDemoServer
     private static final String FOCUS_CONTAINER_VAR_NAME = "fdemopanel";
     private static final String FOCUS_MAPPING = "focus_sample";
 
+    private static final String LAYOUT_CONTAINER_NS = "layoutdemo2";
+    private static final String LAYOUT_CONTAINER_VAR_NAME = "layoutpanel";
+    private static final String LAYOUT_MAPPING = "layout_sample";
+
     public static void main(String[] args) throws Exception
     {
         InputStream compoundSampleIs = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/compound.clj");
@@ -44,6 +48,10 @@ public class FGCompoundDemoServer
         IFGTemplate focusSampleTemplate = new FGTemplate(focusSampleSourceCode, FOCUS_CONTAINER_NS, FOCUS_CONTAINER_VAR_NAME);
         server.addApplication(FOCUS_MAPPING, focusSampleTemplate);
 
+        InputStream layoutSampleIs = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/layoutdemo2.clj");
+        String layoutSampleSourceCode = new Scanner(layoutSampleIs).useDelimiter("\\Z").next();
+        IFGTemplate layoutSampleTemplate = new FGTemplate(layoutSampleSourceCode, LAYOUT_CONTAINER_NS, LAYOUT_CONTAINER_VAR_NAME);
+        server.addApplication(LAYOUT_MAPPING, layoutSampleTemplate);
 
         server.start();
         server.join();

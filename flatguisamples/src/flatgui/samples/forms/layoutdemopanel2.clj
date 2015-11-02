@@ -24,10 +24,10 @@
   (:import (java.awt.event KeyEvent)))
 
 (def layout-cfg
-  [[[:a :-] [:a :-] [:a :-] [:b :c :d :-]]
-   [[:e]    [:f :<] [:g]    [:h :-|]]
-   [[:i]    [:j :>] [:k]    [:l]]
-   [[:m :|] [:n :|] [:o :|] [:p :|]]])
+  [[[:a :-]  [:a :-] [:a :-] [:b :c :d :-]]
+   [[:e :-'] [:f :<] [:g]    [:h :-|]]
+   [ :i      [:j :>]  :k     [:l]]
+   [[:m :<|] [:n :|] [:o :|] [:p :|]]])
 
 (fg/defevolverfn :layout
   (if (or
@@ -81,7 +81,9 @@
               layout-cfg (flatgui.layout/coord-map-evolver
                            (assoc (get-in (:root-container component) [:children :layoutdemo]) :layout cfg))]
           (if layout-cfg true false))
-        (catch Exception e (do (println "Config invalid: " (.getMessage e)) false)))
+        (catch Exception e (do
+                             ;(println "Config invalid: " (.getMessage e))
+                             false)))
       false)))
 
 (fg/defevolverfn shortcut-pressed-evolver :pressed
@@ -135,7 +137,7 @@
                                                (awt/color 64 255 64)
                                                (awt/color 255 64 64)))}})
 
-    (fg/defcomponent button/button :apply {:text "Apply (Ctrl+A)"})))
+    (fg/defcomponent button/button :apply {:text "Apply (Ctrl+Shift+A)"})))
 
 (def root-panel
   (fg/defcomponent

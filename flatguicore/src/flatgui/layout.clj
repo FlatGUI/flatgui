@@ -16,14 +16,11 @@
   (:import (java.util.regex Pattern)))
 
 
-;(def gap 0.0625)
 (def gap (* (awt/px) 2))
 
 (def component-min-size (m/defpoint 0.375 0.375))
 
 (def component-no-size (m/defpoint 0 0))
-
-;; TODO ' . < >  should work only when there are no stcheching component in the row. Otherwise stretching component(s) take all space
 
 (def cmd->smile {:h-stretch :-
                  :v-stretch :|
@@ -75,9 +72,7 @@
 (fg/defaccessorfn get-element-preferred-size [component element xfn yfn]
   (if (keyword? element)
     (get-child-preferred-size component element)
-    (let [;_ (println "sizes: " (map #(get-element-preferred-size component (:element %) xfn yfn) element) )
-          ]
-      (reduce (gen-v-reducer xfn yfn) (map #(get-element-preferred-size component (:element %) xfn yfn) element)))))
+    (reduce (gen-v-reducer xfn yfn) (map #(get-element-preferred-size component (:element %) xfn yfn) element))))
 
 (fg/defaccessorfn get-element-minimum-size [component element xfn yfn]
   (if (keyword? element)
@@ -144,22 +139,22 @@
 (defn- remove-intermediate-data [m] (dissoc m :stch-weight :total-stch-weight :total-stable-pref))
 
 (defn flagnestedvec->coordmap [flags]
-      (let [fm (flattenmap flags)
-            grouped (group-by :element fm)]
-           ;; In addition to storing all data to map by component id, combine multiple cells
-           ;; possibly taken by single component: compute one big area from them
-           (into {}
-                 (map
-                   (fn [[k v]]
-                       (let [cm (remove-intermediate-data (first v))]
-                            (if (:x cm)
-                              (let [cx (apply min (map :x v))
-                                    rmost (apply max-key (fn [e] (+ (:x e) (:w e))) v)]
-                                   [k (assoc cm :x cx :w (- (+ (:x rmost) (:w rmost)) cx))])
-                              (let [cy (apply min (map :y v))
-                                    bmost (apply max-key (fn [e] (+ (:y e) (:h e))) v)]
-                                   [k (assoc cm :y cy :h (- (+ (:y bmost) (:h bmost)) cy))]))))
-                   grouped))))
+  (let [fm (flattenmap flags)
+        grouped (group-by :element fm)]
+       ;; In addition to storing all data to map by component id, combine multiple cells
+       ;; possibly taken by single component: compute one big area from them
+       (into {}
+             (map
+               (fn [[k v]]
+                   (let [cm (remove-intermediate-data (first v))]
+                        (if (:x cm)
+                          (let [cx (apply min (map :x v))
+                                rmost (apply max-key (fn [e] (+ (:x e) (:w e))) v)]
+                               [k (assoc cm :x cx :w (- (+ (:x rmost) (:w rmost)) cx))])
+                          (let [cy (apply min (map :y v))
+                                bmost (apply max-key (fn [e] (+ (:y e) (:h e))) v)]
+                               [k (assoc cm :y cy :h (- (+ (:y bmost) (:h bmost)) cy))]))))
+               grouped))))
 
 (fg/defaccessorfn assoc-row-constraints [component cfg-row stcher xfn yfn]
   (map
@@ -308,30 +303,26 @@
                    (mapcat
                      (fn [[k v]]
                          (map (fn [e] [(:element e) v]) k))
-                     compounds))
-        ;_ (println "unrolled:" unrolled)
-        ;_ (println "cfg-map" cfg-map)
-        ]
+                     compounds))]
     (into {}
       (map
         (fn [[k v]] [k (if-let [kdata (get unrolled k)] (assoc v :y (:y kdata) :h (:h kdata))  v)])
         cfg-map))))
 
+(defn replace-commands-with-smiles [layout]
+  (mapv
+    (fn [e]
+      (if-let [smile (cmd->smile e)]
+        smile
+        (if (coll? e) (replace-commands-with-smiles e) e)))
+    layout))
+
 (fg/defevolverfn :coord-map
   (if-let [usr-layout (get-property [:this] :layout)]
-    (let [;TODO this does not work layout (if usr-layout (map cmd->smile usr-layout))
-          layout usr-layout
-
-          ;_ (println "X-constr" (assoc-constraints component layout \- + max))
-          ;_ (println "X-compute" (compute-x-dir (assoc-constraints component layout \- + max)))
-
+    (let [layout (if usr-layout (replace-commands-with-smiles usr-layout))
           x-coord-map (map
                         #(map-direction component % \- \< \> m/x :x :w)
                         (compute-x-dir (assoc-constraints component layout \- + max)))
-
-          ;_ (println "X-coord-map" x-coord-map)
-          ;_ (println "X-map-nested-x" (map-nested-x component x-coord-map))
-          ;_ (println "X-map-nested-x-fl" (flatten-mapped-nested (map-nested-x component x-coord-map)))
           x-nofit (some nil? x-coord-map)
 
           x-map-with-nested (if x-nofit nil (flatten-mapped-nested (map-nested-x component x-coord-map)))
@@ -341,7 +332,6 @@
           y-nofit (some nil? y-coord-map)]
       (if (or x-nofit y-nofit)
         (assoc old-coord-map :x-nofit x-nofit :y-nofit y-nofit)
-        ;old-coord-map
         (process-y-compound-keys
           (merge-with merge
                       (flagnestedvec->coordmap x-map-with-nested)
@@ -388,21 +378,3 @@
     (if (and coord-map (:y-nofit coord-map))
       (= (get-property component [:this] :layout-shrink-policy) :shrink)
       true)))
-
-
-;;; 1. After map-direction is used for elements of each row, each row will
-;;; receive it's own set of smile flags. Then map-direction will be used
-;;; for rows
-;;; 2. Split all elements of a direction into two sub-categories:
-;;;   a) elements that do not want extra space
-;;;   b) stretching elements that want extra space
-;;; See how much space totally (a) elements plus minimum sizes of (b) elements want.
-;;;   - if more than avaialble then
-;;;      - either rescale everything accorrding to previous proportions
-;;;      - or if there was nothing previously, distribute equally
-;;;   - if less than or equal to available:
-;;;      - each (a) component receives just what it needs
-;;;      - what remains is distributed between (b) components
-;;;          - either equally if nothing else specified
-;;;          - or according to specified weights (may be specified with digits or
-;;;            with smile lengths like :--- or :|||)
