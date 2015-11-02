@@ -253,7 +253,7 @@ function setClip(codeObj)
     applyCurrentClip();
 }
 
-function getTextLineHeight()
+function getTextLineHeight() // TODO implement properly
 {
     return ctx.measureText("M").width;
 }
@@ -1373,7 +1373,7 @@ function sendKeyDownEventToServer(evt)
     sendEventToServer(getEncodedKeyEvent(evt, 401));
     // Do not let browser process TAB, Backspace, Home, End, Space, arrows
     if (evt.preventDefault && (evt.keyCode == 9 || evt.keyCode == 8 || evt.keyCode == 36 || evt.keyCode == 35 ||
-        evt.keyCode == 37 || evt.keyCode == 38 || evt.keyCode == 39 || evt.keyCode == 40 || evt.keyCode == 32))
+        evt.keyCode == 37 || evt.keyCode == 38 || evt.keyCode == 39 || evt.keyCode == 40))
     {
         evt.preventDefault();
         evt.stopPropagation();
