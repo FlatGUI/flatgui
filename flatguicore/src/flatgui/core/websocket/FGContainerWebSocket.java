@@ -34,6 +34,8 @@ public class FGContainerWebSocket implements WebSocketListener
 {
     private static final long SEND_PREDICTIONS_THRESHOLD = 500;
 
+    private static final int METRICS_INPUT_CODE = 407;
+
     private final FGContainerSessionHolder sessionHolder_;
     // TODO have some template provider instead
     private final IFGTemplate template_;
@@ -136,6 +138,9 @@ public class FGContainerWebSocket implements WebSocketListener
 
         container_.resetCache();
 
+        // Request client metrics
+        sendBytesToRemote(ByteBuffer.wrap(new byte[]{FGWebContainerWrapper.METRICS_REQUEST}));
+
         collectAndSendResponse(null, false);
     }
 
@@ -150,17 +155,26 @@ public class FGContainerWebSocket implements WebSocketListener
     {
         //logger_.debug("Received message #" + debugMessageCount_ + ": " + message);
         fgSession_.markAccesed();
-        latestInputEventTimestamp_ = System.currentTimeMillis();
-        Object e = parser_.getInputEvent(new FGInputEventDecoder.BinaryInput(payload, offset, len));
-        predictor_.considerInputEvent(e);
-        processInputEvent(e);
-        container_.clearForks();
-        predictionsSent_ = false;
+
+        if (payload.length > 0 && payload[0] == METRICS_INPUT_CODE-400)
+        {
+            FGWebInteropUtil interop = (FGWebInteropUtil) container_.getContainer().getInterop();
+            interop.setMetricsTransmission(payload);
+        }
+        else
+        {
+            latestInputEventTimestamp_ = System.currentTimeMillis();
+            Object e = parser_.getInputEvent(new FGInputEventDecoder.BinaryInput(payload, offset, len));
+            predictor_.considerInputEvent(e);
+            processInputEvent(e);
+            container_.clearForks();
+            predictionsSent_ = false;
 // TODO This is still experimental
 //        if (e instanceof MouseEvent)
 //        {
 //            sendPredictionsIfNeeded();
 //        }
+        }
     }
 
     @Override

@@ -25,6 +25,8 @@ public class FGWebInteropUtil implements IFGInteropUtil
     private Font referenceFont_;
     private FontMetrics referenceFontMetrics_;
 
+    private byte[] metricsTransmission_;
+
     public FGWebInteropUtil(int unitSizePx)
     {
         unitSizePx_ = unitSizePx;
@@ -35,8 +37,27 @@ public class FGWebInteropUtil implements IFGInteropUtil
     @Override
     public double getStringWidth(String str)
     {
-        double widthPx = SwingUtilities.computeStringWidth(referenceFontMetrics_, str);
-        return widthPx / unitSizePx_;
+        if (str != null)
+        {
+            double widthPx;
+            if (metricsTransmission_ != null)
+            {
+                widthPx = 0;
+                for (int i = 0; i < str.length(); i++)
+                {
+                    widthPx += metricsTransmission_[str.charAt(i) - 32 + 1];
+                }
+            }
+            else
+            {
+                widthPx = SwingUtilities.computeStringWidth(referenceFontMetrics_, str);
+            }
+            return widthPx / unitSizePx_;
+        }
+        else
+        {
+            return 0;
+        }
     }
 
     @Override
@@ -48,6 +69,11 @@ public class FGWebInteropUtil implements IFGInteropUtil
     }
 
     // Non-public
+
+    public void setMetricsTransmission(byte[] metricsTransmission)
+    {
+        metricsTransmission_ = metricsTransmission;
+    }
 
     void setReferenceFont(Font font)
     {

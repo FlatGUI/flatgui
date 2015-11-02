@@ -471,13 +471,14 @@ var SET_CURSOR_COMMAND_CODE = 66;
 var PUSH_TEXT_TO_CLIPBOARD = 67;
 
 var TRANSMISSION_MODE_FIRST = 68;
-var TRANSMISSION_MODE_LAST = 73;
+var TRANSMISSION_MODE_LAST = 74;
 var FINISH_PREDICTION_TRANSMISSION = TRANSMISSION_MODE_FIRST;
 var MOUSE_LEFT_DOWN_PREDICTION = 69;
 var MOUSE_LEFT_UP_PREDICTION = 70;
 var MOUSE_LEFT_CLICK_PREDICTION = 71;
 var MOUSE_MOVE_OR_DRAG_PREDICTION_HEADER = 72;
 var MOUSE_MOVE_OR_DRAG_PREDICTION = 73;
+var METRICS_REQUEST = 74;
 
 var CURSORS_BY_CODE = [
   "alias",
@@ -845,6 +846,8 @@ function displayStatus(msg)
     //messages.innerHTML = "Connection status: " + msg;
 }
 
+var METRICS_INPUT_CODE = 407;
+
 var lastMouseX = -1;
 var lastMouseY = -1;
 
@@ -941,6 +944,18 @@ function openSocket()
                              }
                              mouseMovePredictionBufCount = dataBuffer[c];
                              transmissionMode = MOUSE_MOVE_OR_DRAG_PREDICTION;
+                             break;
+                        case METRICS_REQUEST:
+                             console.log("Metrics request received")
+                             var bytearray = new Uint8Array(225);
+                             bytearray[0] = METRICS_INPUT_CODE-400;
+                             for (var c=32; c<256; c++)
+                             {
+                                 var s = String.fromCharCode(c);
+                                 bytearray[1+c-32] = ctx.measureText(s).width;
+                             }
+                             webSocket.send(bytearray);
+                             transmissionMode = FINISH_PREDICTION_TRANSMISSION;
                              break;
                     }
                 }
@@ -1356,7 +1371,9 @@ function getEncodedKeyEvent(evt, id)
 function sendKeyDownEventToServer(evt)
 {
     sendEventToServer(getEncodedKeyEvent(evt, 401));
-    if (evt.preventDefault && (evt.keyCode == 9 || evt.keyCode == 8 || evt.keyCode == 36 || evt.keyCode == 35)) // Do not let browser process TAB, Backspace, Home, End
+    // Do not let browser process TAB, Backspace, Home, End, Space, arrows
+    if (evt.preventDefault && (evt.keyCode == 9 || evt.keyCode == 8 || evt.keyCode == 36 || evt.keyCode == 35 ||
+        evt.keyCode == 37 || evt.keyCode == 38 || evt.keyCode == 39 || evt.keyCode == 40 || evt.keyCode == 32))
     {
         evt.preventDefault();
         evt.stopPropagation();
