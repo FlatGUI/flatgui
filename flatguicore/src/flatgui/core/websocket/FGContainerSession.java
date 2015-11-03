@@ -45,7 +45,8 @@ public class FGContainerSession
         containerWrapper_.initialize();
 
         interopUtil_ = (FGWebInteropUtil) container.getInterop();
-        containerWrapper_.addFontStrListener(e -> interopUtil_.setReferenceFont((Font) strToFont_.invoke(e.getNewValue())));
+        containerWrapper_.addFontStrListener(e -> interopUtil_.setReferenceFont(
+                e.getNewValue(), (Font) strToFont_.invoke(e.getNewValue())));
 
         parser_ = new FGInputEventDecoder();
         lastAccessTime_ = new LongAccumulator((r,t) -> t, 0);

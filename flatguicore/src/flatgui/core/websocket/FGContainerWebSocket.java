@@ -138,9 +138,6 @@ public class FGContainerWebSocket implements WebSocketListener
 
         container_.resetCache();
 
-        // Request client metrics
-        sendBytesToRemote(ByteBuffer.wrap(new byte[]{FGWebContainerWrapper.METRICS_REQUEST}));
-
         collectAndSendResponse(null, false);
     }
 

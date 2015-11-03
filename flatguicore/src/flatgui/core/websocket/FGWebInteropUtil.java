@@ -11,6 +11,8 @@ package flatgui.core.websocket;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.HashMap;
+import java.util.Map;
 
 import flatgui.core.IFGInteropUtil;
 
@@ -19,18 +21,17 @@ import flatgui.core.IFGInteropUtil;
  */
 public class FGWebInteropUtil implements IFGInteropUtil
 {
-    // TODO This is still a dummy implementation. Need to deliver font metrics from the client browser.
-
     private final double unitSizePx_;
     private Font referenceFont_;
+    private String referenceFontStr_;
+    private Map<String, byte[]> fontStrToCharMetrics_;
     private FontMetrics referenceFontMetrics_;
-
-    private byte[] metricsTransmission_;
 
     public FGWebInteropUtil(int unitSizePx)
     {
         unitSizePx_ = unitSizePx;
         referenceFont_ = getDefaultFont();
+        fontStrToCharMetrics_ = new HashMap<>();
         updateFontMetrics();
     }
 
@@ -40,12 +41,20 @@ public class FGWebInteropUtil implements IFGInteropUtil
         if (str != null)
         {
             double widthPx;
-            if (metricsTransmission_ != null)
+            byte[] charMetrics = fontStrToCharMetrics_.get(referenceFontStr_);
+            if (charMetrics != null)
             {
                 widthPx = 0;
                 for (int i = 0; i < str.length(); i++)
                 {
-                    widthPx += metricsTransmission_[str.charAt(i) - 32 + 1];
+                    // TODO bug here:
+                    // At least with Firefox, arrow buttons cause text field generate text string containing zeros
+                    // or control chars. So below gives AIOB and that exception happens to prevent garbage to get
+                    // into text field model
+                    //if (str.charAt(i) >= 32)
+                    {
+                        widthPx += charMetrics[str.charAt(i) - 32];
+                    }
                 }
             }
             else
@@ -72,11 +81,28 @@ public class FGWebInteropUtil implements IFGInteropUtil
 
     public void setMetricsTransmission(byte[] metricsTransmission)
     {
-        metricsTransmission_ = metricsTransmission;
+        int fontStrLen = metricsTransmission[1];
+        int charCount = metricsTransmission.length-1-1-fontStrLen;
+
+        byte[] fontStrBytes = new byte[fontStrLen];
+        System.arraycopy(metricsTransmission, 1+1, fontStrBytes, 0, fontStrLen);
+        char[] fontStrChars = new char[fontStrLen];
+        for (int i=0; i<fontStrLen; i++)
+        {
+            fontStrChars[i] = (char) fontStrBytes[i];
+        }
+        String fontStr = String.valueOf(fontStrChars);
+
+        System.out.println("Received metrics for font " + fontStr);
+
+        byte[] charMetrics = new byte[charCount];
+        System.arraycopy(metricsTransmission, 1+1+fontStrLen, charMetrics, 0, charCount);
+        fontStrToCharMetrics_.put(fontStr, charMetrics);
     }
 
-    void setReferenceFont(Font font)
+    void setReferenceFont(String fontStr, Font font)
     {
+        referenceFontStr_ = fontStr;
         referenceFont_ = font;
         updateFontMetrics();
     }

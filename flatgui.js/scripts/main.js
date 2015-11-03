@@ -268,6 +268,28 @@ function fillMultilineTextNoWrap(text, x, y)
     }
 }
 
+var METRICS_INPUT_CODE = 407;
+
+function sendCurrentFontMetricsToSever()
+{
+    var fl = currentFont.length;
+
+    var bytearray = new Uint8Array(1+1+fl+224);
+    bytearray[0] = METRICS_INPUT_CODE-400;
+    bytearray[1] = fl;
+    for (var i=0; i<fl; i++)
+    {
+        bytearray[1+1+i] = currentFont.charCodeAt(i);
+    }
+    for (var c=32; c<256; c++)
+    {
+        var s = String.fromCharCode(c);
+        bytearray[1+1+fl+c-32] = ctx.measureText(s).width;
+    }
+    webSocket.send(bytearray);
+    console.log("Sent font metrics to server: " + currentFont);
+}
+
 function decodeLog(msg)
 {
     //console.log(msg);
@@ -335,11 +357,17 @@ function decodeLookVector(componentIndex, stream, byteLength)
                     c += codeObj.len;
                     break;
                 case CODE_SET_FONT:
+                case CODE_SET_FONT_AND_REQUEST_METRICS:
                     codeObj = decodeFontStrPool(stream, c);
                     if (stringPools[componentIndex] && stringPools[componentIndex][codeObj.i])
                     {
                        currentFont = stringPools[componentIndex][codeObj.i];
                        applyCurrentFont();
+                    }
+                    if (opcodeBase == CODE_SET_FONT_AND_REQUEST_METRICS && currentFont)
+                    {
+                        sendCurrentFontMetricsToSever();
+                        stream[c] = CODE_SET_FONT; // Look vector is cached, so do not repeat sending metrics
                     }
                     c += codeObj.len;
                     break;
@@ -471,14 +499,13 @@ var SET_CURSOR_COMMAND_CODE = 66;
 var PUSH_TEXT_TO_CLIPBOARD = 67;
 
 var TRANSMISSION_MODE_FIRST = 68;
-var TRANSMISSION_MODE_LAST = 74;
+var TRANSMISSION_MODE_LAST = 73;
 var FINISH_PREDICTION_TRANSMISSION = TRANSMISSION_MODE_FIRST;
 var MOUSE_LEFT_DOWN_PREDICTION = 69;
 var MOUSE_LEFT_UP_PREDICTION = 70;
 var MOUSE_LEFT_CLICK_PREDICTION = 71;
 var MOUSE_MOVE_OR_DRAG_PREDICTION_HEADER = 72;
 var MOUSE_MOVE_OR_DRAG_PREDICTION = 73;
-var METRICS_REQUEST = 74;
 
 var CURSORS_BY_CODE = [
   "alias",
@@ -846,8 +873,6 @@ function displayStatus(msg)
     //messages.innerHTML = "Connection status: " + msg;
 }
 
-var METRICS_INPUT_CODE = 407;
-
 var lastMouseX = -1;
 var lastMouseY = -1;
 
@@ -944,18 +969,6 @@ function openSocket()
                              }
                              mouseMovePredictionBufCount = dataBuffer[c];
                              transmissionMode = MOUSE_MOVE_OR_DRAG_PREDICTION;
-                             break;
-                        case METRICS_REQUEST:
-                             console.log("Metrics request received")
-                             var bytearray = new Uint8Array(225);
-                             bytearray[0] = METRICS_INPUT_CODE-400;
-                             for (var c=32; c<256; c++)
-                             {
-                                 var s = String.fromCharCode(c);
-                                 bytearray[1+c-32] = ctx.measureText(s).width;
-                             }
-                             webSocket.send(bytearray);
-                             transmissionMode = FINISH_PREDICTION_TRANSMISSION;
                              break;
                     }
                 }

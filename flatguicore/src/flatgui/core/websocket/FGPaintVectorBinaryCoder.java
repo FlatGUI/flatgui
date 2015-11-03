@@ -1098,9 +1098,12 @@ public class FGPaintVectorBinaryCoder
         private StringPoolIdSupplier stringPoolIdSupplier_;
         private Object componentId_;
 
+        private Set<Integer> alreadyRequestedMetricsFor_;
+
         public SetFontStrPoolCoder(StringPoolIdSupplier stringPoolIdSupplier)
         {
             stringPoolIdSupplier_ = stringPoolIdSupplier;
+            alreadyRequestedMetricsFor_ = new HashSet<>();
         }
 
         @Override
@@ -1128,7 +1131,17 @@ public class FGPaintVectorBinaryCoder
                 return 0;
             }
 
-            stream[n] = 7; // setFont command code
+            // setFont command code (regular one or with instant metrics request)
+            if (alreadyRequestedMetricsFor_.contains(sId))
+            {
+                stream[n] = 7;
+            }
+            else
+            {
+                stream[n] = 8;
+                alreadyRequestedMetricsFor_.add(sId);
+                System.out.println(getClass().getSimpleName() + ": requested metrics for font '" + s + "'");
+            }
             stream[n+1] = sId.byteValue();
             return 2;
         }

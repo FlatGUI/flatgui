@@ -52,7 +52,7 @@ public class FGWebContainerWrapper
     public static final byte MOUSE_LEFT_CLICK_PREDICTION = 71;
     public static final byte MOUSE_MOVE_OR_DRAG_PREDICTION_HEADER = 72;
     public static final byte MOUSE_MOVE_OR_DRAG_PREDICTION = 73;
-    public static final byte METRICS_REQUEST = 74;
+    //public static final byte METRICS_REQUEST = 74; TODO not needed any more, remove it
 
     public static final byte[] MOUSE_LEFT_CLICK_PREDICTION_SEQUENCE = new byte[]
     {

@@ -88,6 +88,7 @@ var CODE_FIT_IMAGE_STRPOOL = 4;
 var CODE_FILL_IMAGE_STRPOOL = 6;
 
 var CODE_SET_FONT = 7;
+var CODE_SET_FONT_AND_REQUEST_METRICS = 8;
 
 
 function readUByte(stream, c)
