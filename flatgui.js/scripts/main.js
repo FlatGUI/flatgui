@@ -20,7 +20,6 @@ initCanvas();
 
 function adjustCanvasSize()
 {
-    console.log("Window size: " + window.innerWidth + " -- " + window.innerHeight);
     canvas.width  = window.innerWidth;
     canvas.height = window.innerHeight;
     initCanvas();
@@ -258,13 +257,26 @@ function getTextLineHeight() // TODO implement properly
     return ctx.measureText("M").width;
 }
 
+// Saves us from discrepancy between string rendering on different devices (e.g. DirectWrite vs GDI)
+// This is important given the way metrics are sent to server
+function fillText(s, x, y)
+{
+    var p=x;
+    for (var i=0; i<s.length; i++)
+    {
+        var c = s.charAt(i);
+        ctx.fillText(c, p, y);
+        p += ctx.measureText(c).width;
+    }
+}
+
 function fillMultilineTextNoWrap(text, x, y)
 {
     var lines = text.split("\n");
     var lineHeight = getTextLineHeight();
     for (var i=0; i<lines.length; i++)
     {
-        ctx.fillText(lines[i], x, y + i*1.5*lineHeight);
+        fillText(lines[i], x, y + i*1.5*lineHeight);
     }
 }
 
@@ -272,7 +284,7 @@ var METRICS_INPUT_CODE = 407;
 
 function sendCurrentFontMetricsToSever()
 {
-    var fl = currentFont.length;
+    var fl = currentFont ? currentFont.length : 0;
 
     var bytearray = new Uint8Array(1+1+fl+224);
     bytearray[0] = METRICS_INPUT_CODE-400;
@@ -962,6 +974,7 @@ function openSocket()
 
         handleResize(null);
 
+        sendCurrentFontMetricsToSever();
         measureConnection();
     };
 
