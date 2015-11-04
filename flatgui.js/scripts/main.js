@@ -499,13 +499,14 @@ var SET_CURSOR_COMMAND_CODE = 66;
 var PUSH_TEXT_TO_CLIPBOARD = 67;
 
 var TRANSMISSION_MODE_FIRST = 68;
-var TRANSMISSION_MODE_LAST = 73;
+var TRANSMISSION_MODE_LAST = 74;
 var FINISH_PREDICTION_TRANSMISSION = TRANSMISSION_MODE_FIRST;
 var MOUSE_LEFT_DOWN_PREDICTION = 69;
 var MOUSE_LEFT_UP_PREDICTION = 70;
 var MOUSE_LEFT_CLICK_PREDICTION = 71;
 var MOUSE_MOVE_OR_DRAG_PREDICTION_HEADER = 72;
 var MOUSE_MOVE_OR_DRAG_PREDICTION = 73;
+var PING_RESPONSE = 74;
 
 var CURSORS_BY_CODE = [
   "alias",
@@ -885,6 +886,10 @@ var connectionOpen;
 
 var transmissionMode = FINISH_PREDICTION_TRANSMISSION;
 
+var lastPingTime;
+var roundTripTests;
+var avgRoundTripTime;
+
 var mouseDownPredictionDatas = [];
 var mouseDownPredictionDataSizes = [];
 var mouseDownPredictionCounter = 0;
@@ -905,6 +910,35 @@ var mouseMovePredictionBufCount = 0;
 var mouseMovePredictionBufCounter = 0;
 var mouseMovePredictionBufs = [];
 var mouseMovePredictionBufSizes = [];
+
+var mouseIntervalMillis = 50;
+
+var PING_INPUT_CODE = 408;
+
+function sendPingToSever()
+{
+    var bytearray = new Uint8Array(1);
+    bytearray[0] = PING_INPUT_CODE-400;
+    webSocket.send(bytearray);
+    roundTripTests++;
+    var now = Date.now();
+    if (lastPingTime && roundTripTests > 3)
+    {
+        var roundTripTime = now - lastPingTime;
+        if (avgRoundTripTime) avgRoundTripTime = (avgRoundTripTime + roundTripTime) / 2; else avgRoundTripTime = roundTripTime;
+        mouseIntervalMillis = avgRoundTripTime / 4;
+        if (mouseIntervalMillis < 7) mouseIntervalMillis = 7;
+        //console.log("Roundtrip test #" + roundTripTests + " " + roundTripTime + " avg=" + avgRoundTripTime);
+    }
+    lastPingTime = now;
+}
+function measureConnection()
+{
+    lastPingTime = null;
+    avgRoundTripTime = null;
+    roundTripTests = 0
+    sendPingToSever();
+}
 
 function openSocket()
 {
@@ -927,6 +961,8 @@ function openSocket()
         displayStatus("open");
 
         handleResize(null);
+
+        measureConnection();
     };
 
     webSocket.onmessage = function(event)
@@ -970,6 +1006,9 @@ function openSocket()
                              mouseMovePredictionBufCount = dataBuffer[c];
                              transmissionMode = MOUSE_MOVE_OR_DRAG_PREDICTION;
                              break;
+                        case PING_RESPONSE:
+                             if (roundTripTests < 24) sendPingToSever();
+                             transmissionMode = FINISH_PREDICTION_TRANSMISSION;
                     }
                 }
                 else
@@ -1064,7 +1103,6 @@ var lastUnprocessedMouseDrag;
 var lastUnprocessedMouseMove;
 var lastIndexUnderMouse = -1;
 var lastMousePosWasOnEdge = false;
-var MOUSE_INTERVAL_MILLIS = 50;
 
 function getEncodedMouseEvent(x, y, id)
 {
@@ -1220,7 +1258,7 @@ function sendMouseMoveEventToServer(evt)
         if (mouseDown)
         {
             var nowTime = Date.now();
-            if (nowTime - lastMouseDragTime > MOUSE_INTERVAL_MILLIS)
+            if (nowTime - lastMouseDragTime > mouseIntervalMillis)
             {
                 lastUnprocessedMouseDrag = null;
                 sendEventToServer(storeMouseEventAndGetEncoded(evt, 506));
@@ -1278,7 +1316,8 @@ function sendMouseMoveEventToServer(evt)
     }
 }
 
-window.setInterval(commitPendingMouseEvents, MOUSE_INTERVAL_MILLIS * 5);
+window.setInterval(commitPendingMouseEvents, mouseIntervalMillis * 5);
+window.setInterval(measureConnection, 60000);
 
 var CLIPBOARD_PASTE_EVENT_CODE = 403;
 var CLIPBOARD_COPY_EVENT_CODE = 404;

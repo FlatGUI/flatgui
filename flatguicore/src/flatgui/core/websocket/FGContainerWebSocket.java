@@ -35,6 +35,7 @@ public class FGContainerWebSocket implements WebSocketListener
     private static final long SEND_PREDICTIONS_THRESHOLD = 500;
 
     private static final int METRICS_INPUT_CODE = 407;
+    private static final int PING_INPUT_CODE = 408;
 
     private final FGContainerSessionHolder sessionHolder_;
     // TODO have some template provider instead
@@ -153,24 +154,31 @@ public class FGContainerWebSocket implements WebSocketListener
         //logger_.debug("Received message #" + debugMessageCount_ + ": " + message);
         fgSession_.markAccesed();
 
-        if (payload.length > 0 && payload[0] == METRICS_INPUT_CODE-400)
+        if (payload.length > 0)
         {
-            FGWebInteropUtil interop = (FGWebInteropUtil) container_.getContainer().getInterop();
-            interop.setMetricsTransmission(payload);
-        }
-        else
-        {
-            latestInputEventTimestamp_ = System.currentTimeMillis();
-            Object e = parser_.getInputEvent(new FGInputEventDecoder.BinaryInput(payload, offset, len));
-            predictor_.considerInputEvent(e);
-            processInputEvent(e);
-            container_.clearForks();
-            predictionsSent_ = false;
+            if (payload[0] == METRICS_INPUT_CODE - 400)
+            {
+                FGWebInteropUtil interop = (FGWebInteropUtil) container_.getContainer().getInterop();
+                interop.setMetricsTransmission(payload);
+            }
+            else if (payload[0] == PING_INPUT_CODE - 400)
+            {
+                sendBytesToRemote(ByteBuffer.wrap(new byte[]{FGWebContainerWrapper.PING_RESPONSE}));
+            }
+            else
+            {
+                latestInputEventTimestamp_ = System.currentTimeMillis();
+                Object e = parser_.getInputEvent(new FGInputEventDecoder.BinaryInput(payload, offset, len));
+                predictor_.considerInputEvent(e);
+                processInputEvent(e);
+                container_.clearForks();
+                predictionsSent_ = false;
 // TODO This is still experimental
 //        if (e instanceof MouseEvent)
 //        {
 //            sendPredictionsIfNeeded();
 //        }
+            }
         }
     }
 
