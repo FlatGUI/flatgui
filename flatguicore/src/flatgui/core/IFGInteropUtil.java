@@ -15,7 +15,7 @@ package flatgui.core;
  */
 public interface IFGInteropUtil
 {
-    double getStringWidth(String str);
+    double getStringWidth(String str, String font);
 
-    double getFontAscent();
+    double getFontAscent(String font);
 }

@@ -17,6 +17,7 @@ import java.awt.Graphics;
 
 import javax.swing.SwingUtilities;
 
+import clojure.lang.Var;
 import flatgui.core.IFGInteropUtil;
 
 /**
@@ -26,7 +27,11 @@ import flatgui.core.IFGInteropUtil;
  */
 public class FGAWTInteropUtil implements IFGInteropUtil
 {
+    private static final Var strToFont_ = clojure.lang.RT.var("flatgui.awt", "str->font");
+    private static final Container CONTAINER = new Container();
+
     private final double unitSizePx_;
+    private String referenceFontStr_;
     private Font referenceFont_;
     private FontMetrics referenceFontMetrics_;
     private Graphics referenceGraphics_;
@@ -39,15 +44,29 @@ public class FGAWTInteropUtil implements IFGInteropUtil
     }
 
     @Override
-    public double getStringWidth(String str)
+    public double getStringWidth(String str, String font)
     {
+        //System.out.println("-DLTEMP- FGAWTInteropUtil.getStringWidth " + str + " " + font);
+        if (font != null && !font.equals(referenceFontStr_))
+        {
+            setReferenceFont(font, (Font) strToFont_.invoke(font));
+        }
         double widthPx = SwingUtilities.computeStringWidth(referenceFontMetrics_, str);
+        if (":l".equals(str))
+        {
+            System.out.println("-DLTEMP- FGAWTInteropUtil.getStringWidth " + str + " " + widthPx
+                    + " " + referenceFont_ + " " + referenceFontMetrics_);
+        }
         return widthPx / unitSizePx_;
     }
 
     @Override
-    public double getFontAscent()
+    public double getFontAscent(String font)
     {
+        if (font != null && !font.equals(referenceFontStr_))
+        {
+            setReferenceFont(font, (Font) strToFont_.invoke(font));
+        }
         double heightPx = referenceFontMetrics_.getAscent();
         //@todo what does this 0.75 mean?
         return 0.75 * heightPx / unitSizePx_;
@@ -55,8 +74,9 @@ public class FGAWTInteropUtil implements IFGInteropUtil
 
     // Non-public
 
-    void setReferenceFont(Font font)
+    void setReferenceFont(String fontStr, Font font)
     {
+        referenceFontStr_ = fontStr;
         referenceFont_ = font;
         updateReferenceFontMetrics();
     }
@@ -73,6 +93,10 @@ public class FGAWTInteropUtil implements IFGInteropUtil
         {
             referenceFontMetrics_ = referenceGraphics_.getFontMetrics(referenceFont_);
         }
+        else
+        {
+             referenceFontMetrics_ = CONTAINER.getFontMetrics(referenceFont_);
+        }
     }
 
     // Defaults to start with for any (trouble) case when nothing else provided
@@ -87,6 +111,6 @@ public class FGAWTInteropUtil implements IFGInteropUtil
         // This will give FontMetrics constructed basing on default FontRenderContext
         // (identity transformation, no antialiasing, no fractional metrics) which is
         // a rendering device state that current FlatGUI implementation counts on
-        return new Container().getFontMetrics(font);
+        return CONTAINER.getFontMetrics(font);
     }
 }

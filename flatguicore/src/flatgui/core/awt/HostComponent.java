@@ -59,6 +59,7 @@ public class HostComponent extends Canvas
 
     private final FGAWTInteropUtil interopUtil_;
 
+    private String lastUserDefinedFontStr_ = null;
     private Font lastUserDefinedFont_ = null;
 
     private Function<FGEvolveInputData, Future<FGEvolveResultData>> feedFn_;
@@ -71,8 +72,10 @@ public class HostComponent extends Canvas
         interopUtil_ = new FGAWTInteropUtil(FGContainer.UNIT_SIZE_PX);
         primitivePainter_ = new FGDefaultPrimitivePainter(FGContainer.UNIT_SIZE_PX);
         primitivePainter_.addFontChangeListener(e -> {
-            lastUserDefinedFont_ = e.getNewValue();
-            interopUtil_.setReferenceFont(lastUserDefinedFont_);});
+            Tuple newValue = e.getNewValue();
+            lastUserDefinedFontStr_ = newValue.getFirst();
+            lastUserDefinedFont_ = newValue.getSecond();
+            interopUtil_.setReferenceFont(lastUserDefinedFontStr_, lastUserDefinedFont_);});
         setFocusable(true);
     }
 
@@ -156,7 +159,7 @@ public class HostComponent extends Canvas
             }
             else
             {
-                interopUtil_.setReferenceFont(bg.getFont());
+                interopUtil_.setReferenceFont(null, bg.getFont());
             }
             interopUtil_.setReferenceGraphics(bg);
 

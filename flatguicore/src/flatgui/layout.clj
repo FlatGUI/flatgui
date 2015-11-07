@@ -43,12 +43,11 @@
   (let [abs-pref-size (if-let [own-pref-size (get-property component [:this child-id] :preferred-size)]
                         own-pref-size
                         (if-let [text (get-property component [:this child-id] :text)]
-                          (let [interop (get-property component [:this child-id] :interop)]
-                               (if (get-property component [:this child-id] :multiline)
-                                 (awt/get-text-preferred-size
-                                   (if-let [lines (:lines (get-property component [:this child-id] :multiline))] lines [text])
-                                   interop)
-                                 (awt/get-text-preferred-size [text] interop)))
+                          (if (get-property component [:this child-id] :multiline)
+                            (awt/get-text-preferred-size
+                              component
+                              (if-let [lines (:lines (get-property component [:this child-id] :multiline))] lines [text]))
+                            (awt/get-text-preferred-size component [text]))
                           component-min-size))
         container-size (get-property component [:this] :clip-size)]
     (m/defpoint

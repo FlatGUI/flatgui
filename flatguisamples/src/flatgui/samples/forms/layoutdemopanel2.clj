@@ -44,7 +44,7 @@
   (fg/defcomponent
     window/window
     :layoutdemo
-    {:clip-size (m/defpoint 5 3.5)
+    {:clip-size (m/defpoint 5 4.5)
      :position-matrix (m/translation 4.0 0.25)
      :layout layout-cfg
      :text "Layout"
@@ -99,7 +99,7 @@
   (fg/defcomponent
     window/window
     :config
-    {:clip-size (m/defpoint 3.5 3.5)
+    {:clip-size (m/defpoint 3.5 4.5)
      :position-matrix (m/translation 0.25 0.25)
      :text "Config"
      :config-valid true
@@ -146,6 +146,7 @@
     {:theme flatgui.theme/dark
      :clip-size (m/defpoint 40 20)
      :background (awt/color 9 17 26)
+     :font "16px sans-serif"
 
      ;; TODO this should be a part defroot probably
      :closed-focus-root true

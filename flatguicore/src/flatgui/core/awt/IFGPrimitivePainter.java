@@ -13,6 +13,7 @@ import java.awt.*;
 import java.util.List;
 
 import flatgui.core.util.IFGChangeListener;
+import flatgui.core.util.Tuple;
 
 /**
  * @author Denys Lebediev
@@ -21,7 +22,10 @@ import flatgui.core.util.IFGChangeListener;
  */
 public interface IFGPrimitivePainter
 {
-    void addFontChangeListener(IFGChangeListener<Font> fontChangeListener);
+    /**
+     * @param fontChangeListener - a pair of: font string, Font instance
+     */
+    void addFontChangeListener(IFGChangeListener<Tuple> fontChangeListener);
 
     void paintPrimitive(Graphics g, List<Object> primitive);
 }

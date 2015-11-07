@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import clojure.lang.Var;
 import flatgui.core.util.FGChangeEvent;
 import flatgui.core.util.IFGChangeListener;
+import flatgui.core.util.Tuple;
 
 /**
  * @author Denys Lebediev
@@ -54,7 +55,8 @@ public class FGDefaultPrimitivePainter implements IFGPrimitivePainter
     private Map<String, Method> methodByNameCache_;
 
     private Font lastFont_ = null;
-    private final List<IFGChangeListener<Font>> fontChangeListenerList_;
+    private String lastFontStr_ = null;
+    private final List<IFGChangeListener<Tuple>> fontChangeListenerList_;
 
     public FGDefaultPrimitivePainter(double unitSizePx)
     {
@@ -77,7 +79,7 @@ public class FGDefaultPrimitivePainter implements IFGPrimitivePainter
     }
 
     @Override
-    public void addFontChangeListener(IFGChangeListener<Font> fontChangeListener)
+    public void addFontChangeListener(IFGChangeListener<Tuple> fontChangeListener)
     {
         fontChangeListenerList_.add(fontChangeListener);
     }
@@ -222,19 +224,23 @@ public class FGDefaultPrimitivePainter implements IFGPrimitivePainter
     private void setFont(Graphics2D g, Object[] argValues)
     {
         String fontStr = (String)argValues[0];
-        Font font = (Font) strToFont_.invoke(fontStr);
-        if (font != null)
+        if (lastFontStr_ == null || !lastFontStr_.equals(fontStr))
         {
-            g.setFont(font);
-            if (lastFont_ == null || !lastFont_.equals(font))
+            Font font = (Font) strToFont_.invoke(fontStr);
+            if (font != null)
             {
-                FGChangeEvent<Font> event = new FGChangeEvent<>(font);
-                for (IFGChangeListener<Font> l : fontChangeListenerList_)
+                g.setFont(font);
+                if (lastFont_ == null || !lastFont_.equals(font))
                 {
-                    l.onChange(event);
+                    FGChangeEvent<Tuple> event = new FGChangeEvent<>(Tuple.pair(fontStr, font));
+                    for (IFGChangeListener<Tuple> l : fontChangeListenerList_)
+                    {
+                        l.onChange(event);
+                    }
                 }
+                lastFont_ = font;
             }
-            lastFont_ = font;
+            lastFontStr_ = fontStr;
         }
     }
 }

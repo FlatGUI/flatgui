@@ -15,33 +15,38 @@
       [java.awt.geom AffineTransform]))
 
 
-(defn sw [interop text]
-  (.getStringWidth interop text))
+(defn sw
+  ([interop text font] (.getStringWidth interop text font))
+  ([interop text] (sw interop text nil)))
 
-(defn sh [interop]
-  (.getFontAscent interop))
+(defn sh
+  ([interop font] (.getFontAscent interop font))
+  ([interop] (sh interop nil)))
 
-(defn hsh [interop]
-  (/ (sh interop) 2))
+(defn hsh
+  ([interop font] (/ (sh interop font) 2))
+  ([interop] (hsh interop nil)))
 
 (fg/defaccessorfn strw [component text]
-  (sw (get-property component [:this] :interop) text))
+  (sw (get-property component [:this] :interop) text (get-property component [:this] :font)))
 
 (fg/defaccessorfn strh [component]
-  (sh (get-property component [:this] :interop)))
+  (sh (get-property component [:this] :interop) (get-property component [:this] :font)))
 
-(fg/defaccessorfn halfstrh [component]
-  (/ (strh component) 2))
+(fg/defaccessorfn halfstrh [component] (/ (strh component) 2))
 
-(fg/defaccessorfn get-hgap-impl [interop] (hsh interop))
+(fg/defaccessorfn get-hgap-impl [component]
+  (hsh (get-property component [:this] :interop) (get-property component [:this] :font)))
 
-(defn text-str-h-impl [interop] (* (sh interop) 2.5))
+(defn text-str-h-impl [interop font] (* (sh interop font) 2.5))
 
 ;; TODO unify gaps with layout
-(defn get-text-preferred-size [lines interop]
-  (let [preferred-w (+ (apply max (map #(sw interop %) lines)) (* 2 (get-hgap-impl interop)))
-        preferred-h (* (count lines) (text-str-h-impl interop))]
-       (m/defpoint preferred-w preferred-h)))
+(fg/defaccessorfn get-text-preferred-size [component lines]
+  (let [interop (get-property component [:this] :interop)
+        font (get-property component [:this] :font)
+        preferred-w (+ (apply max (map #(sw interop % font) lines)) (* 2 (get-hgap-impl component)))
+        preferred-h (* (count lines) (text-str-h-impl interop font))]
+    (m/defpoint preferred-w preferred-h)))
 
 
 (defn unitsizepx [] 64.0)

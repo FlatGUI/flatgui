@@ -14,6 +14,7 @@ import java.awt.*;
 import java.util.HashMap;
 import java.util.Map;
 
+import clojure.lang.Var;
 import flatgui.core.IFGInteropUtil;
 
 /**
@@ -21,6 +22,9 @@ import flatgui.core.IFGInteropUtil;
  */
 public class FGWebInteropUtil implements IFGInteropUtil
 {
+    private static final Var strToFont_ = clojure.lang.RT.var("flatgui.awt", "str->font");
+    private static final Container CONTAINER = new Container();
+
     private final double unitSizePx_;
     private Font referenceFont_;
     private String referenceFontStr_;
@@ -36,8 +40,12 @@ public class FGWebInteropUtil implements IFGInteropUtil
     }
 
     @Override
-    public double getStringWidth(String str)
+    public double getStringWidth(String str, String font)
     {
+        if (font != null && !font.equals(referenceFontStr_))
+        {
+            setReferenceFont(font, (Font) strToFont_.invoke(font));
+        }
         if (str != null)
         {
             double widthPx;
@@ -70,7 +78,7 @@ public class FGWebInteropUtil implements IFGInteropUtil
     }
 
     @Override
-    public double getFontAscent()
+    public double getFontAscent(String font)
     {
         double heightPx = referenceFontMetrics_.getAscent();
         //@todo what does this 0.75 mean?
@@ -124,6 +132,6 @@ public class FGWebInteropUtil implements IFGInteropUtil
         // This will give FontMetrics constructed basing on default FontRenderContext
         // (identity transformation, no antialiasing, no fractional metrics) which is
         // a rendering device state that current FlatGUI implementation counts on
-        return new Container().getFontMetrics(font);
+        return CONTAINER.getFontMetrics(font);
     }
 }

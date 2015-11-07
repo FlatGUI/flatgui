@@ -52,6 +52,10 @@ flatgui.widgets.component
   (let [parent (get-property component [] :interop)]
     (if parent parent old-interop)))
 
+(fg/defevolverfn :font
+  (let [parent (get-property component [] :font)]
+    (if parent parent old-font)))
+
 (fg/defevolverfn :abs-position-matrix
   (let [ parent-pm (get-property component [] :abs-position-matrix)
          this-pm (get-property component [:this] :position-matrix)]
@@ -111,6 +115,7 @@ flatgui.widgets.component
     :evolvers {:interop interop-evolver
                :theme theme-evolver
                :skin skin-evolver
+               :font font-evolver
                :look flatgui.skins.skinbase/skin-look-evolver
                :abs-position-matrix abs-position-matrix-evolver
 
