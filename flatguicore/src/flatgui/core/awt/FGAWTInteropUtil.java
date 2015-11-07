@@ -46,17 +46,11 @@ public class FGAWTInteropUtil implements IFGInteropUtil
     @Override
     public double getStringWidth(String str, String font)
     {
-        //System.out.println("-DLTEMP- FGAWTInteropUtil.getStringWidth " + str + " " + font);
         if (font != null && !font.equals(referenceFontStr_))
         {
             setReferenceFont(font, (Font) strToFont_.invoke(font));
         }
         double widthPx = SwingUtilities.computeStringWidth(referenceFontMetrics_, str);
-        if (":l".equals(str))
-        {
-            System.out.println("-DLTEMP- FGAWTInteropUtil.getStringWidth " + str + " " + widthPx
-                    + " " + referenceFont_ + " " + referenceFontMetrics_);
-        }
         return widthPx / unitSizePx_;
     }
 
