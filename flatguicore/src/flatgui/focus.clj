@@ -91,7 +91,12 @@
         (sort-lines-by-y (sort-each-line-by-x lines) line-y1)))))
 
 ;;; Sorts focusable components so that they are traversed in left->right, up->down direction.
-;;; To make such ad order, arranges components in a vector of horizontal "lines"
+;;; To make such an order, arranges components in a vector of horizontal "lines".
+;;;
+;;;  NOTE:
+;;; This implementation is slow. For containers that have frequenlty moving children, it's better
+;;; to wrap it into another function that would call this one in rare cases (e.g. only when :children
+;;; change)
 (fg/defevolverfn :focus-traversal-order
   (let [accepting-children (get-accepting-children component)]
     (if (pos? (count accepting-children))
