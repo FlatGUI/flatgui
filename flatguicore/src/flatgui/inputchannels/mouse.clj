@@ -25,6 +25,8 @@
 
 (definputparser mouse-event? MouseEvent true)
 
+(defn mouse-event-obj? [reason] (instance? MouseEvent reason))
+
 (definputparser get-mouse-button MouseEvent (.getButton repaint-reason))
 
 (definputparser left-mouse-button? MouseEvent (= MouseEvent/BUTTON1 (.getButton repaint-reason)))

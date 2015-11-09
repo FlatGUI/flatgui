@@ -14,8 +14,12 @@
             [flatgui.ids :as ids]
             [flatgui.comlogic :as fgc]
             [flatgui.paint :as fgp]
-            [flatgui.util.matrix :as m]))
+            [flatgui.util.matrix :as m]
+            [flatgui.inputchannels.mouse :as mouse]))
 
+(def stats (atom {}))
+
+(defn get-stats [] (deref stats))
 
 (defn- get-evolver [component property]
   (get-in component [:evolvers property]))
@@ -327,6 +331,17 @@
               :aux-container (assoc! aux :out-dependents (:out-dependents tgt))))))
       container)))
 
+(defn compute-properties-to-evolve-for [reason container k]
+  (cond
+    (mouse/mouse-event-obj? reason)
+    (mapv
+      (fn [[k _]] k)
+      (filter
+        (fn [[_ v]] (:mouse (dep/get-input-channel-dependencies v)))
+        (get-in container (fgc/conjv k :evolvers))))
+    :else
+    (mapv (fn [[k _]] k) (get-in container (fgc/conjv k :evolvers)))))
+
 (defn evolve-by-dependencies [original-container container original-target-id-path target-id-path reason properties-to-evolve debug-shift initialization issuer]
     (let [ ;[GOOD DEBUG OUTPUT] _ (if (not= [:text :selection] properties-to-evolve) (println (debug-prefix debug-shift) ">>> entered evolve-by-dependencies function " target-id-path " for properties " properties-to-evolve))
            k (fgc/get-access-key target-id-path)
@@ -339,7 +354,7 @@
                                  properties-to-evolve
                                  (if initialization
                                    (keys (get-in container (fgc/conjv k :abs-dependents)))
-                                   (mapv (fn [[k v]] k) (get-in container (fgc/conjv k :evolvers))))
+                                   (compute-properties-to-evolve-for reason container k))
                                  )]
       (if (<= (count remaining-to-evolve) 0)
         (do
@@ -347,7 +362,20 @@
           container)
         (let [ k (fgc/get-access-key target-id-path)
                prev-has-changes (:has-changes container)
+              ;before-time (System/currentTimeMillis)
                with-evolved-target-fresh (evolve-component original-container (assoc container :has-changes false) original-target-id-path target-id-path reason remaining-to-evolve debug-shift initialization)
+              ;_time-spent (if initialization
+              ;              nil
+              ;              (loop [pi (dec (count remaining-to-evolve))
+              ;                     _ts nil]
+              ;                (if (>= pi 0)
+              ;                  (recur
+              ;                    (dec pi)
+              ;                    (let [t (- (System/currentTimeMillis) before-time)
+              ;                          pp (fgc/conjv target-id-path (nth remaining-to-evolve pi))]
+              ;                      (do
+              ;                        (swap! stats (fn [s] (assoc s pp (+ (get s pp 0) t))))
+              ;                        ))))))
                new-has-changes (:has-changes with-evolved-target-fresh)
                has-changes (or prev-has-changes new-has-changes)
                with-evolved-target (assoc with-evolved-target-fresh :has-changes has-changes)

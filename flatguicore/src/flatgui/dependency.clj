@@ -29,10 +29,6 @@
                              (throw (IllegalArgumentException. (str "There should be 3 or 4 arguments to get-property: " s))))]
             (mapv (fn [e] (if (keyword? e) e :*)) full-path)))))))
 
-
-(defn get-relative-dependencies [evolver]
-    (:relative-dependencies (meta evolver)))
-
 (defn get-all-dependencies [c]
   (do
 
@@ -49,6 +45,41 @@
               (list this-dep))
             (if (coll? c)
               (mapcat (fn [e] (get-all-dependencies e)) c))))))))
+
+(defn get-relative-dependencies [evolver]
+  (:relative-dependencies (meta evolver)))
+
+
+
+(defn get-input-dependency [s]
+  (if (seq? s)
+    (some
+      (fn [n] (cond
+                (and
+                  (symbol? n)
+                  (let [n-var (resolve n)]
+                    (if (var? n-var)
+                      (= 'flatgui.inputchannels.mouse (.. n-var ns name)))))
+                :mouse
+                :else
+                nil))
+      s)))
+
+(defn get-input-dependencies [c]
+  (distinct
+    (if (and (symbol? c) (:input-channel-dependencies (meta (resolve c))))
+      (:input-channel-dependencies (meta (resolve c)))
+      (let [this-dep (get-input-dependency c)]
+        (if this-dep
+          (do
+            ;(println " --- this-dep:" this-dep)
+            (list this-dep))
+          (if (coll? c)
+            (mapcat (fn [e] (get-input-dependencies e)) c)))))))
+
+(defn get-input-channel-dependencies [evolver]
+  (set (:input-channel-dependencies (meta evolver))))
+
 
 
 (defn- resolve-wildcards-single [root-container abs-path]

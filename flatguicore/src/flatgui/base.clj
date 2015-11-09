@@ -211,7 +211,8 @@
 (defn merge-properties [& property-maps]
   "Merges property maps. Latter map has precedence"
   {:added "1.0"}
-  (let [dependencies (mapcat (fn [p] (:relative-dependencies p)) property-maps)]
+  (let [dependencies (mapcat (fn [p] (:relative-dependencies p)) property-maps)
+        input-channel-dependencies (mapcat (fn [p] (:input-channel-dependencies p)) property-maps)]
     (do
 
 ;      (println " merge-properties ------------------------------ ")
@@ -220,7 +221,8 @@
 
       (assoc
         (reduce merge-ordered property-maps)
-        :relative-dependencies dependencies))))
+        :relative-dependencies dependencies
+        :input-channel-dependencies input-channel-dependencies))))
 
 
 ;;
@@ -256,53 +258,72 @@
   Introduces let binding for old property name."
   ([property-name body]
     (let [body-dependencies (conj (flatgui.dependency/get-all-dependencies body) 'list)
+          input-channel-dependencies (conj (flatgui.dependency/get-input-dependencies body) 'list)
           fnname (symbol (str (name property-name) "-evolver"))
           get-fn flatgui.base/get-property-private
           let-binding [(symbol (str "old-" (name property-name))) (list property-name 'component)
                         'get-property `(fn ([~'c ~'path ~'prop] (~get-fn ~'c ~'path ~'prop))
                                            ([~'path ~'prop] (~get-fn ~'component ~'path ~'prop)))]]
-      (do (log-debug " defining evolver " fnname " body-dependencies = " body-dependencies)
+      (do (log-debug " defining evolver " fnname
+                     " body-dependencies = " body-dependencies
+                     " input-channel-dependencies = " input-channel-dependencies)
           ;(log-debug "  |_ body " body)
         `(do
            ; with-meta produces evolver fn meta which is analyzed by flatgui.dependency/get-relative-dependencies [evolver]
            ; alter-meta! alters Var meta that is analyzed by flatgui.dependency/get-all-dependencies
-          (def ~fnname (with-meta (fn [~'component] (let ~let-binding ~body)) {:relative-dependencies ~body-dependencies}))
-          (alter-meta! (var ~fnname) (fn [~'m] (assoc ~'m :relative-dependencies ~body-dependencies)))
+          (def ~fnname (with-meta (fn [~'component] (let ~let-binding ~body)) {:relative-dependencies ~body-dependencies
+                                                                               :input-channel-dependencies ~input-channel-dependencies}))
+          (alter-meta! (var ~fnname) (fn [~'m] (assoc ~'m
+                                                 :relative-dependencies ~body-dependencies
+                                                 :input-channel-dependencies ~input-channel-dependencies)))
           ))))
   ([fnname property-name body]
     (let [body-dependencies (conj (flatgui.dependency/get-all-dependencies body) 'list)
+          input-channel-dependencies (conj (flatgui.dependency/get-input-dependencies body) 'list)
           get-fn flatgui.base/get-property-private
           let-binding [(symbol (str "old-" (name property-name))) (list property-name 'component)
                         'get-property `(fn ([~'c ~'path ~'prop] (~get-fn ~'c ~'path ~'prop))
                                            ([~'path ~'prop] (~get-fn ~'component ~'path ~'prop)))]]
-      (do (log-debug " defining evolver " fnname " body-dependencies = " body-dependencies)
+      (do (log-debug " defining evolver " fnname
+                     " body-dependencies = " body-dependencies
+                     " input-channel-dependencies = " input-channel-dependencies)
         `(do
            ; with-meta produces evolver fn meta which is analyzed by flatgui.dependency/get-relative-dependencies [evolver]
            ; alter-meta! alters Var meta that is analyzed by flatgui.dependency/get-all-dependencies
-           (def ~fnname (with-meta (fn [~'component] (let ~let-binding ~body)) {:relative-dependencies ~body-dependencies}))
-           (alter-meta! (var ~fnname) (fn [~'m] (assoc ~'m :relative-dependencies ~body-dependencies)))
+           (def ~fnname (with-meta (fn [~'component] (let ~let-binding ~body)) {:relative-dependencies ~body-dependencies
+                                                                                :input-channel-dependencies ~input-channel-dependencies}))
+           (alter-meta! (var ~fnname) (fn [~'m] (assoc ~'m
+                                                  :relative-dependencies ~body-dependencies
+                                                  :input-channel-dependencies ~input-channel-dependencies)))
            )))))
 
 (defmacro accessorfn [body]
   (let [body-dependencies (conj (flatgui.dependency/get-all-dependencies body) 'list)
+        input-channel-dependencies (conj (flatgui.dependency/get-input-dependencies body) 'list)
         get-fn flatgui.base/get-property-private
         let-binding ['get-property get-fn]]
-    `(with-meta (fn [~'component] (let ~let-binding ~body)) {:relative-dependencies ~body-dependencies})))
+    `(with-meta (fn [~'component] (let ~let-binding ~body)) {:relative-dependencies ~body-dependencies
+                                                             :input-channel-dependencies ~input-channel-dependencies})))
 
 (defmacro defaccessorfn [fnname params body]
   (let [body-dependencies (conj (flatgui.dependency/get-all-dependencies body) 'list)
+        input-channel-dependencies (conj (flatgui.dependency/get-input-dependencies body) 'list)
         get-fn flatgui.base/get-property-private
         let-binding ['get-property get-fn]]
     (do
 
-      (log-debug " defining accessor " fnname " body-dependencies = " body-dependencies)
+      (log-debug " defining accessor " fnname
+                 " body-dependencies = " body-dependencies
+                 " input-channel-dependencies = " input-channel-dependencies)
 
       `(do ;(log-debug " defining accessor " ~fnname)
          ; with-meta produces evolver fn meta which is analyzed by flatgui.dependency/get-relative-dependencies [evolver]
          ; alter-meta! alters Var meta that is analyzed by flatgui.dependency/get-all-dependencies
-        (def ~fnname (with-meta (fn ~params (let ~let-binding ~body)) {:relative-dependencies ~body-dependencies}))
-        (alter-meta! (var ~fnname) (fn [~'m] (assoc ~'m :relative-dependencies ~body-dependencies)))
-       ))))
+        (def ~fnname (with-meta (fn ~params (let ~let-binding ~body)) {:relative-dependencies ~body-dependencies
+                                                                       :input-channel-dependencies ~input-channel-dependencies}))
+        (alter-meta! (var ~fnname) (fn [~'m] (assoc ~'m
+                                               :relative-dependencies ~body-dependencies
+                                               :input-channel-dependencies ~input-channel-dependencies)))))))
 
 
 
