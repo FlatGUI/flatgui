@@ -9,6 +9,7 @@
 (ns ^{:doc "Dependency resolving"
       :author "Denys Lebediev"}
   flatgui.dependency
+  (:require [flatgui.inputchannels.mouse :as mouse])
   (:use flatgui.comlogic
         clojure.test))
 
@@ -51,31 +52,23 @@
 
 
 
-(defn get-input-dependency [s]
-  (if (seq? s)
-    (some
-      (fn [n] (cond
-                (and
-                  (symbol? n)
-                  (let [n-var (resolve n)]
-                    (if (var? n-var)
-                      (= 'flatgui.inputchannels.mouse (.. n-var ns name)))))
-                :mouse
-                :else
-                nil))
-      s)))
+(defn get-expr-dependencies [s]
+  (let [dep-list (filter
+                   (complement nil?)
+                   (list
+                     (mouse/find-mouse-dependency s)))]
+    (if (empty? dep-list)
+      nil
+      dep-list)))
 
 (defn get-input-dependencies [c]
   (distinct
     (if (and (symbol? c) (:input-channel-dependencies (meta (resolve c))))
       (:input-channel-dependencies (meta (resolve c)))
-      (let [this-dep (get-input-dependency c)]
-        (if this-dep
-          (do
-            ;(println " --- this-dep:" this-dep)
-            (list this-dep))
-          (if (coll? c)
-            (mapcat (fn [e] (get-input-dependencies e)) c)))))))
+      (if-let [this-dep (get-expr-dependencies c)]
+        this-dep
+        (if (coll? c)
+          (mapcat (fn [e] (get-input-dependencies e)) c))))))
 
 (defn get-input-channel-dependencies [evolver]
   (set (:input-channel-dependencies (meta evolver))))

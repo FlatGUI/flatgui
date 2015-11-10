@@ -70,3 +70,17 @@
 (definputparser mouse-wheel? MouseWheelEvent true)
 
 (definputparser get-wheel-rotation MouseWheelEvent (.getWheelRotation repaint-reason))
+
+;;; Dependency check
+
+(defn find-mouse-dependency [s-expr]
+  (if (seq? s-expr)
+    (some
+      (fn [n] (if
+                (and
+                  (symbol? n)
+                  (let [n-var (resolve n)]
+                    (if (var? n-var)
+                      (= 'flatgui.inputchannels.mouse (.. n-var ns name)))))
+                :mouse))
+      s-expr)))
