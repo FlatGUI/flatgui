@@ -71,20 +71,18 @@
 (defn col-visible? [screen-col first-visible-col last-visible-col]
   (and (>= screen-col first-visible-col) (<= screen-col last-visible-col)))
 
-(fg/defaccessorfn should-evolve-header [component]
-  (and (not (get-property component [:this] :mouse-down)) (mouse/mouse-left? component)))
+(fg/defaccessorfn should-evolve-header [component] (mouse/mouse-released? component))
 
-(defn clicked-no-shift? [component]
+(fg/defaccessorfn clicked-no-shift? [component]
   (and (should-evolve-header component) (not (inputbase/with-shift? component))))
 
-(defn clicked-with-shift? [component]
+(fg/defaccessorfn clicked-with-shift? [component]
   (and (should-evolve-header component) (inputbase/with-shift? component)))
 
-(defn clicked-with-ctrl? [component]
+(fg/defaccessorfn clicked-with-ctrl? [component]
   (and (should-evolve-header component) (inputbase/with-ctrl? component)))
 
-(fg/defevolverfn :clicked-no-shift
-  (clicked-no-shift? component))
+(fg/defevolverfn :clicked-no-shift (clicked-no-shift? component))
 
 (fg/defevolverfn :clicked-with-shift
   (clicked-with-shift? component))

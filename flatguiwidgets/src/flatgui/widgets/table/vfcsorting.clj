@@ -41,7 +41,7 @@
             (let [header-id (get-property component [] :id)
                   active-headers (vec (get-property component [:_] :active-headers))]
               (.indexOf active-headers header-id)))
-        ;_ (println " sorting-degree-evolver called with reason " (get-reason) old-degree " -> " r)
+        ;_ (println " sorting-degree-evolver called with reason " (fg/get-reason) old-degree " -> " r)
         ]
     r))
 

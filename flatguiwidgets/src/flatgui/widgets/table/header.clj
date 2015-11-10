@@ -11,8 +11,6 @@
   flatgui.widgets.table.header
   (:require [flatgui.base :as fg]
             [flatgui.util.matrix :as m]
-            [flatgui.paint :as fgp]
-            [flatgui.awt :as awt]
             [flatgui.comlogic :as fgc]
             [flatgui.widgets.panel]
             [flatgui.widgets.table.commons :as tcom]))
