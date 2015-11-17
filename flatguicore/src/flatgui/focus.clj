@@ -93,17 +93,20 @@
 ;;; Sorts focusable components so that they are traversed in left->right, up->down direction.
 ;;; To make such an order, arranges components in a vector of horizontal "lines".
 ;;;
-;;;  NOTE:
-;;; This implementation is slow. For containers that have frequenlty moving children, it's better
-;;; to wrap it into another function that would call this one in rare cases (e.g. only when :children
-;;; change)
-(fg/defevolverfn :focus-traversal-order
+;;; NOTE: This implementation is slow. Use only if explicitly needed to follow changes in child positions
+(fg/defevolverfn sort-focus-traversal-order-evolver :focus-traversal-order
   (let [accepting-children (get-accepting-children component)]
     (if (pos? (count accepting-children))
       (let [lines (group-by-lines component accepting-children)
             result (mapcat (fn [i] (map :id (nth lines i))) (range 0 (count lines)))]
         result)
       [])))
+
+(fg/defevolverfn :focus-traversal-order
+  (let [reason (fg/get-reason)]
+    (if (or (nil? reason) (= reason [:this]))
+      (sort-focus-traversal-order-evolver component)
+      old-focus-traversal-order)))
 
 (fg/defaccessorfn get-child-ids-in-traversal-order [component]
   (if-let [focus-traversal-order (get-property component [:this] :focus-traversal-order)]
