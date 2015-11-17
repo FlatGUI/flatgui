@@ -28,7 +28,7 @@ flatgui.widgets.component
   (if (get-property component [:this] :popup)
     (Integer/MAX_VALUE)
     (let [parent-z (if-let [p (get-property component [] :z-position)] p 0)]
-      (if (#{:has-focus :parent-of-focused} (:mode (get-property component [:this] :focus-state)))
+      (if (#{:has-focus :parent-of-focused :throws-focus} (:mode (get-property component [:this] :focus-state)))
         (+ parent-z 1024)
         parent-z))))
 
