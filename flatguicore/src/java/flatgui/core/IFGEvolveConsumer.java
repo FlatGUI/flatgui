@@ -35,7 +35,7 @@ public interface IFGEvolveConsumer
     /**
      * This method is called by FlatGUI Core when Container is evolved for
      * Evolve Reason object targeted to any (or all) components identified by
-     * {@link flatgui.core.IFGEvolveConsumer#getTargetPaths()} method
+     * {@link IFGEvolveConsumer#getTargetPaths()} method
      *
      * @param sessionId Session Id of the session in which Evolve Reason has been
      *                  processed by Container, or null for local desktop

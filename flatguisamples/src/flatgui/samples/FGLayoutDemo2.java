@@ -13,12 +13,12 @@ package flatgui.samples;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import flatgui.core.*;
 import java.io.InputStream;
 import java.util.Scanner;
 
 import javax.imageio.ImageIO;
 
-import flatgui.core.*;
 import flatgui.core.awt.FGAWTContainerHost;
 import flatgui.core.awt.HostComponent;
 

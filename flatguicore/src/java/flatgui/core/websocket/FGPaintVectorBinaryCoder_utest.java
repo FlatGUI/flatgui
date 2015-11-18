@@ -13,7 +13,6 @@ package flatgui.core.websocket;
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.script.Invocable;
@@ -48,7 +47,7 @@ public class FGPaintVectorBinaryCoder_utest extends Assert
             }
         };
 
-        URL javaScriptCodeURL = ClassLoader.getSystemResource("flatgui/core/websocket/fgdecoder.js");
+        URL javaScriptCodeURL = ClassLoader.getSystemResource("java/flatgui/core/websocket/fgdecoder.js");
         String script = Files.readAllLines(Paths.get(javaScriptCodeURL.toURI())).stream().map(l -> l+"\n").collect(Collectors.joining());
 
         ScriptEngineManager factory = new ScriptEngineManager();

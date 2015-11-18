@@ -10,8 +10,10 @@
 
 package flatgui.core.websocket;
 
-import flatgui.core.*;
-
+import flatgui.core.FGContainer;
+import flatgui.core.IFGContainer;
+import flatgui.core.IFGContainerHost;
+import flatgui.core.IFGTemplate;
 import java.net.InetAddress;
 import java.util.Map;
 import java.util.Timer;

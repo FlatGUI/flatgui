@@ -12,9 +12,10 @@ package flatgui.core.websocket;
 
 
 import clojure.lang.Var;
-import flatgui.core.*;
 
 import java.awt.Font;
+import flatgui.core.FGWebContainerWrapper;
+import flatgui.core.IFGContainer;
 import java.util.concurrent.atomic.LongAccumulator;
 
 /**

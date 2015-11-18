@@ -10,7 +10,6 @@
 
 package flatgui.core.awt;
 
-import clojure.lang.Keyword;
 import flatgui.core.FGEvolveInputData;
 import flatgui.core.FGEvolveResultData;
 import flatgui.core.IFGContainer;
@@ -18,8 +17,6 @@ import flatgui.core.IFGContainerHost;
 
 import java.awt.*;
 import java.awt.event.ActionListener;
-import java.util.*;
-import java.util.List;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 

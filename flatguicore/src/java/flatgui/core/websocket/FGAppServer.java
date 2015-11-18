@@ -13,7 +13,10 @@ package flatgui.core.websocket;
 import clojure.lang.IPersistentMap;
 import clojure.lang.Keyword;
 import clojure.lang.PersistentHashMap;
-import flatgui.core.*;
+
+import flatgui.core.FGEvolveInputData;
+import flatgui.core.FGLogger;
+import flatgui.core.IFGContainer;
 import flatgui.core.IFGTemplate;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.*;

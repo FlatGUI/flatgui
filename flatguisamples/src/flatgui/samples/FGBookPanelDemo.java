@@ -9,7 +9,6 @@
  */
 package flatgui.samples;
 
-import flatgui.controlcenter.view.ControlCenterFrame;
 import flatgui.core.*;
 import flatgui.core.awt.FGAWTContainerHost;
 import flatgui.core.awt.HostComponent;

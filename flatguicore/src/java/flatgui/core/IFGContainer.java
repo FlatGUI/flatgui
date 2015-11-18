@@ -12,9 +12,7 @@ package flatgui.core;
 import clojure.lang.Keyword;
 
 import java.awt.event.ActionListener;
-import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.function.Function;

@@ -10,6 +10,7 @@
 package flatgui.samples;
 
 import clojure.lang.Keyword;
+
 import flatgui.core.*;
 import flatgui.core.awt.FGAWTContainerHost;
 import flatgui.core.awt.HostComponent;

@@ -11,6 +11,7 @@
 package flatgui.core.websocket;
 
 import clojure.lang.Keyword;
+
 import flatgui.core.*;
 import flatgui.core.awt.HostComponent;
 
@@ -147,6 +148,8 @@ public class FGContainerWebSocket implements WebSocketListener
     {
         FGAppServer.getFGLogger().error(fgSession_ + " WS error: " + cause.getMessage());
     }
+
+    // TODO https://bugs.eclipse.org/bugs/show_bug.cgi?id=474488
 
     @Override
     public synchronized void onWebSocketBinary(byte[] payload, int offset, int len)

@@ -16,7 +16,6 @@ import java.awt.event.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * @author Denis Lebedev

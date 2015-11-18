@@ -12,6 +12,7 @@ package flatgui.core.awt;
 
 import clojure.lang.Keyword;
 import clojure.lang.Var;
+
 import flatgui.core.*;
 import flatgui.core.util.Tuple;
 
