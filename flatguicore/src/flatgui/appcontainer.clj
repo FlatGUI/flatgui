@@ -51,6 +51,11 @@
     (get-container-atom container-name)
     (get-fork container-name reason)))
 
+(defn app-modify-container [container-name f]
+  (swap!
+    (get-container-atom container-name)
+    f))
+
 (defn- update-interop [container-template interop-util]
   (let [updated (assoc container-template :interop interop-util)
         children (:children container-template)]
