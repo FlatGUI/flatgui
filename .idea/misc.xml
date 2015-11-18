@@ -48,6 +48,7 @@
         <option value="file://$PROJECT_DIR$/flatguiwidgets/project.clj" />
         <option value="file://$PROJECT_DIR$/flatguiskins/project.clj" />
         <option value="file://$PROJECT_DIR$/flatguithemes/project.clj" />
+        <option value="file://$PROJECT_DIR$/flatguisamples/project.clj" />
       </list>
     </option>
   </component>
