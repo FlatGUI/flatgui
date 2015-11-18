@@ -96,7 +96,7 @@
 ;;;  NOTE:
 ;;; This implementation is slow. For containers that have frequenlty moving children, it's better
 ;;; to wrap it into another function that would call this one in rare cases (e.g. only when :children
-;;; change)
+;;; change, see below)
 (fg/defevolverfn :focus-traversal-order
   (let [accepting-children (get-accepting-children component)]
     (if (pos? (count accepting-children))
@@ -104,6 +104,12 @@
             result (mapcat (fn [i] (map :id (nth lines i))) (range 0 (count lines)))]
         result)
       [])))
+
+(fg/defevolverfn simple-focus-traversal-order-evolver :focus-traversal-order
+  (let [reason (fg/get-reason)]
+    (if (or (nil? reason) (= reason [:this]))
+      (focus-traversal-order-evolver component)
+      old-focus-traversal-order)))
 
 (fg/defaccessorfn get-child-ids-in-traversal-order [component]
   (if-let [focus-traversal-order (get-property component [:this] :focus-traversal-order)]
