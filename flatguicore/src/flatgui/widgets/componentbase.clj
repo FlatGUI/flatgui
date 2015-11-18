@@ -207,9 +207,8 @@
                 ret container
                 aux aux-container]
           (if (< pi ps-count)
-                  (let [ p (nth properties-to-evolve pi)
-                         pk (fgc/conjv k p)
-                         evolver (p (:evolvers tgt))]
+                  (let [p (nth properties-to-evolve pi)
+                        evolver (p (:evolvers tgt))]
                     (if (or initialization evolver)
                       (let [;; Remember: cannot use get in :evolved-properties check because of http://dev.clojure.org/jira/browse/CLJ-700
                             ;; We don track :children change during initialization. Current implementation of initialization
@@ -229,22 +228,6 @@
                              has-changes-raw (not (= old-value new-value))
                              has-changes has-changes-raw ;(or initialization has-changes-raw)
 
-;                             _ (if (and has-changes (= p :children)) (println " Evolved children count from " (count old-value) " to " (count new-value) " str change "
-;                                                                       (and has-changes-raw (= p :children) (or (not (:_flexible-childset tgt)) (empty? old-value)))))
-                             ;@todo for :content-pane has-structure-changes should be false in case new child count is LESS than previous child count?
-                             ;
-                             children-changed (= p :children)
-                            ;_ (if children-changed (println (:widget-type tgt) (:id tgt) "------CHILDREN CHANGED--FROM-" (count old-value) " TO " (count new-value)))
-
-
-
-                             has-structure-changes (and has-changes-raw children-changed (or (not (:_flexible-childset tgt)) (empty? old-value)))
-                             flex-structure-changes (if (and has-changes-raw children-changed (:_flexible-childset tgt) (seq old-value))
-                                                      (:_flexible-childset-added new-value))
-
-
-                             flex-target-id-paths-added (if flex-structure-changes (:_flex-target-id-paths-added new-value))
-                             new-value (if flex-structure-changes (dissoc new-value :_flexible-childset-added :_flex-target-id-paths-added) new-value)
                              new-aux-with-consume (if (evolve-reason-provider nil)
                                                     (assoc!
                                                       aux-with-evolved-dependencies
@@ -267,7 +250,27 @@
 
 
                             new-ret (if has-changes
-                                       (let [fin-ret1 (assoc (assoc-in root-p pk new-value)
+                                       (let [
+
+                                             ;                             _ (if (and has-changes (= p :children)) (println " Evolved children count from " (count old-value) " to " (count new-value) " str change "
+                                             ;                                                                       (and has-changes-raw (= p :children) (or (not (:_flexible-childset tgt)) (empty? old-value)))))
+                                             ;@todo for :content-pane has-structure-changes should be false in case new child count is LESS than previous child count?
+                                             ;
+                                             children-changed (= p :children)
+                                             ;_ (if children-changed (println (:widget-type tgt) (:id tgt) "------CHILDREN CHANGED--FROM-" (count old-value) " TO " (count new-value)))
+
+
+
+                                             has-structure-changes (and has-changes-raw children-changed (or (not (:_flexible-childset tgt)) (empty? old-value)))
+                                             flex-structure-changes (if (and has-changes-raw children-changed (:_flexible-childset tgt) (seq old-value))
+                                                                      (:_flexible-childset-added new-value))
+
+
+                                             flex-target-id-paths-added (if flex-structure-changes (:_flex-target-id-paths-added new-value))
+                                             new-value (if flex-structure-changes (dissoc new-value :_flexible-childset-added :_flex-target-id-paths-added) new-value)
+
+
+                                             fin-ret1 (assoc (assoc-in root-p (fgc/conjv k p) new-value)
                                                          :has-structure-changes (or (:has-structure-changes root-p) has-structure-changes)
                                                          :flex-structure-changes (merge (:flex-structure-changes root-p) flex-structure-changes)
 
@@ -362,22 +365,25 @@
           container)
         (let [ k (fgc/get-access-key target-id-path)
                prev-has-changes (:has-changes container)
-              ;before-time (System/currentTimeMillis)
+              before-time (System/currentTimeMillis)
                with-evolved-target-fresh (evolve-component original-container (assoc container :has-changes false) original-target-id-path target-id-path reason remaining-to-evolve debug-shift initialization)
-              ;_time-spent (if initialization
-              ;              nil
-              ;              (loop [pi (dec (count remaining-to-evolve))
-              ;                     _ts nil]
-              ;                (if (>= pi 0)
-              ;                  (recur
-              ;                    (dec pi)
-              ;                    (let [t (- (System/currentTimeMillis) before-time)
-              ;                          pp (fgc/conjv target-id-path (nth remaining-to-evolve pi))]
-              ;                      (do
-              ;                        (swap! stats (fn [s] (assoc s pp (+ (get s pp 0) t))))
-              ;                        ))))))
                new-has-changes (:has-changes with-evolved-target-fresh)
-               has-changes (or prev-has-changes new-has-changes)
+              _time-spent (if initialization
+                            nil
+                            (loop [pi (dec (count remaining-to-evolve))
+                                   _ts nil]
+                              (if (>= pi 0)
+                                (recur
+                                  (dec pi)
+                                  (let [t (- (System/currentTimeMillis) before-time)
+                                        pp (fgc/conjv
+                                             (fgc/conjv (fgc/conjv target-id-path (nth remaining-to-evolve pi)) (str reason))
+                                             (if new-has-changes "(Y)" "(N)"))
+                                        ]
+                                    (do
+                                      (swap! stats (fn [s] (assoc s pp (+ (get s pp 0) t))))
+                                      ))))))
+              has-changes (or prev-has-changes new-has-changes)
                with-evolved-target (assoc with-evolved-target-fresh :has-changes has-changes)
                new-aux (:aux-container with-evolved-target)
                ;_ (if (and
