@@ -14,7 +14,11 @@
   :url "http://flatgui.org"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.6.0"]]
+  :dependencies [[org.clojure/clojure "1.6.0"]
+                 [org.flatgui/flatguicore ~flatgui-version]
+                 [org.flatgui/flatguithemes ~flatgui-version]
+                 [org.flatgui/flatguiskins ~flatgui-version]
+                 [org.flatgui/flatguiwidgets ~flatgui-version]]
   :java-source-paths ["src/java"]
   :omit-source true
   :aot :all)
