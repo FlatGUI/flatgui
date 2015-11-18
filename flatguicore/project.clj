@@ -24,11 +24,7 @@
                  [junit/junit "4.12"]]
   :deploy-repositories {"releases" {:url "https://oss.sonatype.org/service/local/staging/deploy/maven2/" :creds :gpg}
                         "snapshots" {:url "https://oss.sonatype.org/content/repositories/snapshots/" :creds :gpg}}
-  :java-source-paths ["src/flatgui/core"
-                      "src/flatgui/core/awt"
-                      "src/flatgui/core/util"
-                      "src/flatgui/core/websocket"
-                      "src/flatgui/controlcenter"]
+  :java-source-paths ["src/java"]
   :omit-source true
   :aot :all
 
