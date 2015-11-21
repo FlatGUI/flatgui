@@ -200,7 +200,8 @@
                                               (= original-target-id-path target-id-path) reason))
              target-component (assoc pre-target-component
                                 :target-id-path-index (dec (count target-id-path))
-                                :evolve-reason-provider evolve-reason-provider)
+                                :evolve-reason-provider evolve-reason-provider
+                                :_initialization initialization)
              ps-count (count properties-to-evolve)]
         (loop [ pi 0
                 tgt target-component
@@ -348,11 +349,6 @@
 (defn evolve-by-dependencies [original-container container original-target-id-path target-id-path reason properties-to-evolve debug-shift initialization issuer]
     (let [ ;[GOOD DEBUG OUTPUT] _ (if (not= [:text :selection] properties-to-evolve) (println (debug-prefix debug-shift) ">>> entered evolve-by-dependencies function " target-id-path " for properties " properties-to-evolve))
            k (fgc/get-access-key target-id-path)
-           evolved-properties-key (fgc/conjv k :evolved-properties)
-          ;already-evolved (get-in (:aux-container container) evolved-properties-key)
-           ;
-           ;@todo If current reason in not a vector (which meands depencency), take only evolvers dependent on current reason
-           ;
            remaining-to-evolve (if properties-to-evolve
                                  properties-to-evolve
                                  (if initialization
