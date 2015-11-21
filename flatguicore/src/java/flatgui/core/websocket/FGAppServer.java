@@ -139,6 +139,7 @@ public class FGAppServer
             servlet = new TextHtmlServlet();
             ServletHolder h = new ServletHolder(servlet);
             handler_.addServletWithMapping(h, mapping);
+            mappingToTextHtmlServletMap_.put(mapping, servlet);
         }
         servlet.setWriter(writer);
     }
