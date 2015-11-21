@@ -1489,10 +1489,10 @@ function getEncodedHostResizeEvent()
     var bytearray = new Uint8Array(5);
 
     bytearray[0] = HOST_RESIZE_EVENT_CODE - 400;
-    bytearray[1] = window.innerWidth & 0xFF
-    bytearray[2] = ((window.innerWidth & 0xFF00) >> 8)
-    bytearray[3] = window.innerHeight & 0xFF
-    bytearray[4] = ((window.innerHeight & 0xFF00) >> 8)
+    bytearray[1] = canvas.width & 0xFF
+    bytearray[2] = ((canvas.width & 0xFF00) >> 8)
+    bytearray[3] = canvas.height & 0xFF
+    bytearray[4] = ((canvas.height & 0xFF00) >> 8)
 
     return bytearray.buffer;
 }
