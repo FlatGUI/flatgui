@@ -578,11 +578,11 @@ flatgui.skins.flat
   (awt/setColor (:prime-4 theme))
   (awt/fillRect 0 0 w h))
 
-(deflookfn tablecell-look (:theme :anchor :text :h-alignment :v-alignment :foreground)
+(deflookfn tablecell-look (:theme :anchor :text :h-alignment :v-alignment :foreground :screen-col)
                [(awt/setColor (:prime-4 theme))
                 (awt/drawRect 0 0 w- h-)
                 (awt/setColor background)
-                (awt/fillRect 0 0 w- h-)
+                (if (= screen-col 0) (awt/fillRect (awt/px) 0 (awt/-px w-) h-) (awt/fillRect 0 0 w- h-))
                 (label-look-impl interop foreground text h-alignment v-alignment 0 0 w h)
                 (if anchor (awt/setColor (:prime-2 theme)))
                 (if anchor (awt/drawRect 0 0 (awt/-px w-) (awt/-px h-)))])

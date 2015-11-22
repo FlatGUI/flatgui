@@ -436,6 +436,7 @@
                           :y-locations nil}
     :selection-model nil
     :column-grouping-state nil
+    :background :prime-1
     ; Engine-recorgnized property that allow optimization for components with variable child set.
     ; When true, engine does not recompute dependencies each time a child is added, but rather
     ; clones dependency-related infromation from any existing child, assuming all children are the

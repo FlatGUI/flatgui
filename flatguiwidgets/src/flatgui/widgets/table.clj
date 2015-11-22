@@ -28,6 +28,7 @@
    ;; This way natural focus order will be also the same as anchor traversal order usually is.
    :focusable true
 
+   :background :prime-1
    :children {:header flatgui.widgets.panel/panel
               :content-pane flatgui.widgets.table.contentpane/tablecontentpane}}
   flatgui.widgets.scrollpanel/scrollpanel)
