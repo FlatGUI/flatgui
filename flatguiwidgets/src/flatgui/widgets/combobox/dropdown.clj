@@ -92,6 +92,7 @@
                                 :row-count 0
                                 :row-order []
                                 :skin-key [:combobox :dropdown :content-pane]
+                                :background :prime-3
                                 :evolvers {:row-count dropdown-contnent-row-count-evolver
                                            ; TODO Find out why regular evolver reverses row order for dropdowns and then get rid of this one
                                            :row-order dropdown-row-order-evolver}})}}
