@@ -200,6 +200,9 @@
 (fg/defevolverfn text-model-evolver :model
   (cond
 
+    (not (get-property [:this] :editable))
+    old-model
+
     (mouse/is-mouse-event? component)
     (if (and
           (pos? (count (:lines old-model)))
@@ -353,7 +356,9 @@
     ((:clip-size (:evolvers flatgui.widgets.component/component)) component)))
 
 (fg/defevolverfn :caret-visible
-  (if (= :has-focus (:mode (get-property [:this] :focus-state)))
+  (if (and
+        (get-property [:this] :editable)
+        (= :has-focus (:mode (get-property [:this] :focus-state))))
     (if (timer/timer-event? component)
       (not old-caret-visible)
       old-caret-visible)
@@ -421,7 +426,8 @@
    :focusable true
    :cursor :text
    :skin-key [:textfield]
-   ;; TODO move out
+   :editable true
+   :background :prime-4
    :foreground :prime-1
    :no-mouse-press-capturing true
    :evolvers {:model text-model-evolver
@@ -430,5 +436,7 @@
               :caret-visible caret-visible-evolver
               :->clipboard ->clipboard-evolver
               :cursor cursor-evolver
-              :clip-size auto-size-evolver}}
+              :clip-size auto-size-evolver
+              :background (fg/accessorfn (if (get-property component [:this] :editable) :prime-4 :prime-1))
+              :foreground (fg/accessorfn (if (get-property component [:this] :editable) :prime-1 :prime-4))}}
   flatgui.widgets.component/component)

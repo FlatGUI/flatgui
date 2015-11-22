@@ -57,7 +57,7 @@
   (let [text (get-clicked-item component)]
     (if text
       (let [len (.length text)]
-        (textfield/create-single-line-model text len 0))
+        (textfield/create-single-line-model text len len))
       (flatgui.widgets.textfield/text-model-evolver component))))
 
 (fg/defevolverfn combo-editor-shift-evolver :first-visible-symbol
@@ -69,13 +69,20 @@
       0
       (flatgui.widgets.textfield/first-visible-symbol-evolver component))))
 
+(fg/defevolverfn combo-editor-editable-evolver :editable
+  (let [combo-editable (get-property [] :editable)]
+    (if (nil? combo-editable)
+      true
+      combo-editable)))
+
 (fg/defwidget "combobox"
   { :model []
     :children {:editor (fg/defcomponent flatgui.widgets.textfield/textfield :editor
                                        {:skin-key [:combobox :editor]
                                         :evolvers {:model combo-text-model-evolver
-                                        :clip-size combo-editor-clip-size-evolver
-                                        :first-visible-symbol combo-editor-shift-evolver}})
+                                                   :clip-size combo-editor-clip-size-evolver
+                                                   :first-visible-symbol combo-editor-shift-evolver
+                                                   :editable combo-editor-editable-evolver}})
                :arrow-button (fg/defcomponent flatgui.widgets.button/button :arrow-button
                                              {:skin-key [:combobox :arrow-button]
                                               :evolvers {:belongs-to-focused-editor compoundcommons/belongs-to-focused-editor-evolver

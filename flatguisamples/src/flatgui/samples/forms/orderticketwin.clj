@@ -288,6 +288,7 @@
 
     (fg/defcomponent combobox/combobox :stgy-entry
       {:model ["WVAP" "TWAP" "With Volume" "Dynamic" "Custom"]
+       :editable false
        :clip-size (m/defpoint 1.375 0.375 0)
        :position-matrix (m/translation 4.5 3.0)})
 

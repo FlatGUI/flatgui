@@ -404,15 +404,17 @@ flatgui.skins.flat
                  ly3 ly1]
              (arrow-down lx1 ly1 lx2 ly2 lx3 ly3 theme (:prime-4 theme) (:prime-1 theme))))
 
-(deflookfn leftsmooth-editor-look (:has-mouse :theme :focus-state)
+(deflookfn leftsmooth-editor-look (:has-mouse :theme :focus-state :background :editable)
            ;(call-look panel-look)
-           (setColor (:prime-4 theme))
+           (setColor background)
            (fillRect 0 0 w h)
            (if (has-focus)
              [(draw-leftsmooth-component-rect w h (:prime-3 theme) (:focused theme))
               (setColor (:focused theme))
               (drawRect (awt/px) (awt/px) (awt/-px w 2) (awt/-px h 3))]
-             (draw-leftsmooth-component-rect w h (:prime-3 theme) (:prime-2 theme)))
+             (if (or (nil? editable) (true? editable))
+               (draw-leftsmooth-component-rect w h (:prime-3 theme) (:prime-2 theme))
+               (draw-leftsmooth-component-rect w h (:prime-3 theme) background)))
            (call-look textfield-look-impl))
 
 ;;;
@@ -491,11 +493,11 @@ flatgui.skins.flat
 ;;; Text Field
 ;;;
 
-(deflookfn textfield-look (:has-mouse :focus-state :theme :paint-border)
+(deflookfn textfield-look (:has-mouse :focus-state :theme :paint-border :background)
            ;(call-look panel-look)
            ;(set-component-color)
            ;(draw-component-rect)
-           (setColor (:prime-4 theme))
+           (setColor background)
            (fillRect 0 0 w h)
            (if paint-border
              (if (has-focus)
