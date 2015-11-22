@@ -200,7 +200,7 @@
 (fg/defevolverfn text-model-evolver :model
   (cond
 
-    (not (get-property [:this] :editable))
+    (false? (get-property [:this] :editable))
     old-model
 
     (mouse/is-mouse-event? component)
