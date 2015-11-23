@@ -104,3 +104,18 @@
   :engaged (flatgui.awt/color 34 168 108)  ; Engaged checkable (radiobutton, checkbox, etc)
   :focused (flatgui.awt/color 34 168 108)
   })
+
+(def dark-bw
+  {:prime-1 (flatgui.awt/color 46 46 46) ; Button etc. face
+   :prime-2 (flatgui.awt/color 101 101 101) ; Shadowed component background
+   :prime-3 (flatgui.awt/color 62 62 62) ; Panel surface
+   :prime-4 (flatgui.awt/color 220 220 220) ; Regular component background
+   :prime-5 (flatgui.awt/color 150 150 150) ; Selection indication
+   :prime-6 (flatgui.awt/color 220 220 220) ; Regular component foreground
+   :prime-gradient-start (flatgui.awt/color 54 54 54) ; Same usage as :prime-1 but for faces with gradient
+   :prime-gradient-end (flatgui.awt/color 38 38 38) ; Same usage as :prime-1 but for faces with gradient
+   :extra-1 (flatgui.awt/color 145 145 145) ; Foreground extra
+   :extra-2 (flatgui.awt/color 235 235 235) ; Background extra
+   :engaged (flatgui.awt/color 34 168 108)  ; Engaged checkable (radiobutton, checkbox, etc)
+   :focused (flatgui.awt/color 34 168 108)
+   })
