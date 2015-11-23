@@ -72,7 +72,9 @@
   flatgui.widgets.component/component)
 
 (fg/defevolverfn slider-position-evolver :position
-  (if (keyboard/key-event? component)
+  (cond
+
+    (keyboard/key-event? component)
     (let [ticksize (get-property component [:this] :ticksize)
           key (keyboard/get-key component)]
       (condp = key
@@ -83,13 +85,18 @@
          KeyEvent/VK_HOME 0.0
          KeyEvent/VK_END 1.0
         old-position))
+
+    (= (fg/get-reason) [:this :base :handle])
     (let [orientation (get-property component [:this] :orientation)
           bar-width (get-property component [:this] :bar-width)
           clip-size (get-property component [:this] :clip-size)
           handlepm (get-property component [:this :base :handle] :position-matrix)
           handlecoord (if (= :horizontal orientation) (m/mx-x handlepm) (m/mx-y handlepm))
           handlespace (- (if (= :horizontal orientation) (m/x clip-size) (m/y clip-size)) bar-width)]
-      (/ handlecoord handlespace))))
+      (/ handlecoord handlespace))
+
+    :else
+    old-position))
 
 ;;
 ;; TODO Invert position for vertical slider
