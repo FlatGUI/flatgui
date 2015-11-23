@@ -555,17 +555,32 @@ flatgui.skins.flat
                 (fillOval side-gap top side-gap side-gap)
                 (fillRect (+ (/ side-gap 2) side-gap) top hx side-gap)])))
 
-(deflookfn sliderhandle-look (:has-mouse :theme :belongs-to-focused-editor)
-           (if belongs-to-focused-editor
-             [(setColor (:focused theme))
-              (fillOval 0 0 w h)
-              (setColor (:prime-1 theme))
-              (fillOval (awt/+px 0 2) (awt/+px 0 2) (awt/-px w 4) (awt/-px h 4))]
-             [(setColor (:prime-1 theme))
-              (fillOval 0 0 w h)])
-           (setColor (:prime-4 theme))
-           (let [d (* w 0.46875)]
-             (fillOval (+px (- (/ w 2) (/ d 2))) (+px (- (/ h 2) (/ d 2))) (-px d) (-px d))))
+(deflookfn sliderhandle-look (:has-mouse :theme :belongs-to-focused-editor :orientation)
+           (if (= :vertical orientation)
+             (let [left (/ (- w h) 2)
+                   r h]
+               [(if belongs-to-focused-editor
+                  [(setColor (:focused theme))
+                   (fillOval left 0 r r)
+                   (setColor (:prime-1 theme))
+                   (fillOval (awt/+px left 2) (awt/+px 0 2) (awt/-px r 4) (awt/-px r 4))]
+                  [(setColor (:prime-1 theme))
+                   (fillOval left 0 r r)])
+                (setColor (:prime-4 theme))
+                (let [d (* h 0.46875)]
+                  (fillOval (+px (- (/ w 2) (/ d 2))) (+px (- (/ h 2) (/ d 2))) (-px d) (-px d)))])
+             (let [top (/ (- h w) 2)
+                   r w]
+               [(if belongs-to-focused-editor
+                  [(setColor (:focused theme))
+                   (fillOval 0 top r r)
+                   (setColor (:prime-1 theme))
+                   (fillOval (awt/+px 0 2) (awt/+px top 2) (awt/-px r 4) (awt/-px r 4))]
+                  [(setColor (:prime-1 theme))
+                   (fillOval 0 top r r)])
+                (setColor (:prime-4 theme))
+                (let [d (* w 0.46875)]
+                  (fillOval (+px (- (/ w 2) (/ d 2))) (+px (- (/ h 2) (/ d 2))) (-px d) (-px d)))])))
 
 ;;;
 ;;; Table

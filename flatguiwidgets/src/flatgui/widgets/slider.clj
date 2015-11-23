@@ -46,17 +46,14 @@
 (fg/defwidget "sliderhandle"
   { :focusable false
     :skin-key [:slider :handle]
-    :evolvers {:belongs-to-focused-editor compoundcommons/grandchild-of-focused-evolver
+    :evolvers {:orientation (fg/accessorfn (get-property component [] :orientation))
+               :belongs-to-focused-editor compoundcommons/grandchild-of-focused-evolver
                :position-matrix sliderhandle-position-matrix-evolver
                :clip-size sliderhandle-clip-size-evolver}}
   flatgui.widgets.floatingbar/floatingbar)
 
 (fg/defevolverfn sliderhandlebase-clip-size-evolver :clip-size
-  (let [ orientation (get-property component [] :orientation)
-         slider-size (get-property component [] :clip-size)]
-    (if (= :horizontal orientation)
-      (m/defpoint (m/x slider-size) (* 0.625 (m/y slider-size)))
-      (m/defpoint (* 0.625 (m/x slider-size)) (m/y slider-size)))))
+  (get-property component [] :clip-size))
 
 (fg/defwidget "sliderhandlebase"
   { :focusable false
