@@ -419,7 +419,7 @@
    :paint-border true
    :text-supplier textfield-dflt-text-suplier
    :caret-visible false
-   :model {:text "" :caret-pos 0 :selection-mark 0 :caret-line 0}
+   :model (create-single-line-model "" 0 0)
    :text ""
    :->clipboard nil
    :first-visible-symbol 0
