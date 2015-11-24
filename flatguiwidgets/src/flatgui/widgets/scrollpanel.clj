@@ -11,6 +11,8 @@
       :author "Denys Lebediev"}
   flatgui.widgets.scrollpanel
   (:require [flatgui.base :as fg]
+            [flatgui.util.decimal :as d]
+            [flatgui.awt :as awt]
             [flatgui.inputchannels.mouse :as mouse]
             [flatgui.util.matrix :as m]
             [flatgui.widgets.panel]
@@ -22,10 +24,15 @@
 
 
 (fg/defevolverfn scrollpanelcontent-clip-size-evolver :clip-size
-  (let [  v-scrollbar-w (m/x (get-property component [:v-scrollbar] :clip-size))
-          h-scrollbar-y (m/y (get-property component [:h-scrollbar] :clip-size))
-          scrollpanel-size (get-property component [] :clip-size)]
-     (m/point-op - scrollpanel-size (m/defpoint v-scrollbar-w h-scrollbar-y 0))))
+  (let [v-scrollbar-w (m/x (get-property component [:v-scrollbar] :clip-size))
+        h-scrollbar-y (m/y (get-property component [:h-scrollbar] :clip-size))
+        scrollpanel-size (get-property component [] :clip-size)
+        raw-size (m/point-op - scrollpanel-size (m/defpoint v-scrollbar-w h-scrollbar-y 0))]
+     (m/defpoint
+       (- (d/round-granular (m/x raw-size) (awt/px))
+          (if (pos? h-scrollbar-y) (get-property [:this] :btm-scrollbar-margin) 0))
+       (- (d/round-granular (m/y raw-size) (awt/px))
+          (if (pos? v-scrollbar-w) (get-property [:this] :right-scrollbar-margin) 0)))))
 
 (fg/defevolverfn scrollpanelcontent-viewport-matrix-evolver :viewport-matrix
   (let [reason ((:evolve-reason-provider component) (:id component))]
@@ -60,6 +67,8 @@
 (fg/defwidget "scrollpanelcontent"
   {:position-matrix (m/translation-matrix (flatgui.awt/px) (flatgui.awt/px) 0)
    :content-size (m/defpoint 14 12 0)
+   :btm-scrollbar-margin 0
+   :right-scrollbar-margin 0
    :wheel-rotation-step-y 1
    :evolvers {:clip-size scrollpanelcontent-clip-size-evolver
               :viewport-matrix scrollpanelcontent-viewport-matrix-evolver}}
