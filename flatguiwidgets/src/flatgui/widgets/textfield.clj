@@ -286,7 +286,7 @@
                   (if (or
                         (> (+ old-first-visible-symbol i) (.length text))
                         (>= (awt/strw component (subs text old-first-visible-symbol (+ old-first-visible-symbol i))) diff))
-                    i
+                    (min i (dec (.length text)))
                     (recur
                       (inc i))))))
             old-first-visible-symbol))))
