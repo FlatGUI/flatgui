@@ -56,8 +56,10 @@
 (fg/defevolverfn combo-text-model-evolver :model
   (let [text (get-clicked-item component)]
     (if text
-      (let [len (.length text)]
-        (textfield/create-single-line-model text len len))
+      (if (get-property [:this] :editable)
+        (let [len (.length text)]
+          (textfield/create-single-line-model text len len))
+        (textfield/create-single-line-model text 0 0))
       (flatgui.widgets.textfield/text-model-evolver component))))
 
 (fg/defevolverfn combo-editor-shift-evolver :first-visible-symbol
