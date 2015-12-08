@@ -977,29 +977,35 @@ public class FGWebContainerWrapper
 
             addDataTransmitter(new PositionMatrixMapTrasmitter(keyCache_,
                     () -> idPathToComponent_.entrySet().stream()
+                            .map(e -> checkMapEntry(e, "Position matrix"))
                             .collect(Collectors.toMap(e -> e.getKey(), e -> extractPositionMatrix_.invoke(e.getValue())))));
 
             addDataTransmitter(new ViewportMatrixMapTrasmitter(keyCache_,
                     () -> idPathToComponent_.entrySet().stream()
-                            .collect(Collectors.toMap(e -> e.getKey(), e -> extractViewportMatrix_.invoke(e.getValue())))));
+                        .map(e -> checkMapEntry(e, "Viewport matrix"))
+                        .collect(Collectors.toMap(e -> e.getKey(), e -> extractViewportMatrix_.invoke(e.getValue())))));
 
             addDataTransmitter(new ClipRectTransmitter(keyCache_,
                     () -> idPathToComponent_.entrySet().stream()
-                            .collect(Collectors.toMap(e -> e.getKey(), e -> extractClipSize_.invoke(e.getValue())))));
+                        .map(e -> checkMapEntry(e, "Clip size"))
+                        .collect(Collectors.toMap(e -> e.getKey(), e -> extractClipSize_.invoke(e.getValue())))));
 
             lookVectorTransmitter_ = new LookVectorTransmitter(stringPoolIdSupplier_, keyCache_,
                 () -> idPathToComponent_.entrySet().stream()
+                    .map(e -> checkMapEntry(e, "Look vector"))
                     .collect(Collectors.toMap(e -> e.getKey(), e -> extractLookVector_.invoke(e.getValue()))));
 
             addDataTransmitter(lookVectorTransmitter_);
 
             addDataTransmitter(new ChildCountMapTransmitter(keyCache_,
                     () -> idPathToComponent_.entrySet().stream()
-                            .collect(Collectors.toMap(e -> e.getKey(), e -> extractChildCount_.invoke(e.getValue())))));
+                        .map(e -> checkMapEntry(e, "Child count"))
+                        .collect(Collectors.toMap(e -> e.getKey(), e -> extractChildCount_.invoke(e.getValue())))));
 
             addDataTransmitter(new BooleanFlagsMapTransmitter(keyCache_,
                     () -> idPathToComponent_.entrySet().stream()
-                            .collect(Collectors.toMap(e -> e.getKey(), e -> extractBitFlags_.invoke(e.getValue())))));
+                        .map(e -> checkMapEntry(e, "Bit flags"))
+                        .collect(Collectors.toMap(e -> e.getKey(), e -> extractBitFlags_.invoke(e.getValue())))));
 
             addDataTransmitter(new PaintAllTransmitter(keyCache_, fgModule_::getPaintAllSequence2));
 
@@ -1175,6 +1181,15 @@ public class FGWebContainerWrapper
         void addFontStrListener(IFGChangeListener<String> listener)
         {
             lookVectorTransmitter_.addFontStrListener(listener);
+        }
+
+        private static Map.Entry<List<Keyword>, Map<Keyword, Object>> checkMapEntry(Map.Entry<List<Keyword>, Map<Keyword, Object>> entry, String entityName)
+        {
+            if (entry.getValue() == null)
+            {
+                throw new NullPointerException(entityName + " is null for " + entry.getKey());
+            }
+            return entry;
         }
 
         private void addDataTransmitter(IDataTransmitter<?> dataTransmitter)
