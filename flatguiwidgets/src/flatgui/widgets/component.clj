@@ -130,6 +130,37 @@ flatgui.widgets.component
         ]
     (get-property component [:this] :clip-size)))
 
+(fg/defevolverfn :preferred-size
+  (let [text (get-property [:this] :text)
+        text-w (if text (awt/strw component text) 0)
+        text-h (if text (awt/strh component) 0)
+        icon (get-property [:this] :icon)
+        icon-w 0 ;TODO
+        icon-h 0 ;TODO
+        icon-to-text-pos (get-property [:this] :icon-to-text-pos)
+        h-margin (get-property [:this] :h-margin)
+        v-margin (get-property [:this] :v-margin)]
+    (if (or (pos? icon-w) (pos? text-w) (pos? icon-h) (pos? text-h)) ; Empty text may still have height (just defined by font)
+      (if (or (= icon-to-text-pos :left) (= icon-to-text-pos :right))
+        (m/defpoint
+          (cond
+            (and (pos? icon-w) (pos? text-w))
+            (+ v-margin icon-w v-margin text-w v-margin)
+            (pos? text-w)
+            (+ v-margin text-w v-margin)
+            :else
+            (+ v-margin icon-w v-margin))
+          (+ h-margin (max text-h icon-h) h-margin))
+        (m/defpoint
+          (+ v-margin (max text-w icon-w) v-margin)
+          (cond
+            (and (pos? icon-h) (pos? text-h))
+            (+ h-margin icon-h h-margin text-h h-margin)
+            (pos? text-h)
+            (+ h-margin text-h h-margin)
+            :else
+            (+ h-margin icon-h h-margin)))))))
+
 (fg/defwidget "component"
   (array-map
 ;     :visible true
@@ -153,6 +184,17 @@ flatgui.widgets.component
 ;     ;    :children-z-order nil
 ;     :children nil
 ;     :look component-look
+
+    :h-margin 0.0625
+    :v-margin 0.0625
+
+    :icon-to-text-pos :left
+    ;; :exterior- parameters define outer area that is not a part of container where components are layed out
+    ;; For example, window is a container but window header is an outer space
+    :exterior-top 0
+    :exterior-left 0
+    :exterior-bottom 0
+    :exterior-right 0
 
 ;    ;@todo move this one to componentbase
 ;     :default-properties-to-evolve-provider default-properties-to-evolve-provider
@@ -186,6 +228,8 @@ flatgui.widgets.component
                  :coord-map layout/coord-map-evolver
                  :clip-size layout/clip-size-evolver
                  :position-matrix layout/position-matrix-evolver
+
+                 :preferred-size preferred-size-evolver
 
                  ; Nov 26 2014 moving this to componentbase since table cells will also need this as an optimization for web
                  ; It was previosly moved out of there for performance reasons. Though now it does not seem to hurt performance

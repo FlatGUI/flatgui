@@ -78,11 +78,17 @@ public class FGWebInteropUtil implements IFGInteropUtil
     }
 
     @Override
+    public double getFontHeight(String font)
+    {
+        double heightPx = referenceFontMetrics_.getHeight();
+        return heightPx / unitSizePx_;
+    }
+
+    @Override
     public double getFontAscent(String font)
     {
         double heightPx = referenceFontMetrics_.getAscent();
-        //@todo what does this 0.75 mean?
-        return 0.75 * heightPx / unitSizePx_;
+        return heightPx / unitSizePx_;
     }
 
     // Non-public

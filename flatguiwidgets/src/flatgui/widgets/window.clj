@@ -35,8 +35,11 @@
         (flatgui.widgets.floatingbar/position-matrix-evolver component)))
     (flatgui.widgets.floatingbar/position-matrix-evolver component)))
 
+(def header-h 0.375)
+
 (fg/defwidget "window"
-  {:header-h 0.375
+  {:header-h header-h
+   :exterior-top header-h
    :v-alignment :top
    :h-alignment :left
    :foreground :prime-4

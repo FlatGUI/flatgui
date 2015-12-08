@@ -17,5 +17,7 @@ public interface IFGInteropUtil
 {
     double getStringWidth(String str, String font);
 
+    double getFontHeight(String font);
+
     double getFontAscent(String font);
 }

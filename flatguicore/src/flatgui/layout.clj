@@ -49,10 +49,23 @@
                               (if-let [lines (:lines (get-property component [:this child-id] :multiline))] lines [text]))
                             (awt/get-text-preferred-size component [text]))
                           component-min-size))
-        container-size (get-property component [:this] :clip-size)]
+        ;; Since gaps are added into component's cell in further calculations
+        gap-adjusted-abs-pref-size (m/defpoint (+ (m/x abs-pref-size) gap) (+ (m/y abs-pref-size) gap))
+        container-size (get-property component [:this] :clip-size)
+        usr-layout (get-property component [:this] :layout)
+        cx (-
+             (m/x container-size)
+             (* gap (inc (apply max (map count usr-layout))))
+             (get-property component [:this] :exterior-left)
+             (get-property component [:this] :exterior-right))
+        cy (-
+             (m/y container-size)
+             (* gap (inc (count usr-layout)))
+             (get-property component [:this] :exterior-top)
+             (get-property component [:this] :exterior-bottom))]
     (m/defpoint
-      (/ (m/x abs-pref-size) (m/x container-size))
-      (/ (m/y abs-pref-size) (m/y container-size)))))
+      (/ (m/x gap-adjusted-abs-pref-size) cx)
+      (/ (m/y gap-adjusted-abs-pref-size) cy))))
 
 (fg/defaccessorfn get-child-minimum-size [component child-id]
   (let [abs-min-size (if-let [own-min-size (get-property component [:this child-id] :minimum-size)]
@@ -340,10 +353,14 @@
   (if-let [coord-map (get-property [] :coord-map)]
     (if-let [coord ((:id component) coord-map)]
       (let [ps (get-property [] :clip-size)
-            btop (+ 0.375 gap) ;TODO see 0.375 - window border
-            bbtm gap
-            bleft gap
-            bright gap]
+            ext-top (get-property [] :exterior-top)
+            ext-left (get-property [] :exterior-left)
+            ext-bottom (get-property [] :exterior-bottom)
+            ext-right (get-property [] :exterior-right)
+            btop (+ ext-top gap)
+            bbtm (+ ext-bottom gap)
+            bleft (+ ext-left gap)
+            bright (+ ext-right gap)]
         (m/translation
           (d/round-granular (+ bleft gap (* (:x coord) (- (m/x ps) bleft bright))) (awt/px))
           (d/round-granular (+ btop gap (* (:y coord) (- (m/y ps) btop bbtm))) (awt/px))))
@@ -354,13 +371,17 @@
   (if-let [coord-map (get-property [] :coord-map)]
     (if-let [coord ((:id component) coord-map)]
       (let [ps (get-property [] :clip-size)
-            btop (+ 0.375 gap) ;TODO see 0.375 - window border
-            bbtm gap
-            bleft gap
-            bright gap]
+            ext-top (get-property [] :exterior-top)
+            ext-left (get-property [] :exterior-left)
+            ext-bottom (get-property [] :exterior-bottom)
+            ext-right (get-property [] :exterior-right)
+            btop (+ ext-top gap)
+            bbtm (+ ext-bottom gap)
+            bleft (+ ext-left gap)
+            bright (+ ext-right gap)]
         (m/defpoint
-          (d/round-granular (- (* (:w coord) (- (m/x ps) bleft bright)) gap gap) (awt/px))
-          (d/round-granular (- (* (:h coord) (- (m/y ps) btop bbtm)) gap gap) (awt/px))))
+          (d/round-granular (- (* (:w coord) (- (m/x ps) bleft bright)) gap) (awt/px))
+          (d/round-granular (- (* (:h coord) (- (m/y ps) btop bbtm)) gap) (awt/px))))
       old-clip-size)
     old-clip-size))
 

@@ -59,66 +59,72 @@ flatgui.skins.flat
 ;;; Common label-look-impl for various components containing text
 ;;;
 
+(defn get-label-text-x [interop w text h-alignment]
+  (condp = h-alignment
+    :left 0
+    :right (- w (flatgui.awt/sw interop text))
+    (/ (- w (flatgui.awt/sw interop text)) 2)))
+
+(defn get-label-text-y [interop h v-alignment]
+  (condp = v-alignment
+    :top (flatgui.awt/sasc interop)
+    :bottom (- h (- (flatgui.awt/sh interop) (flatgui.awt/sasc interop)))
+    (+ (- (/ h 2) (/ (flatgui.awt/sh interop) 2)) (flatgui.awt/sasc interop))))
+
 (defn label-look-impl [interop foreground text h-alignment v-alignment left top w h]
   [(flatgui.awt/setColor foreground)
-   (let [ dx (condp = h-alignment
-               :left (flatgui.awt/hsh interop)
-               :right (- w (flatgui.awt/sw interop text) (flatgui.awt/hsh interop))
-               (/ (- w (flatgui.awt/sw interop text)) 2))
-         dy (condp = v-alignment
-              :top (+ (flatgui.awt/hsh interop) (flatgui.awt/sh interop))
-              :bottom (- h (flatgui.awt/hsh interop))
-              (+ (/ h 2) (flatgui.awt/hsh interop)))]
-     (flatgui.awt/drawString text (+ left dx) (+ top dy)))])
+   (let [dx (get-label-text-x interop w text h-alignment)
+         dy (get-label-text-y interop h v-alignment)]
+     (flatgui.awt/drawString text (+ left dx) (+ top dy)))
+   ;(drawLine 0 (get-label-text-y interop h v-alignment) w (get-label-text-y interop h v-alignment))
+   ])
 
-(deflookfn label-look (:text :h-alignment :v-alignment)
-  (label-look-impl interop foreground text h-alignment v-alignment 0 0 w h))
+(deflookfn label-look (:text :h-alignment :v-alignment :h-margin :v-margin)
+  ;;TODO icon
+  (label-look-impl interop foreground text h-alignment v-alignment h-margin v-margin (- w v-margin) (- h v-margin)))
 
 
-;;;; TODO !!!! HGAP and get-caret-x is duplicated: widget and skin. Find place for it single
-(defn get-hgap [interop] (flatgui.awt/hsh interop))
+;;;; TODO !!!! get-caret-x is duplicated: widget and skin. Find place for it single
 (defn- get-caret-x [interop text caret-pos]
   (flatgui.awt/sw interop (if (< caret-pos (.length text)) (subs text 0 caret-pos) text)))
 
-(defn- text-str-h [interop] (* (flatgui.awt/sh interop) 2.5))
+(defn- text-str-h [interop] (flatgui.awt/sh interop))
 
-(defn- get-caret-y [interop caret-line] (* caret-line (text-str-h interop)))
+(defn- get-line-y [interop caret-line] (* caret-line (text-str-h interop)))
 
-(defn- get-caret-h [interop] (- (* (flatgui.awt/sh interop) 2) (get-hgap interop)))
-
-(deflookfn caret-look ( :model :foreground :first-visible-symbol)
+(deflookfn caret-look (:model :foreground :first-visible-symbol :v-margin :h-margin :multiline :v-alignment :h-alignment)
   (let [line (:caret-line model)
         trunk-text (subs (nth (:lines model) line) first-visible-symbol)
         trunk-caret-pos (- (:caret-line-pos model) first-visible-symbol)
-        caret-y (+ (get-caret-y interop line) (get-hgap interop))
-        xc (+ (get-hgap interop) (get-caret-x interop trunk-text trunk-caret-pos))
-        caret-h (get-caret-h interop)]
+        line-h (text-str-h interop)
+        caret-y (if multiline
+                  (+ (get-line-y interop line) v-margin)
+                  (+ v-margin (- (get-label-text-y interop (- h (* v-margin 2)) v-alignment) (flatgui.awt/sasc interop))))
+        xc (+ h-margin (get-label-text-x interop (- w (* h-margin 2)) (:text model) h-alignment) (get-caret-x interop trunk-text trunk-caret-pos))
+        caret-y2 (flatgui.awt/-px (+ caret-y line-h) 2)]
     [(setColor foreground)
-     (drawLine xc caret-y xc (+ caret-y caret-h))]))
+     (drawLine xc caret-y xc caret-y2)
+     ;(drawLine 0 (get-label-text-y interop (- h (* v-margin 2)) v-alignment) w (get-label-text-y interop (- h (* v-margin 2)) v-alignment))
+     ]))
 
-(deflookfn textfield-look-impl (:foreground :text :h-alignment :v-alignment :caret-visible :theme :model :first-visible-symbol :multiline)
+(deflookfn textfield-look-impl (:foreground :text :h-alignment :v-alignment :caret-visible :theme :model :first-visible-symbol :multiline :h-margin :v-margin)
   (let [selection-start-in-line (if (> (:selection-mark model) (:caret-pos model)) (:caret-line-pos model) (:selection-mark-line-pos model))
         selection-end-in-line (if (> (:selection-mark model) (:caret-pos model)) (:selection-mark-line-pos model) (:caret-line-pos model))
         sstart-line (min (:selection-mark-line model) (:caret-line model))
         send-line (max (:selection-mark-line model) (:caret-line model))
         lines (:lines model)
+        line-h (text-str-h interop)
         line-infos (map
                      (fn [i]
                        (let [line-text (nth lines i)]
                          {:line line-text
-                          :y (* i (text-str-h interop))
+                          :y (* i line-h)
                           :line-sstart (if (= i sstart-line) selection-start-in-line 0)
                           :line-send (cond
                                        (and (>= i sstart-line) (< i send-line)) (.length line-text)
                                        (= i send-line) selection-end-in-line
                                        :else 0)}))
-                     (range 0 (count lines)))
-
-       ;_ (println (str "|" text "|" trunk-text "|"))
-       ;_ (println "lines " lines " count " (count lines) (str "|" (nth lines 0) "|") (.getClass (nth lines 0)))
-       ;_ (println "Range: " (range 0 (count lines)))
-       ;_ (println "line-infos " line-infos)
-       ]
+                     (range 0 (count lines)))]
     (mapv
       (fn [line-info]
         (let [trunk-text (subs (:line line-info) first-visible-symbol)
@@ -126,16 +132,15 @@ flatgui.skins.flat
               selection-mark (:selection-mark model)]
           [(if (not= caret-pos selection-mark)
              [(setColor (:prime-5 theme))
-              (let [hgap (get-hgap interop)
-                    sstart (:line-sstart line-info)
+              (let [sstart (:line-sstart line-info)
                     send (:line-send line-info)
                     x1 (get-caret-x interop trunk-text sstart)
                     x2 (get-caret-x interop trunk-text send)]
-                (fillRect (+ hgap x1) (+ hgap (:y line-info)) (- x2 x1) (get-caret-h interop)))])
+                (fillRect (+ h-margin x1) (+ v-margin (:y line-info)) (- x2 x1) line-h))])
            (if caret-visible (call-look caret-look))
            (if multiline
-             (label-look-impl interop foreground trunk-text h-alignment v-alignment 0 (:y line-info) w (text-str-h interop))
-             (label-look-impl interop foreground trunk-text h-alignment v-alignment 0 0 w h))]))
+             (label-look-impl interop foreground trunk-text h-alignment v-alignment h-margin (+ (:y line-info) v-margin) (- w (* h-margin 2)) line-h)
+             (label-look-impl interop foreground trunk-text h-alignment v-alignment h-margin v-margin (- w (* h-margin 2)) (- h (* v-margin 2))))]))
       line-infos)))
 
 

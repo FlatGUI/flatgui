@@ -10,10 +10,7 @@
 
 package flatgui.core.awt;
 
-import java.awt.Container;
-import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
+import java.awt.*;
 
 import javax.swing.SwingUtilities;
 
@@ -55,18 +52,31 @@ public class FGAWTInteropUtil implements IFGInteropUtil
     }
 
     @Override
+    public double getFontHeight(String font)
+    {
+        applyFontIfNeeded(font);
+        double heightPx = referenceFontMetrics_.getHeight();
+        return heightPx / unitSizePx_;
+    }
+
+    @Override
     public double getFontAscent(String font)
+    {
+        applyFontIfNeeded(font);
+        double heightPx = referenceFontMetrics_.getAscent();
+        return heightPx / unitSizePx_;
+    }
+
+    // Non-public
+
+    private void applyFontIfNeeded(String font)
     {
         if (font != null && !font.equals(referenceFontStr_))
         {
             setReferenceFont(font, (Font) strToFont_.invoke(font));
         }
-        double heightPx = referenceFontMetrics_.getAscent();
-        //@todo what does this 0.75 mean?
-        return 0.75 * heightPx / unitSizePx_;
-    }
 
-    // Non-public
+    }
 
     void setReferenceFont(String fontStr, Font font)
     {

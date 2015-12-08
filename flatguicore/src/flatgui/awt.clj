@@ -20,8 +20,12 @@
   ([interop text] (sw interop text nil)))
 
 (defn sh
-  ([interop font] (.getFontAscent interop font))
+  ([interop font] (.getFontHeight interop font))
   ([interop] (sh interop nil)))
+
+(defn sasc
+  ([interop font] (.getFontAscent interop font))
+  ([interop] (sasc interop nil)))
 
 (defn hsh
   ([interop font] (/ (sh interop font) 2))
@@ -32,6 +36,9 @@
 
 (fg/defaccessorfn strh [component]
   (sh (get-property component [:this] :interop) (get-property component [:this] :font)))
+
+(fg/defaccessorfn strasc [component]
+  (sasc (get-property component [:this] :interop) (get-property component [:this] :font)))
 
 (fg/defaccessorfn halfstrh [component] (/ (strh component) 2))
 

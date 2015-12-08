@@ -38,7 +38,7 @@ public class FGMultilineTextDemo
                 Image logoIcon = ImageIO.read(ClassLoader.getSystemResource("flatgui/samples/images/icon_FlatGUI_32x32.png"));
 
                 Frame frame = new Frame("FlatGUI Demo - Text Editor");
-                frame.setSize(600, 500);
+                frame.setSize(1600, 1200);
                 frame.setLocation(300, 300);
                 frame.setLayout(new BorderLayout());
                 if (logoIcon != null)
