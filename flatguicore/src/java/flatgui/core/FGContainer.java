@@ -65,7 +65,7 @@ public class FGContainer implements IFGContainer
         Var containerVar = clojure.lang.RT.var(template.getContainerNamespace(), template.getContainerVarName());
         Var registerFn = clojure.lang.RT.var(FGModule.FG_CORE_NAMESPACE, REGISTER_FN_NAME);
         Object container = containerVar.get();
-        registerFn.invoke(containerId, container, interopUtil);
+        registerFn.invoke(containerId, container, interopUtil, this);
 
         Keyword containerIdInternal = (Keyword) ((Map)container).get(Keyword.intern("id"));
 

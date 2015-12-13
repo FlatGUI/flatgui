@@ -25,6 +25,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -42,6 +43,7 @@ public class FGContainerWebSocket implements WebSocketListener
     // TODO have some template provider instead
     private final IFGTemplate template_;
     private final Consumer<IFGContainer> containerConsumer_;
+    private final BiConsumer<Object, IFGContainer> sessionCloseConsumer_;
     private final FGPredictor predictor_;
 
     private volatile Session session_;
@@ -49,40 +51,39 @@ public class FGContainerWebSocket implements WebSocketListener
     private volatile FGInputEventDecoder parser_;
     private volatile FGContainerSession fgSession_;
     private volatile Timer blinkHelperTimer_;
-    private volatile Timer predictorTimer_;
+    //private volatile Timer predictorTimer_;
     private volatile long latestInputEventTimestamp_;
     private volatile boolean predictionsSent_;
 
     private final ContainerAccessor containerAccessor_;
 
-    public FGContainerWebSocket(IFGTemplate template, FGContainerSessionHolder sessionHolder)
-    {
-        this (template, sessionHolder, null);
-    }
-
-    public FGContainerWebSocket(IFGTemplate template, FGContainerSessionHolder sessionHolder, Consumer<IFGContainer> containerConsumer)
+    public FGContainerWebSocket(IFGTemplate template,
+                                FGContainerSessionHolder sessionHolder,
+                                Consumer<IFGContainer> containerConsumer,
+                                BiConsumer<Object, IFGContainer> sessionCloseConsumer)
     {
         template_ = template;
         sessionHolder_ = sessionHolder;
         containerConsumer_ = containerConsumer;
+        sessionCloseConsumer_ = sessionCloseConsumer;
         predictor_ = new FGPredictor();
 
         containerAccessor_ = new ContainerAccessor();
 
         blinkHelperTimer_ = HostComponent.setupBlinkHelperTimer(this::processInputEvent);
 
-        predictorTimer_ = new Timer("FlatGUI User Input Predictor Timer", true);
-        predictorTimer_.schedule(new TimerTask()
-        {
-            @Override
-            public void run()
-            {
-                if (System.currentTimeMillis() - latestInputEventTimestamp_ > SEND_PREDICTIONS_THRESHOLD && !predictionsSent_)
-                {
-                    //sendPredictionsIfNeeded();
-                }
-            }
-        }, SEND_PREDICTIONS_THRESHOLD, SEND_PREDICTIONS_THRESHOLD);
+        //predictorTimer_ = new Timer("FlatGUI User Input Predictor Timer", true);
+//        predictorTimer_.schedule(new TimerTask()
+//        {
+//            @Override
+//            public void run()
+//            {
+//                if (System.currentTimeMillis() - latestInputEventTimestamp_ > SEND_PREDICTIONS_THRESHOLD && !predictionsSent_)
+//                {
+//                    sendPredictionsIfNeeded();
+//                }
+//            }
+//        }, SEND_PREDICTIONS_THRESHOLD, SEND_PREDICTIONS_THRESHOLD);
 
         FGAppServer.getFGLogger().info("WS Listener created " + System.identityHashCode(this));
     }
@@ -90,13 +91,19 @@ public class FGContainerWebSocket implements WebSocketListener
     @Override
     public void onWebSocketClose(int statusCode, String reason)
     {
-        FGAppServer.getFGLogger().info("WS Connect " + System.identityHashCode(this) +
+        FGAppServer.getFGLogger().info("WS Close " + System.identityHashCode(this) +
                 " session: " + fgSession_ +
                 " remote: " + session_.getRemoteAddress() +
                 " reason = " + reason);
 
         blinkHelperTimer_.cancel();
-        predictorTimer_.cancel();
+        //predictorTimer_.cancel();
+
+        if (sessionCloseConsumer_ != null)
+        {
+            sessionCloseConsumer_.accept(new FGSessionInfo(container_.getContainer().getId(), session_.getRemoteAddress()), container_.getContainer());
+        }
+
         container_.unInitialize();
         fgSession_.markIdle();
         session_ = null;
@@ -358,6 +365,24 @@ public class FGContainerWebSocket implements WebSocketListener
         catch (IOException e)
         {
             e.printStackTrace();
+        }
+    }
+
+    public static class FGSessionInfo
+    {
+        private final Object containerId_;
+        private final Object removeAddr_;
+
+        public FGSessionInfo(Object containerId, Object remoteAddr)
+        {
+            containerId_ = containerId;
+            removeAddr_ = remoteAddr;
+        }
+
+        @Override
+        public String toString()
+        {
+            return containerId_ + "/" + removeAddr_;
         }
     }
 

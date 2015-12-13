@@ -9,13 +9,24 @@
 (ns flatgui.testsuite
   (:require [flatgui.widgets.componentbase])
   (:import (java.awt.event MouseEvent KeyEvent)
-           (java.awt Container)))
+           (java.awt Container)
+           (flatgui.core FGEvolveInputData)))
 
 
 (def dummy-source (Container.))
 
+(defn resolve-feed-fn [container]
+  (if-let [fg-contanier (:_fg-container container)]
+    (fn [_container target reason]
+      (do
+        (.feedTargetedEvent fg-contanier target (FGEvolveInputData. reason false))
+        container))
+    flatgui.widgets.componentbase/evolve-container))
+
+(defn access-container [fg-container-accessor] {:_fg-container fg-container-accessor})
+
 (defn simulate-mouse-left [container id target]
-  (flatgui.widgets.componentbase/evolve-container
+  ((resolve-feed-fn container)
     container
     target
     (MouseEvent. dummy-source id 0 0 0 0 0 0 1 false MouseEvent/BUTTON1)))
@@ -26,7 +37,7 @@
       (simulate-mouse-left MouseEvent/MOUSE_CLICKED target)))
 
 (defn simulate-key-event [container id key-code char-code target]
-  (flatgui.widgets.componentbase/evolve-container
+  ((resolve-feed-fn container)
     container
     target
     (KeyEvent. dummy-source id 0 0 (if (= id KeyEvent/KEY_TYPED) KeyEvent/VK_UNDEFINED key-code) char-code)))

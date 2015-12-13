@@ -34,6 +34,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -41,7 +42,7 @@ import java.util.function.Consumer;
  */
 public class FGAppServer
 {
-    private static final String DEFAULT_MAPPING = "/*";
+    public static final String DEFAULT_MAPPING = "/*";
     private static final String API_MAPPING = "/api";
 
     private static final String API_PARAM_UID = "uid";
@@ -131,8 +132,6 @@ public class FGAppServer
     {
         mapping = ensureMapping(mapping);
 
-        System.out.println("-DLTEMP- FGAppServer.setTextHtmlServerByMapping |" + mapping);
-
         TextHtmlServlet servlet = mappingToTextHtmlServletMap_.get(mapping);
         if (servlet == null)
         {
@@ -151,6 +150,16 @@ public class FGAppServer
         mappingToCustomServletMap_.put(mapping, servlet);
         ServletHolder h = new ServletHolder(servlet);
         handler_.addServletWithMapping(h, mapping);
+    }
+
+    public synchronized void setSessionCloseConsumer(String mapping, BiConsumer<Object, IFGContainer> sessionCloseConsumer)
+    {
+        mapping = ensureMapping(mapping);
+        FGWebSocketServlet servlet = mappingToAppTemplateMap_.get(mapping);
+        if (servlet != null)
+        {
+            servlet.setSessionCloseConsumer(sessionCloseConsumer);
+        }
     }
 
     public void start() throws Exception
@@ -194,6 +203,7 @@ public class FGAppServer
         private IFGTemplate template_;
         private final FGContainerSessionHolder sessionHolder_;
         private Consumer<IFGContainer> containerConsumer_;
+        private BiConsumer<Object, IFGContainer> sessionCloseConsumer_;
 
         FGWebSocketServlet(IFGTemplate template, Consumer<IFGContainer> containerConsumer)
         {
@@ -219,6 +229,11 @@ public class FGAppServer
             containerConsumer_ = containerConsumer;
         }
 
+        final void setSessionCloseConsumer(BiConsumer<Object, IFGContainer> sessionCloseConsumer)
+        {
+            sessionCloseConsumer_ = sessionCloseConsumer;
+        }
+
         void feedEventToAllInstancesAndSendUpdates(List<Keyword> targetCellIdPath, Object inputEvent)
         {
             FGAppServer.getFGLogger().debug("Started feeding event to all(" + sessionHolder_.getActiveSessionCount()
@@ -233,7 +248,7 @@ public class FGAppServer
 
         private Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp)
         {
-            return new FGContainerWebSocket(template_, sessionHolder_, containerConsumer_);
+            return new FGContainerWebSocket(template_, sessionHolder_, containerConsumer_, sessionCloseConsumer_);
         }
     }
 

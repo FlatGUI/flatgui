@@ -34,7 +34,10 @@
 (defn app-evolve-container [container-name target-cell-ids reason]
   (swap!
     (get-container-atom container-name)
-    (fn [c] (flatgui.widgets.componentbase/evolve-container c target-cell-ids reason))))
+    (fn [c] (let [ec (flatgui.widgets.componentbase/evolve-container c target-cell-ids reason)]
+              (if-let [usage-stats-collector (:_usage-stats-collector c)]
+                (usage-stats-collector ec target-cell-ids reason)
+                ec)))))
 
 (defn app-fork-container [container-name target-cell-ids reason]
   (swap!
@@ -65,8 +68,8 @@
         :children (into (array-map) (for [[k v] children] [k (update-interop v interop-util)])))
       updated)))
 
-(defn register-container [container-name container-template interop-util]
-  (let [container (update-interop container-template interop-util)]
+(defn register-container [container-name container-template interop-util fg-container]
+  (let [container (assoc (update-interop container-template interop-util) :_fg-container fg-container)]
     (if (and
           (get-container-atom-var container-name)
           (get-container-atom container-name)

@@ -9,6 +9,18 @@
 (ns colorchooser
   (:require [flatgui.app]
             [flatgui.skins.flat]
-            [flatgui.samples.forms.colorchooserwin :as cc]))
+            [flatgui.usagestats]
+            [flatgui.samples.forms.colorchooserwin :as cc])
+  (:import (java.util.function BiConsumer)))
 
-(def colorpanel (flatgui.app/defroot cc/root-panel))
+(def colorpanel (flatgui.app/defroot
+                  (assoc cc/root-panel :_usage-stats-collector flatgui.usagestats/default-usagestats-collector)))
+
+(def usage-stats-reporter
+  (reify BiConsumer
+    (accept [_this session-info fg-container]
+      (if-let [stats (:_usage-stats (.getContainer (.getFGModule fg-container)))]
+        (let [stats-report-str (apply str (for [[k v] stats] (str k "\n"
+                                                                  (apply str (for [[e c] v] (str "    " e ":" c " ")))
+                                                                  "\n")))]
+          (println "USAGE STATS for" session-info "\n" stats-report-str))))))
