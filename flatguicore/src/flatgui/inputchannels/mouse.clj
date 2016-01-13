@@ -11,7 +11,8 @@
   flatgui.inputchannels.mouse
   (:import [java.awt.event MouseEvent MouseWheelEvent]
            (flatgui.core.awt FGMouseEvent))
-  (:use flatgui.comlogic flatgui.inputchannels.channelbase flatgui.inputchannels.awtbase clojure.test))
+  (:require [flatgui.inputchannels.channelbase :as channelbase]
+            [flatgui.inputchannels.awtbase :as awtbase]))
 
 
 
@@ -21,38 +22,38 @@
 
 
 ;; TODO remove this, use mouse-event?
-(definputparser is-mouse-event? MouseEvent true)
+(channelbase/definputparser is-mouse-event? MouseEvent true)
 
-(definputparser mouse-event? MouseEvent true)
+(channelbase/definputparser mouse-event? MouseEvent true)
 
 (defn mouse-event-obj? [reason] (instance? MouseEvent reason))
 
-(definputparser get-mouse-button MouseEvent (.getButton repaint-reason))
+(channelbase/definputparser get-mouse-button MouseEvent (.getButton repaint-reason))
 
-(definputparser left-mouse-button? MouseEvent (= MouseEvent/BUTTON1 (.getButton repaint-reason)))
+(channelbase/definputparser left-mouse-button? MouseEvent (= MouseEvent/BUTTON1 (.getButton repaint-reason)))
 
-(definputparser mouse-left? MouseEvent (= MouseEvent/BUTTON1_DOWN_MASK (bit-and (modifiers repaint-reason) MouseEvent/BUTTON1_DOWN_MASK)))
+(channelbase/definputparser mouse-left? MouseEvent (= MouseEvent/BUTTON1_DOWN_MASK (bit-and (awtbase/modifiers repaint-reason) MouseEvent/BUTTON1_DOWN_MASK)))
 
-(definputparser mouse-mid? MouseEvent (= MouseEvent/BUTTON2_DOWN_MASK (bit-and (modifiers repaint-reason) MouseEvent/BUTTON2_DOWN_MASK)))
-(definputparser mouse-right? MouseEvent (= MouseEvent/BUTTON3_DOWN_MASK (bit-and (modifiers repaint-reason) MouseEvent/BUTTON3_DOWN_MASK)))
+(channelbase/definputparser mouse-mid? MouseEvent (= MouseEvent/BUTTON2_DOWN_MASK (bit-and (awtbase/modifiers repaint-reason) MouseEvent/BUTTON2_DOWN_MASK)))
+(channelbase/definputparser mouse-right? MouseEvent (= MouseEvent/BUTTON3_DOWN_MASK (bit-and (awtbase/modifiers repaint-reason) MouseEvent/BUTTON3_DOWN_MASK)))
 
-(definputparser mouse-pressed? MouseEvent (= MouseEvent/MOUSE_PRESSED (.getID repaint-reason)))
-(definputparser mouse-released? MouseEvent (= MouseEvent/MOUSE_RELEASED (.getID repaint-reason)))
-(definputparser mouse-clicked? MouseEvent (= MouseEvent/MOUSE_CLICKED (.getID repaint-reason)))
-(definputparser mouse-entered? MouseEvent (= MouseEvent/MOUSE_ENTERED (.getID repaint-reason)))
-(definputparser mouse-moved? MouseEvent (= MouseEvent/MOUSE_MOVED (.getID repaint-reason)))
-(definputparser mouse-exited? MouseEvent (= MouseEvent/MOUSE_EXITED (.getID repaint-reason)))
-(definputparser mouse-dragged? MouseEvent (= MouseEvent/MOUSE_DRAGGED (.getID repaint-reason)))
+(channelbase/definputparser mouse-pressed? MouseEvent (= MouseEvent/MOUSE_PRESSED (.getID repaint-reason)))
+(channelbase/definputparser mouse-released? MouseEvent (= MouseEvent/MOUSE_RELEASED (.getID repaint-reason)))
+(channelbase/definputparser mouse-clicked? MouseEvent (= MouseEvent/MOUSE_CLICKED (.getID repaint-reason)))
+(channelbase/definputparser mouse-entered? MouseEvent (= MouseEvent/MOUSE_ENTERED (.getID repaint-reason)))
+(channelbase/definputparser mouse-moved? MouseEvent (= MouseEvent/MOUSE_MOVED (.getID repaint-reason)))
+(channelbase/definputparser mouse-exited? MouseEvent (= MouseEvent/MOUSE_EXITED (.getID repaint-reason)))
+(channelbase/definputparser mouse-dragged? MouseEvent (= MouseEvent/MOUSE_DRAGGED (.getID repaint-reason)))
 
-(definputparser get-mouse-x MouseEvent
-  (let [ unit-size-px (get-unit-size-px)]
+(channelbase/definputparser get-mouse-x MouseEvent
+  (let [unit-size-px (get-unit-size-px)]
     (/ (.getX repaint-reason) unit-size-px)))
 
-(definputparser get-mouse-y MouseEvent
-  (let [ unit-size-px (get-unit-size-px)]
+(channelbase/definputparser get-mouse-y MouseEvent
+  (let [unit-size-px (get-unit-size-px)]
     (/ (.getY repaint-reason) unit-size-px)))
 
-(definputparser get-mouse-rel-x FGMouseEvent
+(channelbase/definputparser get-mouse-rel-x FGMouseEvent
   (try
     (nth (.getXRelativeVec repaint-reason) (:target-id-path-index comp-property-map))
     (catch IndexOutOfBoundsException e
@@ -63,13 +64,13 @@
           " vec from event: " (.getXRelativeVec repaint-reason))
         0.0))))
 
-(definputparser get-mouse-rel-y FGMouseEvent
+(channelbase/definputparser get-mouse-rel-y FGMouseEvent
   (nth (.getYRelativeVec repaint-reason) (:target-id-path-index comp-property-map)))
 
 
-(definputparser mouse-wheel? MouseWheelEvent true)
+(channelbase/definputparser mouse-wheel? MouseWheelEvent true)
 
-(definputparser get-wheel-rotation MouseWheelEvent (.getWheelRotation repaint-reason))
+(channelbase/definputparser get-wheel-rotation MouseWheelEvent (.getWheelRotation repaint-reason))
 
 ;;; Dependency check
 

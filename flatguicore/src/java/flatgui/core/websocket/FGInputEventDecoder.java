@@ -362,7 +362,6 @@ public class FGInputEventDecoder
                 }
                 h = (char)(hHi*256+hLo);
 
-                System.out.println("-DLTEMP- HostEventBinaryParser.parseImpl w = " + w + " h = " + h);
                 FGHostStateEvent e = FGHostStateEvent.createHostSizeEvent(new Dimension(w, h));
                 return e;
             }

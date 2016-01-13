@@ -10,9 +10,7 @@
             components and their states by various criterias."
       :author "Denys Lebediev"}
   flatgui.access
-  ;(:use flatgui.comlogic flatgui.base)
-  (:require [flatgui.base :as fg]
-            [flatgui.util.matrix :as m]
+  (:require [flatgui.util.matrix :as m]
             [flatgui.comlogic :as fgc]))
 
 
@@ -130,6 +128,32 @@
     (fn [d c] (mouse-postprocessor d c mouse-x mouse-y))
     (:paths-having-visible-popups container)))
 
+; Does not seem to be needed
+;(defn get-component-path-by-id-path
+;  ([container-wrap path id-path]
+;   (if (empty? id-path)
+;     path
+;     (let [c-id (first id-path)]
+;       (get-component-path-by-id-path
+;         (:children (c-id container-wrap))
+;         (fgc/conjv path (c-id container-wrap))
+;         (next id-path)))))
+;  ([container id-path] (get-component-path-by-id-path {(:id container) container} [] id-path)))
+
+; Does not seem to be needed
+;(defn assign-mouse-rel-coords
+;  ([component-path index target-rel-x target-rel-y]
+;   (if (neg? index)
+;     component-path
+;     (let [c (nth component-path index)
+;           cpm (:position-matrix c)]
+;       (assign-mouse-rel-coords
+;         (assoc component-path index (assoc c :mouse-x-relative target-rel-x :mouse-y-relative target-rel-y))
+;         (dec index)
+;         (+ target-rel-x (m/mx-x cpm))
+;         (+ target-rel-y (m/mx-y cpm))))))
+;  ([component-path target-rel-x target-rel-y]
+;   (assign-mouse-rel-coords component-path (dec (count component-path)) target-rel-x target-rel-y)))
 
 (defn get-ids-from-pointed-path [path]
   (if (nil? path)

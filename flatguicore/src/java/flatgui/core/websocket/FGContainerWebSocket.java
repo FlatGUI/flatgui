@@ -432,7 +432,7 @@ public class FGContainerWebSocket implements WebSocketListener
         @Override
         public IFGModule getFGModule()
         {
-            throw new UnsupportedOperationException();
+            return container_.getContainer().getFGModule();
         }
 
         @Override

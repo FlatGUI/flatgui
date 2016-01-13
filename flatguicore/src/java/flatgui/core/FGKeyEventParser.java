@@ -30,7 +30,7 @@ public class FGKeyEventParser extends FGFocusTargetedEventParser<KeyEvent>
     private Map<Object, Object> lastStats_;
 
     @Override
-    public Map<KeyEvent, List<Keyword>> getTargetCellIds(KeyEvent event, IFGModule fgModule)
+    public Map<KeyEvent, List<Keyword>> getTargetCellIds(List<Keyword> knownTargetIdPath, KeyEvent event, IFGModule fgModule)
     {
         if (event.getKeyCode() == KeyEvent.VK_S && event.getID() == KeyEvent.KEY_PRESSED &&
                 event.isControlDown() && event.isShiftDown())
@@ -56,6 +56,6 @@ public class FGKeyEventParser extends FGFocusTargetedEventParser<KeyEvent>
             lastStats_ = stats;
         }
 
-        return super.getTargetCellIds(event, fgModule);
+        return super.getTargetCellIds(knownTargetIdPath, event, fgModule);
     }
 }

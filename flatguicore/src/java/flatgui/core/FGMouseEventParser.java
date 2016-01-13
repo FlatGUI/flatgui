@@ -49,15 +49,18 @@ public class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
     }
 
     @Override
-    public Map<MouseEvent, List<Keyword>> getTargetCellIds(MouseEvent mouseEvent, IFGModule fgModule)
+    public Map<MouseEvent, List<Keyword>> getTargetCellIds(List<Keyword> knownTargetIdPath, MouseEvent mouseEvent, IFGModule fgModule)
     {
+        // NOTE: knownTargetIdPath is not used here. We compute path from coordinates as usual
+
         boolean newLeftButtonDown = (mouseEvent.getModifiersEx() & MouseEvent.BUTTON1_DOWN_MASK) == MouseEvent.BUTTON1_DOWN_MASK;
 
         double mouseX = ((double)mouseEvent.getX()) / ((double)unitSizePx_);
         double mouseY = ((double)mouseEvent.getY()) / ((double)unitSizePx_);
 
         FGMouseTargetComponentInfo componentInfo = fgModule.getMouseTargetInfoAt(
-                mouseX, mouseY, newLeftButtonDown && leftButtonDown_ ? pressedPath_ : null);
+                mouseX, mouseY,
+                newLeftButtonDown && leftButtonDown_ ? pressedPath_ : null);
         FGComponentPath targetPath = componentInfo.getComponentPath();
         Object xRelativeVec = componentInfo.getXRelativeVec();
         Object yRelativeVec = componentInfo.getYRelativeVec();

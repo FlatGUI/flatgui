@@ -36,9 +36,28 @@ public class FGInputEventParser implements IFGInputEventParser<Object>
     }
 
     @Override
-    public Map<Object, List<Keyword>> getTargetCellIds(Object reason, IFGModule fgModule)
+    public Map<Object, List<Keyword>> getTargetCellIds(List<Keyword> knownTargetIdPath, Object reason, IFGModule fgModule)
     {
-        return getRepaintReasonParser(reason).getTargetCellIds(reason, fgModule);
+        IFGInputEventParser<Object> parser = getRepaintReasonParser(reason);
+        if (parser != null)
+        {
+            return parser.getTargetCellIds(knownTargetIdPath, reason, fgModule);
+        }
+        else
+        {
+            if (knownTargetIdPath != null)
+            {
+                Map<Object, List<Keyword>> direct = new HashMap<>();
+                direct.put(reason, knownTargetIdPath);
+                return direct;
+            }
+            else
+            {
+                throw new IllegalArgumentException("No parser for repaint reason: " +
+                        (reason != null ? reason + " of class " + reason.getClass().getName()  : "null")
+                        + " while known target id path is not provided");
+            }
+        }
     }
 
     private Object getMapKeyForClass(Class c)
@@ -53,17 +72,6 @@ public class FGInputEventParser implements IFGInputEventParser<Object>
 
     private IFGInputEventParser<Object> getRepaintReasonParser(Object reason)
     {
-        IFGInputEventParser<Object> parser =
-                (IFGInputEventParser<Object>) implMap_.get(getMapKey(reason));
-        if (parser != null)
-        {
-            return parser;
-        }
-        else
-        {
-            // Internal core inconsistency
-            throw new IllegalArgumentException("No parser for repaint reason: " +
-                    (reason != null ? reason + " of class " + reason.getClass().getName()  : "null"));
-        }
+        return (IFGInputEventParser<Object>) implMap_.get(getMapKey(reason));
     }
 }

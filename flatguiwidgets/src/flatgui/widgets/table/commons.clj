@@ -29,8 +29,8 @@
 
 (fg/defaccessorfn get-screen-row-at [contentpane y-pos]
   ; only constant height rows are supported for now
-  (let [ visible-row (int (/ y-pos (get-row-h contentpane nil)))
-         row-order (get-property contentpane [:this] :row-order)]
+  (let [visible-row (int (/ y-pos (get-row-h contentpane nil)))
+        row-order (get-property contentpane [:this] :row-order)]
     (if (< visible-row (count row-order))
       visible-row
       -1)))

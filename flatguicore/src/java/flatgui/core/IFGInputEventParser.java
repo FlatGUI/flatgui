@@ -31,12 +31,14 @@ public interface IFGInputEventParser<Reason>
      * help of fgModule passed as an argument. Implementation may generate more
      * that one reasons and target cell groups if needed
      *
+     *
+     * @param knownTargetIdPath
      * @param reason the update
      * @param fgModule FlatGUI module that may be used by implementation to
      *                 find out what cells should receive the update.
      * @return a map of reason to target cell ids. Ids may be null in case all
      *         cells should receive the update.
      */
-    Map<Reason, List<Keyword>> getTargetCellIds(Reason reason, IFGModule fgModule);
+    Map<Reason, List<Keyword>> getTargetCellIds(List<Keyword> knownTargetIdPath, Reason reason, IFGModule fgModule);
 
 }

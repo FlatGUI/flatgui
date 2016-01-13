@@ -10,24 +10,24 @@
       :author "Denys Lebediev"}
   flatgui.inputchannels.keyboard
   (:import [java.awt.event KeyEvent])
-  (:use flatgui.inputchannels.channelbase clojure.test))
+  (:require [flatgui.inputchannels.channelbase :as channelbase]))
 
 
 (defn- key-id [key-event] (.getID key-event))
 
-(definputparser key-event? java.awt.event.KeyEvent true)
+(channelbase/definputparser key-event? KeyEvent true)
 
-(definputparser key-typed? java.awt.event.KeyEvent (= java.awt.event.KeyEvent/KEY_TYPED (key-id repaint-reason)))
+(channelbase/definputparser key-typed? KeyEvent (= KeyEvent/KEY_TYPED (key-id repaint-reason)))
 
-(definputparser key-pressed? java.awt.event.KeyEvent (= java.awt.event.KeyEvent/KEY_PRESSED (key-id repaint-reason)))
+(channelbase/definputparser key-pressed? KeyEvent (= KeyEvent/KEY_PRESSED (key-id repaint-reason)))
 
-(definputparser key-released? java.awt.event.KeyEvent (= java.awt.event.KeyEvent/KEY_RELEASED (key-id repaint-reason)))
+(channelbase/definputparser key-released? KeyEvent (= KeyEvent/KEY_RELEASED (key-id repaint-reason)))
 
-(definputparser get-key-char java.awt.event.KeyEvent (int (.getKeyChar repaint-reason)))
+(channelbase/definputparser get-key-char KeyEvent (int (.getKeyChar repaint-reason)))
 
-(definputparser get-key-str java.awt.event.KeyEvent (str (.getKeyChar repaint-reason)))
+(channelbase/definputparser get-key-str KeyEvent (str (.getKeyChar repaint-reason)))
 
-(definputparser get-key-code java.awt.event.KeyEvent (.getKeyCode repaint-reason))
+(channelbase/definputparser get-key-code KeyEvent (.getKeyCode repaint-reason))
 
 (defn get-key [comp-property-map]
   (if (key-typed? comp-property-map)

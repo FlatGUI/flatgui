@@ -25,7 +25,7 @@ public class FGMouseEvent extends MouseEvent
     private final Object xRelativeVec_;
 
     /**
-     * Vector of mouse x relative coord for clicked target component path
+     * Vector of mouse y relative coord for clicked target component path
      */
     private final Object yRelativeVec_;
 

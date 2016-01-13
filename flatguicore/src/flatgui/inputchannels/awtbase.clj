@@ -10,12 +10,12 @@
       :author "Denys Lebediev"}
   flatgui.inputchannels.awtbase
   (:import [java.awt.event InputEvent])
-  (:use flatgui.inputchannels.channelbase))
+  (:require [flatgui.inputchannels.channelbase :as channelbase]))
 
 (defn modifiers [event] (.getModifiersEx event))
 
-(definputparser with-shift? InputEvent (> (bit-and (modifiers repaint-reason) InputEvent/SHIFT_DOWN_MASK) 0))
+(channelbase/definputparser with-shift? InputEvent (> (bit-and (modifiers repaint-reason) InputEvent/SHIFT_DOWN_MASK) 0))
 
-(definputparser with-ctrl? InputEvent (> (bit-and (modifiers repaint-reason) InputEvent/CTRL_DOWN_MASK) 0))
+(channelbase/definputparser with-ctrl? InputEvent (> (bit-and (modifiers repaint-reason) InputEvent/CTRL_DOWN_MASK) 0))
 
-(definputparser with-alt? InputEvent (> (bit-and (modifiers repaint-reason) InputEvent/ALT_DOWN_MASK) 0))
+(channelbase/definputparser with-alt? InputEvent (> (bit-and (modifiers repaint-reason) InputEvent/ALT_DOWN_MASK) 0))

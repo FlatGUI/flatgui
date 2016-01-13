@@ -83,7 +83,7 @@ public class FGContainer implements IFGContainer
         reasonParser_.registerReasonClassParser(KeyEvent.class, new FGKeyEventParser());
         reasonParser_.registerReasonClassParser(FGClipboardEvent.class, new FGClipboardEventEventParser());
         reasonParser_.registerReasonClassParser(FGTimerEvent.class, new FGTimerEventParser());
-        reasonParser_.registerReasonClassParser(FGHostStateEvent.class, (fgHostStateEvent, fgModule) -> {
+        reasonParser_.registerReasonClassParser(FGHostStateEvent.class, (knownTarget, fgHostStateEvent, fgModule) -> {
             Map<FGHostStateEvent, List<Keyword>> map = new HashMap<>();
             map.put(fgHostStateEvent, Arrays.asList(containerIdInternal));
             return map;
@@ -172,7 +172,7 @@ public class FGContainer implements IFGContainer
     public synchronized Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, FGEvolveInputData inputData)
     {
         Object evolveReason = inputData != null ? inputData.getEvolveReason() : null;
-        return feedEventImpl(inputData, m -> cycleTargeted(targetCellIdPath, evolveReason, m));
+        return feedEventImpl(inputData, m -> cycle(targetCellIdPath, evolveReason, reasonParser_, m));
     }
 
     @Override
@@ -262,11 +262,15 @@ public class FGContainer implements IFGContainer
         {
             throw new IllegalArgumentException();
         }
+        return cycle(null, repaintReason, reasonParser, module);
+    }
 
+    private static FGEvolveResultData cycle(List<Keyword> knownTargetIdPath, Object repaintReason, FGInputEventParser reasonParser, IFGModule module)
+    {
         Map<Object, List<Keyword>> reasonMap;
         try
         {
-            reasonMap = reasonParser.getTargetCellIds(repaintReason, module);
+            reasonMap = reasonParser.getTargetCellIds(knownTargetIdPath, repaintReason, module);
         }
         catch(Exception ex)
         {
@@ -297,26 +301,6 @@ public class FGContainer implements IFGContainer
             }
         }
         return new FGEvolveResultData(reasonMap, changedPaths);
-    }
-
-    private static FGEvolveResultData cycleTargeted(List<Keyword> targetIdPath, Object repaintReason, IFGModule module)
-    {
-        try
-        {
-            module.evolve(targetIdPath, repaintReason);
-            Set<List<Keyword>> changed = module.getChangedComponentIdPaths();
-            if (changed != null)
-            {
-                Map<Object, List<Keyword>> reasonMap = new HashMap<>();
-                reasonMap.put(repaintReason, targetIdPath);
-                return new FGEvolveResultData(reasonMap, changed);
-            }
-        }
-        catch (Throwable ex)
-        {
-            ex.printStackTrace();
-        }
-        return FGEvolveResultData.EMPTY;
     }
 
     private void notifyEvolveConsumers(IFGModule module)

@@ -10,8 +10,7 @@
       :author "Denys Lebediev"}
   flatgui.dependency
   (:require [flatgui.inputchannels.mouse :as mouse])
-  (:use flatgui.comlogic
-        clojure.test))
+  (:require [flatgui.comlogic :as fgc]))
 
 
 (defn get-dependency [s]
@@ -25,8 +24,8 @@
       (let [ n (first s)]
         (if (and (symbol? n) (= "get-property" (name n)))
           (let [ full-path (condp = (count s)
-                             3 (if (vector? (nth s 1)) (conjv (nth s 1) (nth s 2)) (throw (IllegalArgumentException. (str "get-property argument 0 should be a vector: " s))))
-                             4 (if (vector? (nth s 2)) (conjv (nth s 2) (nth s 3)) (throw (IllegalArgumentException. (str "get-property argument 1 should be a vector: " s))))
+                             3 (if (vector? (nth s 1)) (fgc/conjv (nth s 1) (nth s 2)) (throw (IllegalArgumentException. (str "get-property argument 0 should be a vector: " s))))
+                             4 (if (vector? (nth s 2)) (fgc/conjv (nth s 2) (nth s 3)) (throw (IllegalArgumentException. (str "get-property argument 1 should be a vector: " s))))
                              (throw (IllegalArgumentException. (str "There should be 3 or 4 arguments to get-property: " s))))]
             (mapv (fn [e] (if (keyword? e) e :*)) full-path)))))))
 
@@ -50,7 +49,11 @@
 (defn get-relative-dependencies [evolver]
   (:relative-dependencies (meta evolver)))
 
-
+;;;
+;;; TODO
+;;; When computing all dependencies, find all timer dependencies just once.
+;;; Timer dependency should contain timer id.
+;;;
 
 (defn get-expr-dependencies [s]
   (let [dep-list (filter
@@ -80,7 +83,7 @@
     (if (= (count abs-path) (count path-before-widcard))
       [abs-path]
       (let [ path-after-wildcard (take-last (- (count abs-path) (inc (count path-before-widcard))) abs-path)
-             ids-to-replace (for [[id child] (:children (get-in root-container (get-access-key path-before-widcard)))] id) ]
+             ids-to-replace (for [[id child] (:children (get-in root-container (fgc/get-access-key path-before-widcard)))] id) ]
         (do ;(println "RESOLVED WILDCARDS: " abs-path " --> " (mapv #(vec (concat path-before-widcard [%1] path-after-wildcard)) ids-to-replace))
           (mapv #(vec (concat path-before-widcard [%1] path-after-wildcard)) ids-to-replace)))
       )))
@@ -97,7 +100,7 @@
 
 (defn compute-abs-dependencies [root-container path component relative-dependencies]
   (mapcat
-    (fn [d] (let [ d-path-down (get-path-down (replace {:this (:id component)} d))
+    (fn [d] (let [ d-path-down (fgc/get-path-down (replace {:this (:id component)} d))
                    steps-up (- (count d) (count d-path-down))
                    ; last path element is this component id so additional -1 here
                    path-from-root (take (- (count path) (inc steps-up)) path)]
@@ -146,13 +149,13 @@
                   (let [ d-vec (nth depends-on-vec j)
                          depends-on-property (nth d-vec (dec (count d-vec)))
                          depends-on-component (drop-last d-vec)
-                         depends-on-component-key (get-access-key depends-on-component)]
+                         depends-on-component-key (fgc/get-access-key depends-on-component)]
 
                     (if (get-in p-ret depends-on-component-key)
                       ;todo fn to conj 2 elements
-                      (update-in p-ret (conjv
-                                       (conjv depends-on-component-key :abs-dependents)
-                                       depends-on-property) conj-distinct (conjv id-path-to-component d-property))
+                      (update-in p-ret (fgc/conjv
+                                       (fgc/conjv depends-on-component-key :abs-dependents)
+                                       depends-on-property) conj-distinct (fgc/conjv id-path-to-component d-property))
                       p-ret))
                   (inc j))
                 p-ret)))
@@ -168,7 +171,7 @@
           (let [ child-info (first children)
                  child-id (nth child-info 0)
                  child (nth child-info 1)]
-            (compute-dependents-raw ret (conjv id-path-to-component child-id) child))
+            (compute-dependents-raw ret (fgc/conjv id-path-to-component child-id) child))
           (next children))
         ret)))
   ([root-container] (compute-dependents-raw root-container [(:id root-container)] root-container)))
@@ -254,7 +257,7 @@
       (:path-to-target c))))
 
 (defn- get-abs-dependents-key [c-path]
-  (conjv (conjv (get-access-key (drop-lastv c-path)) :abs-dependents) (last c-path)))
+  (fgc/conjv (fgc/conjv (fgc/get-access-key (fgc/drop-lastv c-path)) :abs-dependents) (last c-path)))
 
 ;(defn apply-flex-changes [container flex-structure-changes]
 ;  (reduce-kv
@@ -265,8 +268,8 @@
 
 (defn apply-flex-changes [container flex-structure-changes]
   (reduce-kv
-    (fn [i k v] (do                                         ;(println "UIIKV " k "->" (get-in container k) " KEY " (get-access-key (drop-lastv k)) " concating " v)
-                     (if (get-in container (get-access-key (drop-lastv k)))
+    (fn [i k v] (do                                         ;(println "UIIKV " k "->" (get-in container k) " KEY " (fgc/get-access-key (fgc/drop-lastv k)) " concating " v)
+                     (if (get-in container (fgc/get-access-key (fgc/drop-lastv k)))
                        (update-in i (get-abs-dependents-key k) concat v)
                        i)))
     container
@@ -282,9 +285,9 @@
 
 (defn recompute-out-dependents [container flex-structure-changes]
   (reduce-kv
-    (fn [i k v] (let [ p (get-access-key (drop-lastv k))
-                      ;a (conjv p :abs-dependents)
-                       o (conjv p :out-dependents)]
+    (fn [i k v] (let [ p (fgc/get-access-key (fgc/drop-lastv k))
+                      ;a (fgc/conjv p :abs-dependents)
+                       o (fgc/conjv p :out-dependents)]
                   (do
                     ;(println "RIKV " k "->" v)
                     ;(println " ----was- RIKV " (get-in i (conj o (last k))))

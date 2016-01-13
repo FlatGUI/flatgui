@@ -22,13 +22,20 @@ import clojure.lang.Keyword;
 public abstract class FGFocusTargetedEventParser<E> implements IFGInputEventParser<E>
 {
     @Override
-    public Map<E, List<Keyword>> getTargetCellIds(E event, IFGModule fgModule)
+    public Map<E, List<Keyword>> getTargetCellIds(List<Keyword> knownTargetIdPath, E event, IFGModule fgModule)
     {
         Map<E, List<Keyword>> map = new HashMap<>();
-        List<Keyword> focusedPath = fgModule.getFocusedPath();
-        if (focusedPath != null)
+        if (knownTargetIdPath != null)
         {
-            map.put(event, focusedPath);
+            map.put(event, knownTargetIdPath);
+        }
+        else
+        {
+            List<Keyword> focusedPath = fgModule.getFocusedPath();
+            if (focusedPath != null)
+            {
+                map.put(event, focusedPath);
+            }
         }
         return map;
     }
