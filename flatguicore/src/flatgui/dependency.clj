@@ -9,8 +9,9 @@
 (ns ^{:doc "Dependency resolving"
       :author "Denys Lebediev"}
   flatgui.dependency
-  (:require [flatgui.inputchannels.mouse :as mouse])
-  (:require [flatgui.comlogic :as fgc]))
+  (:require [flatgui.comlogic :as fgc]
+            [flatgui.inputchannels.mouse :as mouse]
+            [flatgui.inputchannels.timer :as timer]))
 
 
 (defn get-dependency [s]
@@ -56,10 +57,15 @@
 ;;;
 
 (defn get-expr-dependencies [s]
-  (let [dep-list (filter
-                   (complement nil?)
-                   (list
-                     (mouse/find-mouse-dependency s)))]
+  (let [dep-list (concat
+                   (filter
+                     (complement nil?)
+                     (list
+                       (mouse/find-mouse-dependency s)))
+                   (filter
+                     (complement nil?)
+                     (list
+                       (timer/find-timer-dependency s))))]
     (if (empty? dep-list)
       nil
       dep-list)))

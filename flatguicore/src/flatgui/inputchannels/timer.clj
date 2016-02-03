@@ -16,3 +16,9 @@ flatgui.inputchannels.timer
 (cb/definputparser timer-event? FGTimerEvent true)
 
 (cb/definputparser get-time FGTimerEvent (.getTimestamp repaint-reason))
+
+;;; Dependency check
+
+;; TODO timer id
+(defn find-timer-dependency [s-expr]
+  (cb/find-channel-dependency s-expr 'flatgui.inputchannels.timer :timer))

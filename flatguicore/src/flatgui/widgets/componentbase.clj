@@ -6,16 +6,18 @@
 ; the terms of this license.
 ; You must not remove this notice, or any other, from this software.
 
-(ns ^{:doc "FlatGUI widget base routines"
+(ns ^{:doc    "FlatGUI widget base routines"
       :author "Denys Lebediev"}
-  flatgui.widgets.componentbase
+flatgui.widgets.componentbase
   (:require [flatgui.dependency :as dep]
             [flatgui.base :as fg]
             [flatgui.ids :as ids]
             [flatgui.comlogic :as fgc]
             [flatgui.paint :as fgp]
             [flatgui.util.matrix :as m]
-            [flatgui.inputchannels.mouse :as mouse]))
+            [flatgui.inputchannels.mouse :as mouse]
+            [flatgui.inputchannels.timer :as timer])
+  (:import (flatgui.core FGTimerEvent)))
 
 (def stats (atom {}))
 
@@ -224,7 +226,12 @@
                              root-p (assoc ret :aux-container aux-with-p)
                              aux-with-evolved-dependencies (:aux-container root-p)
                              ;@todo maybe use original value from original-container for currently evolved property while up-to-date for other, probably this is more honest
-                             new-value (if evolver (evolver (assoc tgt :root-container root-p :aux-container aux-with-evolved-dependencies)) (p tgt))
+                             new-value (try
+                                         (if evolver (evolver (assoc tgt :root-container root-p :aux-container aux-with-evolved-dependencies)) (p tgt))
+                                         (catch Exception ex
+                                           (do
+                                             (fg/log-error "Error evolving " target-id-path p ":" (.getMessage ex))
+                                             (.printStackTrace ex))))
                              ;; TODO October 15, 2015: looks like it is the same from now on
                              has-changes-raw (not (= old-value new-value))
                              has-changes has-changes-raw ;(or initialization has-changes-raw)
@@ -342,6 +349,14 @@
       (fn [[k _]] k)
       (filter
         (fn [[_ v]] (:mouse (dep/get-input-channel-dependencies v)))
+        (get-in container (fgc/conjv k :evolvers))))
+    ;; TODO timer id
+    ;(timer/timer-event? reason);TODO this does not work for some reason
+    (instance? FGTimerEvent reason)
+    (mapv
+      (fn [[k _]] k)
+      (filter
+        (fn [[_ v]] (:timer (dep/get-input-channel-dependencies v)))
         (get-in container (fgc/conjv k :evolvers))))
     :else
     (mapv (fn [[k _]] k) (get-in container (fgc/conjv k :evolvers)))))

@@ -13,6 +13,7 @@
       <entry name="!?*.scala" />
       <entry name="!?*.flex" />
       <entry name="!?*.kt" />
+      <entry name="*.png" />
     </wildcardResourcePatterns>
     <annotationProcessing>
       <profile default="true" name="Default" enabled="false">

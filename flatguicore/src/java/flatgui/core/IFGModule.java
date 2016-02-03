@@ -35,6 +35,8 @@ public interface IFGModule
 
     public List<Keyword> getFocusedPath();
 
+    public Map<List<Keyword>, Collection<Keyword>> getInputChannelSubscribers(Keyword channel);
+
     // Painting
 
     // old approach

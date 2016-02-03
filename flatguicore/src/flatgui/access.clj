@@ -199,3 +199,13 @@
         :parent-of-focused (get-focused-path (get (:children container) (:focused-child focus-state)) target-id-path)
         nil)))
   ([container] (get-focused-path container [])))
+
+;;
+;; Functions generally related to input channels
+;;
+
+(defn get-path-to-property-list-map-for-channel [container channel]
+  (let [subscribers (:input-channel-subscribers container)]
+    (into {} (filter
+               (fn [[_ v]] (not (nil? v)))
+               (map (fn [[k v]] [k (channel v)]) subscribers)))))

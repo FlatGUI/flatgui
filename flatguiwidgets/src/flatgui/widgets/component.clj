@@ -20,7 +20,8 @@ flatgui.widgets.component
             [flatgui.theme]
             [flatgui.skins.skinbase]
             [flatgui.skins.flat]
-            [flatgui.inputchannels.mouse :as mouse])
+            [flatgui.inputchannels.mouse :as mouse]
+            [flatgui.dependency :as dep])
   (:import (flatgui.core.awt FGDummyInteropUtil)))
 
 
@@ -30,7 +31,7 @@ flatgui.widgets.component
     (let [parent-z (if-let [p (get-property component [] :z-position)] p 0)]
       (if (#{:has-focus :parent-of-focused :throws-focus} (:mode (get-property component [:this] :focus-state)))
         (+ parent-z 1024)
-        parent-z))))
+        (+ parent-z 1)))))
 
 ;; True there is no parent (get-property returns nil) or parent is visible (true)
 (fg/defevolverfn :visible
@@ -71,6 +72,27 @@ flatgui.widgets.component
     (mouse/mouse-exited? component) false
     :else old-has-mouse))
 
+(defn get-channel-to-propery-map-list [p evolvers]
+  (map
+    (fn [ch] {ch (list p)})
+    (dep/get-input-channel-dependencies (p evolvers))))
+
+(fg/defevolverfn :input-channel-subscribers
+  (let [id (:id component)
+        channel-to-properties (let [evolvers (:evolvers component)
+                                    all-properties (for [[k _v] evolvers] k)]
+                                (apply
+                                  merge-with
+                                  concat
+                                  (mapcat (fn [p] (get-channel-to-propery-map-list p evolvers)) all-properties)))]
+    (concat
+      (list [[id] channel-to-properties])
+      (let [child-ids (for [[k _] (get-property [:this] :children)] k)]
+        (map
+          (fn [[child-id-path child-ch-to-props]] [(vec (concat [id] child-id-path)) child-ch-to-props])
+          (mapcat
+            (fn [k] (get-property [:this k] :input-channel-subscribers))
+            child-ids))))))
 
 (defn- default-properties-to-evolve-provider [container target-cell-ids reason]
   (fn [component]
@@ -101,6 +123,8 @@ flatgui.widgets.component
 
     :z-position 0
 
+    :input-channel-subscribers nil
+
     :position-matrix m/IDENTITY-MATRIX
     :viewport-matrix m/IDENTITY-MATRIX
     :abs-position-matrix m/IDENTITY-MATRIX
@@ -119,6 +143,7 @@ flatgui.widgets.component
                :look flatgui.skins.skinbase/skin-look-evolver
                :abs-position-matrix abs-position-matrix-evolver
 
+               :input-channel-subscribers input-channel-subscribers-evolver
                :z-position z-position-evolver}))
 
 ;[:main :tiket :ticket-panel :aggr-slider]

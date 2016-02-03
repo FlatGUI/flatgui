@@ -17,3 +17,15 @@
   (let [let-bindings '[repaint-reason ((:evolve-reason-provider comp-property-map) (:id comp-property-map))]]
       `(defn ~fnname [~'comp-property-map] (let ~let-bindings (if (and (instance? ~event-type ~'repaint-reason) (not (nil? ~'repaint-reason)))
                                                               ~body)))))
+
+(defn find-channel-dependency [s-expr channel-ns channel-kw]
+  (if (seq? s-expr)
+    (some
+      (fn [n] (if
+                (and
+                  (symbol? n)
+                  (let [n-var (resolve n)]
+                    (if (var? n-var)
+                      (= channel-ns (.. n-var ns name)))))
+                channel-kw))
+      s-expr)))

@@ -33,6 +33,7 @@ public abstract class FGAbstractModule implements IFGModule
     private static final Var getPressedCoorCaptureNeededFromPath_ = clojure.lang.RT.var("flatgui.access", "get-pressed-coord-capture-from-path");
 
     private static final Var getFocusedPath_ = clojure.lang.RT.var("flatgui.access", "get-focused-path");
+    private static final Var getInputChannelSubscribers_ = clojure.lang.RT.var("flatgui.access", "get-path-to-property-list-map-for-channel");
 
     private static final int STRING_POOL_PER_COMPONENT_CAPACITY = 256;
 
@@ -129,6 +130,11 @@ public abstract class FGAbstractModule implements IFGModule
         return (List<Keyword>) getFocusedPath_.invoke(getContainer());
     }
 
+    @Override
+    public Map<List<Keyword>, Collection<Keyword>> getInputChannelSubscribers(Keyword channel)
+    {
+        return (Map<List<Keyword>, Collection<Keyword>>) getInputChannelSubscribers_.invoke(getContainer(), channel);
+    }
 
     //
     // New painting approach optimized for web

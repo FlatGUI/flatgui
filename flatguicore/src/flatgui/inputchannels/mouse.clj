@@ -75,13 +75,4 @@
 ;;; Dependency check
 
 (defn find-mouse-dependency [s-expr]
-  (if (seq? s-expr)
-    (some
-      (fn [n] (if
-                (and
-                  (symbol? n)
-                  (let [n-var (resolve n)]
-                    (if (var? n-var)
-                      (= 'flatgui.inputchannels.mouse (.. n-var ns name)))))
-                :mouse))
-      s-expr)))
+  (channelbase/find-channel-dependency s-expr 'flatgui.inputchannels.mouse :mouse))
