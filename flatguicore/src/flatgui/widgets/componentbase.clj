@@ -498,23 +498,25 @@ flatgui.widgets.componentbase
 
 (defn- get-empty-aux [] (transient {}))
 
-(defn- clear-root [container]
-  (assoc container
-    :aux-container (get-empty-aux)
-    :has-changes false
-    :has-structure-changes false
-    :flex-structure-changes nil
-    :flex-target-id-paths-added nil
-    :data-for-clipboard nil
-    ;:dirty-rect nil
-    ))
+(defn- clear-root
+  ([container aux]
+   (assoc container
+     :aux-container aux
+     :has-changes false
+     :has-structure-changes false
+     :flex-structure-changes nil
+     :flex-target-id-paths-added nil
+     :data-for-clipboard nil
+     ;:dirty-rect nil
+     ))
+  ([container] (clear-root container (get-empty-aux))))
 
-(defn evolve-container-private [container target-path target-id-path reason]
-  (let [ ;_ (println " evolve-container-private is called with target-id-path len = " (count target-id-path))
+(defn evolve-container-private [container target-path target-id-path reason clear-aux]
+  (let [ ;_ (println " evolve-container-private is called with target-id-path = "  target-id-path)
          result (reinit-if-needed
                   (evolve-by-dependencies
                     container
-                    (clear-root container)
+                    (if clear-aux (clear-root container) (clear-root container (:aux-container container)))
                     target-id-path
                     target-id-path
                     reason
@@ -524,14 +526,14 @@ flatgui.widgets.componentbase
                     "root"))
          pass-input-result (if (or (:consumed (:aux-container result)) (= 0 (count target-id-path)))
                              result
-                             (evolve-container-private result nil (fgc/drop-lastv target-id-path) reason))]
+                             (evolve-container-private result nil (fgc/drop-lastv target-id-path) reason false))]
     pass-input-result))
 
 (defn evolve-container [container target-id-path reason]
   (let [ t (System/currentTimeMillis)]
     (do
       ;(println "\n\n======================--started evolving-----" reason " tgt: " target-id-path "\n\n")
-      (let [ result (evolve-container-private (dissoc container :dirty-rect) nil target-id-path reason)
+      (let [ result (evolve-container-private (dissoc container :dirty-rect) nil target-id-path reason true)
              ;@todo this if reason check is just a temporary solution to skip initialization cycle because of exception (NullPointerException: Font is null)
              with-look (if reason                      ;(and reason (:dirty-rect container))       ; OPTIMIZATION FOR WEB  reason
                          (rebuild-look result [(:id result)] (:aux-container result) true (:dirty-rect container))
