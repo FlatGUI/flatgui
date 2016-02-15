@@ -40,6 +40,7 @@ public class FGWebContainerWrapper
     public static final byte CHILD_COUNT_MAP_COMMAND_CODE = 4;
     public static final byte BOOLEAN_STATE_FLAGS_COMMAND_CODE = 5;
     public static final byte STRING_POOL_MAP_COMMAND_CODE = 7;
+    public static final byte RESOURCE_STRING_POOL_MAP_COMMAND_CODE = 8;
 
     public static final byte PAINT_ALL_LIST_COMMAND_CODE = 64;
     public static final byte REPAINT_CACHED_COMMAND_CODE = 65;
@@ -747,9 +748,9 @@ public class FGWebContainerWrapper
         }
     }
 
-    public static class StringPoolMapTransmitter extends MapTransmitter<Map<Integer, String>>//MapFullNewTransmitter<Map<Integer, String>>
+    public static abstract class AbstractStringPoolMapTransmitter extends MapTransmitter<Map<Integer, String>>//MapFullNewTransmitter<Map<Integer, String>>
     {
-        public StringPoolMapTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
+        public AbstractStringPoolMapTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
         {
             super(keyCache, sourceMapSupplier);
         }
@@ -776,11 +777,33 @@ public class FGWebContainerWrapper
 
             return w;
         }
+    }
+
+    public static class StringPoolMapTransmitter extends AbstractStringPoolMapTransmitter
+    {
+        public StringPoolMapTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
+        {
+            super(keyCache, sourceMapSupplier);
+        }
 
         @Override
         public byte getCommandCode()
         {
             return STRING_POOL_MAP_COMMAND_CODE;
+        }
+    }
+
+    public static class ResourceStringPoolMapTransmitter extends AbstractStringPoolMapTransmitter
+    {
+        public ResourceStringPoolMapTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
+        {
+            super(keyCache, sourceMapSupplier);
+        }
+
+        @Override
+        public byte getCommandCode()
+        {
+            return RESOURCE_STRING_POOL_MAP_COMMAND_CODE;
         }
     }
 
@@ -896,6 +919,7 @@ public class FGWebContainerWrapper
         private static final Var extractChildCount_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-child-count");
         private static final Var extractBitFlags_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-bit-flags");
         private static final Var extractStringPool_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-string-pool");
+        private static final Var extractResourceStringPool_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-resource-string-pool");
 
         private static final byte DEFAULT_CURSOR_CODE = 8;
         private static final Map<String, Integer> CURSOR_NAME_TO_CODE;
@@ -1009,13 +1033,9 @@ public class FGWebContainerWrapper
 
             addDataTransmitter(new PaintAllTransmitter(keyCache_, fgModule_::getPaintAllSequence2));
 
-            Supplier<Map<Object, Object>> stringPoolSupplier = () -> {
-                Map<List<Keyword>, List<String>> idPathToString = new HashMap<>();
-                idPathToComponent_.forEach((k, v) -> idPathToString.put(k, (List<String>) extractStringPool_.invoke(v)));
-                return fgModule_.getStringPoolDiffs(idPathToString);
-            };
-            addDataTransmitter(new StringPoolMapTransmitter(keyCache_,
-                    stringPoolSupplier));
+            addDataTransmitter(new StringPoolMapTransmitter(keyCache_, createStringPoolSupplier(extractStringPool_)));
+
+            addDataTransmitter(new ResourceStringPoolMapTransmitter(keyCache_, createStringPoolSupplier(extractResourceStringPool_)));
 
             if (presetDataCache == null)
             {
@@ -1071,6 +1091,10 @@ public class FGWebContainerWrapper
 
             idPathToComponent_ = fgModule_.getComponentIdPathToComponent(
                 evolveResultData == null ? null : evolveResultData.getChangedPaths());
+
+            //System.out.println("-DLTEMP- FGContainerStateTransmitter.computeDataDiffsToTransmit----");
+            //System.out.println(idPathToComponent_.keySet());
+            //System.out.println();
 
             initialCycle_ = false;
 
@@ -1191,6 +1215,16 @@ public class FGWebContainerWrapper
             }
             return entry;
         }
+
+        private Supplier<Map<Object, Object>> createStringPoolSupplier(Var extractorFn)
+        {
+            return () -> {
+                Map<List<Keyword>, List<String>> idPathToString = new HashMap<>();
+                idPathToComponent_.forEach((k, v) -> idPathToString.put(k, (List<String>) extractorFn.invoke(v)));
+                return fgModule_.getStringPoolDiffs(idPathToString);
+            };
+        }
+
 
         private void addDataTransmitter(IDataTransmitter<?> dataTransmitter)
         {

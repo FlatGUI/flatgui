@@ -61,10 +61,17 @@ function getImage(uri)
     }
     else
     {
-        img = new Image;
-        img.src = uri;
-        img.onload = function(){repaintWholeCache();}
-        uriToImage[uri] = img;
+        try
+        {
+            img = new Image;
+            img.src = uri;
+            img.onload = function(){repaintWholeCache();}
+            uriToImage[uri] = img;
+        }
+        catch (e)
+        {
+            console.log(e);
+        }
         return img;
     }
 }
@@ -325,9 +332,9 @@ function decodeLookVector(componentIndex, stream, byteLength)
                     codeObj = decodeImageURIStrPool(stream, c);
                     var imageUrl;
                     // This is ok, draw image command may arrive before string pool update, just need to check
-                    if (stringPools[componentIndex])
+                    if (resourceStringPools[componentIndex])
                     {
-                        imageUrl = stringPools[componentIndex][codeObj.i];
+                        imageUrl = resourceStringPools[componentIndex][codeObj.i];
                     }
                     // This is ok, look vector update with new image may arrive before string pool update, just need to check
                     if (imageUrl)
@@ -339,13 +346,13 @@ function decodeLookVector(componentIndex, stream, byteLength)
                     break;
                 case CODE_FIT_IMAGE_STRPOOL:
                     codeObj = decodeImageURIStrPool(stream, c);
-                    var img = getImage(stringPools[componentIndex][codeObj.i]);
+                    var img = getImage(resourceStringPools[componentIndex][codeObj.i]);
                     ctx.drawImage(img, codeObj.x, codeObj.y, codeObj.w, codeObj.h);
                     c += codeObj.len;
                     break;
                 case CODE_FILL_IMAGE_STRPOOL:
                     codeObj = decodeImageURIStrPool(stream, c);
-                    var img = getImage(stringPools[componentIndex][codeObj.i]);
+                    var img = getImage(resourceStringPools[componentIndex][codeObj.i]);
                     var w = img.width;
                     var h = img.height;
                     if (codeObj.w <= w && codeObj.h <= h)
@@ -504,6 +511,7 @@ var LOOK_VECTOR_MAP_COMMAND_CODE = 3;
 var CHILD_COUNT_MAP_COMMAND_CODE = 4;
 var BOOLEAN_STATE_FLAGS_COMMAND_CODE = 5;
 var STRING_POOL_MAP_COMMAND_CODE = 7;
+var RESOURCE_STRING_POOL_MAP_COMMAND_CODE = 8;
 
 var PAINT_ALL_LIST_COMMAND_CODE = 64;
 var REPAINT_CACHED_COMMAND_CODE = 65;
@@ -564,6 +572,7 @@ var lookVectors = [];
 var childCounts = [];
 var booleanStateFlags = [];
 var stringPools = [];
+var resourceStringPools = [];
 
 var paintAllSequence;
 
@@ -727,6 +736,45 @@ function repaintWholeCache()
     paintComponent(paintAllSequence, 1)
 }
 
+// Note prefetch is implemented for images only.
+// Need generic way which should eventually become available.
+function decodeStringPool(stream, c, byteLength, poolMatrix, prefetchResource)
+{
+    while (c < byteLength)
+    {
+        var index = readShort(stream, c);
+        c+=2;
+        var sCount = stream[c];
+        c++;
+        for (var i=0; i<sCount; i++)
+        {
+            var sIndex = stream[c];
+            c++;
+            var sSize = readShort(stream, c);
+            c+=2;
+            var str = "";
+            for (var j=0; j<sSize; j++)
+            {
+                str += String.fromCharCode(stream[c+j]);
+            }
+            c+=sSize;
+
+            if (prefetchResource)
+            {
+                console.log("Prefetching: " + str);
+                getImage(str);
+            }
+
+            if (!poolMatrix[index])
+            {
+                poolMatrix[index] = [];
+            }
+            poolMatrix[index][sIndex] = str;
+        }
+    }
+    return c;
+}
+
 function decodeCommandVector(stream, byteLength)
 {
     if (byteLength == 0)
@@ -807,32 +855,11 @@ function decodeCommandVector(stream, byteLength)
             }
             break;
         case STRING_POOL_MAP_COMMAND_CODE:
-            while (c < byteLength)
-            {
-                var index = readShort(stream, c);
-                c+=2;
-                var sCount = stream[c];
-                c++;
-                for (var i=0; i<sCount; i++)
-                {
-                    var sIndex = stream[c];
-                    c++;
-                    var sSize = readShort(stream, c);
-                    c+=2;
-                    var str = "";
-                    for (var j=0; j<sSize; j++)
-                    {
-                        str += String.fromCharCode(stream[c+j]);
-                    }
-                    c+=sSize;
-
-                    if (!stringPools[index])
-                    {
-                        stringPools[index] = [];
-                    }
-                    stringPools[index][sIndex] = str;
-                }
-            }
+            c = decodeStringPool(stream, c, byteLength, stringPools, false);
+            break;
+        case RESOURCE_STRING_POOL_MAP_COMMAND_CODE:
+            console.log("Got resource string pool");
+            c = decodeStringPool(stream, c, byteLength, resourceStringPools, true);
             break;
         case PAINT_ALL_LIST_COMMAND_CODE:
             paintAllSequence = stream;

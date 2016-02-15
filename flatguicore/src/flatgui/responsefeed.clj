@@ -25,6 +25,11 @@
 
 ;;; ;;;
 
+;;; These commands contain strings but it's not enough to just transmit them (in case of client/server
+;;; GUI running), these string are resources (like images) so client needs to start loading them right
+;;; away. So that when resources are actually needed, they are alredy loaded.
+(def resource-string-commands #{"drawImage" "fitImage" "fillImage"})
+
 (defn get-data-for-clipboard [container] (first (:data-for-clipboard container)))
 
 (defn extract-single [property f container]
@@ -34,16 +39,27 @@
   ;; This reduce accumulates bit flags
   (reduce #(+ (* 2 %1) %2) 0 (for [p property] (f (p container)))))
 
-(defn extract-strings [look-vec]
+(defn extract-strings [look-vec pred]
   (mapcat
     #(cond
       (string? %) [%]
-      (vector? %) (extract-strings (if (pos? (count %))
+      (and (vector? %) (pred %)) (extract-strings
+                                   (if (and (pos? (count %)) (string? (nth % 0)))
                                      ; Clean #0: it is a string (a paint command name) that should not be added to pool
                                      (assoc % 0 nil)
-                                     %))
+                                     %)
+                                   pred)
       :else [])
     look-vec))
+
+(defn command-needs-resource-strings [vec]
+  (resource-string-commands (nth vec 0)))
+
+(defn extract-regular-strings [look-vec]
+  (extract-strings look-vec (complement command-needs-resource-strings)))
+
+(defn extract-resource-strings [look-vec]
+  (extract-strings look-vec command-needs-resource-strings))
 
 (defn extract-position-matrix [container]
   (extract-single :position-matrix affinetransform container))
@@ -68,7 +84,14 @@
   (extract-multiple [:rollover-notify-disabled :popup :visible] boolean-bit-flag-extractor container))
 
 (defn extract-string-pool [container]
-  (extract-single :look-vec extract-strings container))
+  (extract-single :look-vec extract-regular-strings container))
+
+(defn extract-resource-string-pool [container]
+  (distinct
+    (concat
+      (extract-single :look-vec extract-resource-strings container)
+      ;; :_prefetch-res-uri-list is our best guess of what else resource may appear in look vector under some conditions
+      (extract-single :_prefetch-res-uri-list identity container))))
 
 (defn extract-cursor [container]
   (extract-single :cursor identity container))
