@@ -124,6 +124,15 @@ public class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
             0, false, button);
     }
 
+    void clear()
+    {
+        pressedPath_ = null;
+        lastTargetIdPath_ = null;
+        lastXRelativeVec_ = null;
+        lastYRelativeVec_ = null;
+        lastMouseEvent_ = null;
+    }
+
     private MouseEvent deriveWithIdAndNoButton(MouseEvent e, int id)
     {
         return new MouseEvent((Component) e.getSource(), id, e.getWhen(), 0,

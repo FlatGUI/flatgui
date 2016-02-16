@@ -81,3 +81,10 @@
           container)
         (register-fork-map-internal container-name)
         (flatgui.base/log-debug "Registered container name = " container-name " id = " (:id container) (System/identityHashCode container))))))
+
+(defn unregister-container [container-name]
+  (do
+    (app-modify-container container-name (fn [_c] nil))
+    (println "Before:" (find-var (symbol "flatgui.appcontainer" container-name)))
+    (ns-unmap container-ns-symbol (symbol container-name))
+    (println "After:" (find-var (symbol "flatgui.appcontainer" container-name)))))

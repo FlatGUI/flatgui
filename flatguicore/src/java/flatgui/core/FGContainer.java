@@ -26,6 +26,7 @@ import java.util.function.Function;
 public class FGContainer implements IFGContainer
 {
     private static final String REGISTER_FN_NAME = "register-container";
+    private static final String UNREGISTER_FN_NAME = "unregister-container";
 
     private static final String FGC_NS = "flatgui.comlogic";
     private static final String PROPERTY_CHANGED_FN = "property-changed?";
@@ -110,6 +111,10 @@ public class FGContainer implements IFGContainer
     {
         active_ = false;
         evolverExecutorService_.shutdown();
+        mouseEventParser_.clear();
+        System.out.println("Unregistering container '" + containerId_ + "'");
+        Var unregisterFn = clojure.lang.RT.var(FGModule.FG_CORE_NAMESPACE, UNREGISTER_FN_NAME);
+        unregisterFn.invoke(containerId_);
     }
 
     @Override

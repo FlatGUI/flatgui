@@ -404,8 +404,9 @@ public class FGContainerWebSocket implements WebSocketListener
         }
 
         @Override
-        public String getId() {
-            throw new UnsupportedOperationException();
+        public String getId()
+        {
+            return container_.getContainer().getId();
         }
 
         @Override
