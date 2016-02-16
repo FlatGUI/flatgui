@@ -55,6 +55,9 @@ public class FGContainerWebSocket implements WebSocketListener
     private volatile long latestInputEventTimestamp_;
     private volatile boolean predictionsSent_;
 
+    private long totalInboundMessages_ = 0;
+    private double avgProcessingTime_ = 0;
+
     private final ContainerAccessor containerAccessor_;
 
     public FGContainerWebSocket(IFGTemplate template,
@@ -161,7 +164,8 @@ public class FGContainerWebSocket implements WebSocketListener
     @Override
     public synchronized void onWebSocketBinary(byte[] payload, int offset, int len)
     {
-        //logger_.debug("Received message #" + debugMessageCount_ + ": " + message);
+        long startTime = System.currentTimeMillis();
+
         fgSession_.markAccesed();
 
         if (payload.length > 0)
@@ -190,6 +194,11 @@ public class FGContainerWebSocket implements WebSocketListener
 //        }
             }
         }
+
+        long processingTime = System.currentTimeMillis() - startTime;
+
+        avgProcessingTime_ = (avgProcessingTime_*totalInboundMessages_ + processingTime) / (totalInboundMessages_+1);
+        totalInboundMessages_++;
     }
 
     @Override
@@ -342,6 +351,11 @@ public class FGContainerWebSocket implements WebSocketListener
                 }
             }
         }
+    }
+
+    double getAvgProcessingTime()
+    {
+        return avgProcessingTime_;
     }
 
     private void sendBytesToRemote(ByteBuffer bytes)

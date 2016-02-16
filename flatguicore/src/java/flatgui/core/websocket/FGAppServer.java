@@ -172,6 +172,28 @@ public class FGAppServer
         server_.join();
     }
 
+    public Map<String, FGServerAppStats> getAppNameToStatsMap()
+    {
+        Map<String, FGServerAppStats> statsMap = new TreeMap<>();
+        for (String appName : mappingToAppTemplateMap_.keySet())
+        {
+            FGWebSocketServlet servlet = mappingToAppTemplateMap_.get(appName);
+
+            Map<Object, Double> sessionToAvgProcessingTime = new HashMap<>();
+
+            servlet.getSessionHolder().forEachActiveSession(
+                    (id, s) -> sessionToAvgProcessingTime.put(
+                            id,
+                            Double.valueOf(s.getAccosiatedWebSocket().getAvgProcessingTime())));
+
+            statsMap.put(appName, new FGServerAppStats(
+                    servlet.getSessionHolder().getActiveOrIdleSessionCount(),
+                    servlet.getSessionHolder().getActiveSessionCount(),
+                    sessionToAvgProcessingTime));
+        }
+        return statsMap;
+    }
+
     // Private
 
     static FGLogger getFGLogger()
@@ -197,6 +219,43 @@ public class FGAppServer
     }
 
     // Inner classes
+
+    public static class FGServerAppStats
+    {
+        private long totalSessions_;
+        private long activeSessions_;
+        private Map<Object, Double> sessionToAvgProcessingTime_;
+
+        public FGServerAppStats(long totalSessions, long activeSessions, Map<Object, Double> sessionToAvgProcessingTime)
+        {
+            totalSessions_ = totalSessions;
+            activeSessions_ = activeSessions;
+            sessionToAvgProcessingTime_ = sessionToAvgProcessingTime;
+        }
+
+        public long getTotalSessions()
+        {
+            return totalSessions_;
+        }
+
+        public long getActiveSessions()
+        {
+            return activeSessions_;
+        }
+
+        public Map<Object, Double> getSessionToAvgProcessingTime()
+        {
+            return sessionToAvgProcessingTime_;
+        }
+
+        @Override
+        public String toString()
+        {
+            return "total: " + totalSessions_ +
+                    " active: " + activeSessions_;
+        }
+    }
+
 
     private static class FGWebSocketServlet extends WebSocketServlet
     {
@@ -244,6 +303,11 @@ public class FGAppServer
                     s.getContainer().feedTargetedEvent(targetCellIdPath, new FGEvolveInputData(inputEvent, false)), false);
             });
             FGAppServer.getFGLogger().debug("Done feeding event.");
+        }
+
+        FGContainerSessionHolder getSessionHolder()
+        {
+            return sessionHolder_;
         }
 
         private Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp)

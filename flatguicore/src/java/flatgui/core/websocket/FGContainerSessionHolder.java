@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -76,9 +77,14 @@ class FGContainerSessionHolder
         return s;
     }
 
-    synchronized int getActiveSessionCount()
+    synchronized long getActiveOrIdleSessionCount()
     {
         return sessionMap_.size();
+    }
+
+    synchronized long getActiveSessionCount()
+    {
+        return sessionMap_.values().stream().filter(FGContainerSession::isActive).count();
     }
 
     synchronized void forEachActiveSession(Consumer<FGContainerSession> sessionConsumer)
@@ -89,6 +95,19 @@ class FGContainerSessionHolder
                 if (s.isActive())
                 {
                     sessionConsumer.accept(s);
+                }
+            }
+        });
+    }
+
+    synchronized void forEachActiveSession(BiConsumer<Object, FGContainerSession> sessionConsumer)
+    {
+        sessionMap_.entrySet().forEach(e -> {
+            synchronized (e.getValue().getContainerLock())
+            {
+                if (e.getValue().isActive())
+                {
+                    sessionConsumer.accept(e.getKey(), e.getValue());
                 }
             }
         });
