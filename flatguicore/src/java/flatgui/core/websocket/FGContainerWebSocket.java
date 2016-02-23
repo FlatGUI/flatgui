@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -44,6 +46,7 @@ public class FGContainerWebSocket implements WebSocketListener
     private final IFGTemplate template_;
     private final Consumer<IFGContainer> containerConsumer_;
     private final BiConsumer<Object, IFGContainer> sessionCloseConsumer_;
+    private ExecutorService endpointTransportService_;
     private final FGPredictor predictor_;
 
     private volatile Session session_;
@@ -110,6 +113,7 @@ public class FGContainerWebSocket implements WebSocketListener
         container_.unInitialize();
         fgSession_.markIdle();
         session_ = null;
+        endpointTransportService_.shutdown();
     }
 
     @Override
@@ -117,6 +121,7 @@ public class FGContainerWebSocket implements WebSocketListener
     {
         session_ = session;
         StringBuilder statusMessage = new StringBuilder("Creating session...");
+        endpointTransportService_ = Executors.newSingleThreadExecutor();
         setTextToRemote(statusMessage.toString());
 
         fgSession_ = sessionHolder_.getSession(template_, session_.getRemoteAddress().getAddress());
@@ -360,26 +365,31 @@ public class FGContainerWebSocket implements WebSocketListener
 
     private void sendBytesToRemote(ByteBuffer bytes)
     {
-        try
-        {
-            session_.getRemote().sendBytes(bytes);
-        }
-        catch (IOException ex)
-        {
-            ex.printStackTrace();
-        }
+        endpointTransportService_.submit(() -> {
+            try
+            {
+                System.out.println("-DLTEMP- FGContainerWebSocket.sendBytesToRemote " + Thread.currentThread().getName());
+                session_.getRemote().sendBytes(bytes);
+            }
+            catch (IOException ex)
+            {
+                ex.printStackTrace();
+            }
+        });
     }
 
     private void setTextToRemote(String text)
     {
-        try
-        {
-            session_.getRemote().sendString(text);
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        endpointTransportService_.submit(() -> {
+            try
+            {
+                session_.getRemote().sendString(text);
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+        });
     }
 
     public static class FGSessionInfo
