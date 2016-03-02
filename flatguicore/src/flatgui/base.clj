@@ -201,9 +201,9 @@
   (let [ key-order (distinct (concat (for [[k v] a] k) (for [[k v] b] k)))
          result (apply array-map (mapcat (fn [k] (if (and (map? (a k)) (map? (b k)))
                                              [k (merge-ordered (a k) (b k))]
-                                             (if (nil? (b k))
-                                               [k (a k)]
-                                               [k (b k)]))) key-order))]
+                                             (if (contains? b k) ; b may intentionally override smth with nil
+                                               [k (b k)]
+                                               [k (a k)]))) key-order))]
     (do
       ;(log-debug " Merged result of class: " (.getClass result))
       result)))
