@@ -388,7 +388,9 @@ flatgui.widgets.componentbase
                                   (dec pi)
                                   (let [t (- (System/currentTimeMillis) before-time)
                                         pp (fgc/conjv
-                                             (fgc/conjv (fgc/conjv target-id-path (nth remaining-to-evolve pi)) (str reason))
+                                             (fgc/conjv
+                                               (fgc/conjv target-id-path (nth remaining-to-evolve pi))
+                                               (.getSimpleName (.getClass reason)))
                                              (if new-has-changes "(Y)" "(N)"))
                                         ]
                                     (do

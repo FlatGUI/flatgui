@@ -48,7 +48,7 @@ public class FGContainer implements IFGContainer
 
     private boolean active_ = false;
 
-    private ExecutorService evolverExecutorService_;
+    private ThreadPoolExecutor evolverExecutorService_;
 
     private ActionListener eventFedCallback_;
 
@@ -102,7 +102,9 @@ public class FGContainer implements IFGContainer
     @Override
     public void initialize()
     {
-        evolverExecutorService_ = Executors.newSingleThreadExecutor();
+        evolverExecutorService_ = new ThreadPoolExecutor(1, 1,
+                0L, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>());
         active_ = true;
     }
 
@@ -184,6 +186,15 @@ public class FGContainer implements IFGContainer
     public Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, Object evolveReason)
     {
         return feedTargetedEvent(targetCellIdPath, new FGEvolveInputData(evolveReason, false));
+    }
+
+    // Diagnostics
+
+    @Override
+    public int getQueueSizeWaiting()
+    {
+        return (int) (evolverExecutorService_.getTaskCount() -
+                evolverExecutorService_.getCompletedTaskCount());
     }
 
     // Private

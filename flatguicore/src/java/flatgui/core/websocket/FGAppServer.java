@@ -179,12 +179,14 @@ public class FGAppServer
         {
             FGWebSocketServlet servlet = mappingToAppTemplateMap_.get(appName);
 
-            Map<Object, Double> sessionToAvgProcessingTime = new HashMap<>();
+            Map<Object, FGServerAppStats.SessionStats> sessionToAvgProcessingTime = new HashMap<>();
 
             servlet.getSessionHolder().forEachActiveSession(
                     (id, s) -> sessionToAvgProcessingTime.put(
                             id,
-                            Double.valueOf(s.getAccosiatedWebSocket().getAvgProcessingTime())));
+                            new FGServerAppStats.SessionStats(
+                                    s.getAccosiatedWebSocket().getAvgProcessingTime(),
+                                    s.getAccosiatedWebSocket().getQueueSizeWaiting())));
 
             statsMap.put(appName, new FGServerAppStats(
                     servlet.getSessionHolder().getActiveOrIdleSessionCount(),
@@ -224,13 +226,13 @@ public class FGAppServer
     {
         private long totalSessions_;
         private long activeSessions_;
-        private Map<Object, Double> sessionToAvgProcessingTime_;
+        private Map<Object, SessionStats> sessionToStat_;
 
-        public FGServerAppStats(long totalSessions, long activeSessions, Map<Object, Double> sessionToAvgProcessingTime)
+        public FGServerAppStats(long totalSessions, long activeSessions, Map<Object, SessionStats> sessionToStat)
         {
             totalSessions_ = totalSessions;
             activeSessions_ = activeSessions;
-            sessionToAvgProcessingTime_ = sessionToAvgProcessingTime;
+            sessionToStat_ = sessionToStat;
         }
 
         public long getTotalSessions()
@@ -243,9 +245,9 @@ public class FGAppServer
             return activeSessions_;
         }
 
-        public Map<Object, Double> getSessionToAvgProcessingTime()
+        public Map<Object, SessionStats> getSessionToStat()
         {
-            return sessionToAvgProcessingTime_;
+            return sessionToStat_;
         }
 
         @Override
@@ -253,6 +255,29 @@ public class FGAppServer
         {
             return "total: " + totalSessions_ +
                     " active: " + activeSessions_;
+        }
+
+        public static class SessionStats
+        {
+            private double avgProcessingTime_;
+
+            private int queueSizeWaiting_;
+
+            public SessionStats(double avgProcessingTime, int queueSizeWaiting)
+            {
+                avgProcessingTime_ = avgProcessingTime;
+                queueSizeWaiting_ = queueSizeWaiting;
+            }
+
+            public double getAvgProcessingTime()
+            {
+                return avgProcessingTime_;
+            }
+
+            public int getQueueSizeWaiting()
+            {
+                return queueSizeWaiting_;
+            }
         }
     }
 

@@ -54,4 +54,8 @@ public interface IFGContainer
     Future<FGEvolveResultData> feedTargetedEvent(List<Keyword> targetCellIdPath, Object evolveReason);
 
     List<Keyword> getLastMouseTargetIdPath();
+
+    // Diagnostics
+
+    int getQueueSizeWaiting();
 }

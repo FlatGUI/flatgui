@@ -15,6 +15,7 @@ import clojure.lang.Keyword;
 import flatgui.core.*;
 import flatgui.core.awt.HostComponent;
 
+import org.eclipse.jetty.websocket.api.CloseStatus;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 
@@ -63,6 +64,8 @@ public class FGContainerWebSocket implements WebSocketListener
 
     private final ContainerAccessor containerAccessor_;
 
+    private static boolean acceptingRequests_ = true;
+
     public FGContainerWebSocket(IFGTemplate template,
                                 FGContainerSessionHolder sessionHolder,
                                 Consumer<IFGContainer> containerConsumer,
@@ -94,6 +97,11 @@ public class FGContainerWebSocket implements WebSocketListener
         FGAppServer.getFGLogger().info("WS Listener created " + System.identityHashCode(this));
     }
 
+    public static void setAcceptingRequests(boolean accept)
+    {
+        acceptingRequests_ = accept;
+    }
+
     @Override
     public void onWebSocketClose(int statusCode, String reason)
     {
@@ -119,6 +127,13 @@ public class FGContainerWebSocket implements WebSocketListener
     @Override
     public void onWebSocketConnect(Session session)
     {
+        if (!acceptingRequests_)
+        {
+            session.close(new CloseStatus(1000, "Server maintenance. Use alternative server."));
+            FGAppServer.getFGLogger().info("Refused remote endpoint due to maintenance mode: " +
+                    session.getRemoteAddress());
+        }
+
         session_ = session;
         StringBuilder statusMessage = new StringBuilder("Creating session...");
         endpointTransportService_ = Executors.newSingleThreadExecutor();
@@ -363,12 +378,16 @@ public class FGContainerWebSocket implements WebSocketListener
         return avgProcessingTime_;
     }
 
+    int getQueueSizeWaiting()
+    {
+        return container_.getContainer().getQueueSizeWaiting();
+    }
+
     private void sendBytesToRemote(ByteBuffer bytes)
     {
         endpointTransportService_.submit(() -> {
             try
             {
-                System.out.println("-DLTEMP- FGContainerWebSocket.sendBytesToRemote " + Thread.currentThread().getName());
                 session_.getRemote().sendBytes(bytes);
             }
             catch (IOException ex)
@@ -489,6 +508,12 @@ public class FGContainerWebSocket implements WebSocketListener
 
         @Override
         public List<Keyword> getLastMouseTargetIdPath()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int getQueueSizeWaiting()
         {
             throw new UnsupportedOperationException();
         }
