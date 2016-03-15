@@ -23,6 +23,8 @@ import flatgui.core.util.FGStringPool;
  */
 public abstract class FGAbstractModule implements IFGModule
 {
+    private static final Var initInstanceFn_ = clojure.lang.RT.var(FG_CORE_NAMESPACE, "app-init-instance");
+
     private static final Var getPaintAllSequence_ = clojure.lang.RT.var("flatgui.paint", "get-paint-all-sequence");
     private static final Var getComponentIdPathToComponent_ = clojure.lang.RT.var("flatgui.paint", "get-component-id-path-to-component");
 
@@ -48,6 +50,12 @@ public abstract class FGAbstractModule implements IFGModule
     {
         containerName_ = containerName;
         stringPoolMap_ = new HashMap<>();
+    }
+
+    @Override
+    public void initInstance()
+    {
+        initInstanceFn_.invoke(containerName_);
     }
 
     @Override

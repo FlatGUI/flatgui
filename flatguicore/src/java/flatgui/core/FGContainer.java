@@ -105,6 +105,7 @@ public class FGContainer implements IFGContainer
         evolverExecutorService_ = new ThreadPoolExecutor(1, 1,
                 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>());
+        evolverExecutorService_.submit(() -> getFGModule().initInstance());
         active_ = true;
     }
 

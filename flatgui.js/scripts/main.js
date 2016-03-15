@@ -377,6 +377,10 @@ function decodeLookVector(componentIndex, stream, byteLength)
                     break;
                 case CODE_SET_FONT:
                 case CODE_SET_FONT_AND_REQUEST_METRICS:
+                    if (opcodeBase == CODE_SET_FONT_AND_REQUEST_METRICS)
+                    {
+                        console.log("Received font request from server. currentFont = " + currentFont + "; opcode = " + opcodeBase  +"; component: " + componentIndex);
+                    }
                     codeObj = decodeFontStrPool(stream, c);
                     if (stringPools[componentIndex] && stringPools[componentIndex][codeObj.i])
                     {
@@ -512,6 +516,7 @@ var CHILD_COUNT_MAP_COMMAND_CODE = 4;
 var BOOLEAN_STATE_FLAGS_COMMAND_CODE = 5;
 var STRING_POOL_MAP_COMMAND_CODE = 7;
 var RESOURCE_STRING_POOL_MAP_COMMAND_CODE = 8;
+var CLIENT_EVOLVER_MAP_COMMAND_CODE = 9;
 
 var PAINT_ALL_LIST_COMMAND_CODE = 64;
 var REPAINT_CACHED_COMMAND_CODE = 65;
@@ -519,7 +524,7 @@ var SET_CURSOR_COMMAND_CODE = 66;
 var PUSH_TEXT_TO_CLIPBOARD = 67;
 
 var TRANSMISSION_MODE_FIRST = 68;
-var TRANSMISSION_MODE_LAST = 74;
+var TRANSMISSION_MODE_LAST = 75;
 var FINISH_PREDICTION_TRANSMISSION = TRANSMISSION_MODE_FIRST;
 var MOUSE_LEFT_DOWN_PREDICTION = 69;
 var MOUSE_LEFT_UP_PREDICTION = 70;
@@ -527,6 +532,7 @@ var MOUSE_LEFT_CLICK_PREDICTION = 71;
 var MOUSE_MOVE_OR_DRAG_PREDICTION_HEADER = 72;
 var MOUSE_MOVE_OR_DRAG_PREDICTION = 73;
 var PING_RESPONSE = 74;
+var METRICS_REQUEST = 75;
 
 var CURSORS_BY_CODE = [
   "alias",
@@ -573,6 +579,8 @@ var childCounts = [];
 var booleanStateFlags = [];
 var stringPools = [];
 var resourceStringPools = [];
+var clientEvolvers = [];
+var indicesWithClientEvolvers = [];
 
 var paintAllSequence;
 
@@ -861,6 +869,25 @@ function decodeCommandVector(stream, byteLength)
             console.log("Got resource string pool");
             c = decodeStringPool(stream, c, byteLength, resourceStringPools, true);
             break;
+        case CLIENT_EVOLVER_MAP_COMMAND_CODE:
+            while (c < byteLength)
+            {
+                var index = readShort(stream, c);
+                c+=2;
+                var strLen = readShort(stream, c);
+                c+=2;
+                var s = "";
+                for (var i = 0; i<strLen; i++)
+                {
+                    s += String.fromCharCode(stream[c+i]);
+                }
+                eval("var r = " + s);
+                clientEvolvers[index] = r;
+                indicesWithClientEvolvers.push(index);
+                console.log("Received client evolver " + index + " : " + s + "/" + JSON.stringify(clientEvolvers[index]) + " in=" + indicesWithClientEvolvers);
+                c+=strLen;
+            }
+            break;
         case PAINT_ALL_LIST_COMMAND_CODE:
             paintAllSequence = stream;
             while (c < byteLength)
@@ -1001,7 +1028,6 @@ function openSocket()
 
         handleResize(null);
 
-        sendCurrentFontMetricsToSever();
         measureConnection();
     };
 
@@ -1049,6 +1075,21 @@ function openSocket()
                         case PING_RESPONSE:
                              if (roundTripTests < 24) sendPingToSever();
                              transmissionMode = FINISH_PREDICTION_TRANSMISSION;
+                             break;
+                        case METRICS_REQUEST:
+                             var c = 1;
+                             var sSize = readShort(dataBuffer, c);
+                             c+=2;
+                             var str = "";
+                             for (var j=0; j<sSize; j++)
+                             {
+                                str += String.fromCharCode(dataBuffer[c+j]);
+                             }
+                             console.log("Received initial metrics request for: " + str);
+                             c+=sSize;
+                             currentFont = str;
+                             applyCurrentFont();
+                             sendCurrentFontMetricsToSever();
                     }
                 }
                 else
@@ -1118,6 +1159,61 @@ function openSocket()
     };
 }
 
+/**
+ * Client evolver processing
+ */
+
+var last_MX = lastMouseX;
+var last_MY = lastMouseY;
+function _TIME(){var d = new Date(); return d.getTime();};
+function _TIME_DELTA(){return 0;};
+function _MX(){return last_MX;}
+function _MX_DELTA(){return 0;};
+function _MY(){return last_MY;}
+function _MY_DELTA(){return 0;};
+
+function processClientEvolvers()
+{
+    _TIME_DELTA = function (){return millis - _TIME();}
+    _MX_DELTA = function (){return _MX() - lastMouseX;}
+    _MY_DELTA = function (){return _MY() - lastMouseY;}
+
+    last_MY = lastMouseY;
+    last_MX = lastMouseX;
+
+    var needRepaint = false;
+    for (var i=0; i<indicesWithClientEvolvers.length; i++)
+    {
+        var index = indicesWithClientEvolvers[i];
+        if (clientEvolvers[index].position_matrix_M_dx)
+        {
+            positions[index].w += clientEvolvers[index].position_matrix_M_dx();
+            needRepaint = true;
+        }
+        if (clientEvolvers[index].position_matrix_M_dy)
+        {
+            positions[index].h += clientEvolvers[index].position_matrix_M_dy();
+            needRepaint = true;
+        }
+        if (clientEvolvers[index].position_matrix_M_x)
+        {
+            positions[index].w = clientEvolvers[index].position_matrix_M_x();
+            needRepaint = true;
+        }
+        if (clientEvolvers[index].position_matrix_M_y)
+        {
+            positions[index].h = clientEvolvers[index].position_matrix_M_y();
+            needRepaint = true;
+        }
+    }
+    if (needRepaint)
+    {
+        repaintWholeCache();
+    }
+}
+
+
+window.setInterval(processClientEvolvers, 33); // 33 for 30 FPS processing
 
 /**
  * Input events

@@ -141,7 +141,7 @@ flatgui.widgets.component
                :skin skin-evolver
                :font font-evolver
                :look flatgui.skins.skinbase/skin-look-evolver
-               :abs-position-matrix abs-position-matrix-evolver
+               ;:abs-position-matrix abs-position-matrix-evolver
 
                :input-channel-subscribers input-channel-subscribers-evolver
                :z-position z-position-evolver}))

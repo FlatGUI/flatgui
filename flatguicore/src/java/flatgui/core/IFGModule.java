@@ -27,6 +27,8 @@ public interface IFGModule
     String FG_CORE_NAMESPACE = "flatgui.appcontainer";
     String RESPONSE_FEED_NS = "flatgui.responsefeed";
 
+    void initInstance();
+
     public void evolve(List<Keyword> targetCellIds, Object inputEvent);
 
     public FGMouseTargetComponentInfo getMouseTargetInfoAt(double x, double y, FGComponentPath knownPath);

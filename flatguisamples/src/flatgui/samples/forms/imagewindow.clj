@@ -45,6 +45,8 @@
     :hello
     {:clip-size (m/defpoint 5.125 5)
      :position-matrix (m/translation 1 1)
+     :client-evolver "{position_matrix_M_dx: _MX_DELTA,
+                       position_matrix_M_dy: _MY_DELTA}"
      :text "Image Example"}
 
     (fg/defcomponent

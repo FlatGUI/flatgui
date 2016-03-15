@@ -10,8 +10,7 @@
 
 package flatgui.samples;
 
-import java.io.File;
-import java.net.URL;
+import java.io.InputStream;
 import java.util.Scanner;
 
 import flatgui.core.FGTemplate;
@@ -29,8 +28,8 @@ public class FGMultilineTextDemoServer
 
     public static void main(String[] args) throws Exception
     {
-        URL formUrl = ClassLoader.getSystemResource("flatgui/samples/forms/text.clj");
-        String sourceCode = new Scanner(new File(formUrl.toURI())).useDelimiter("\\Z").next();
+        InputStream sampleIs = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/text.clj");
+        String sourceCode = new Scanner(sampleIs).useDelimiter("\\Z").next();
 
         IFGTemplate template = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
 

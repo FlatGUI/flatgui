@@ -14,6 +14,7 @@ flatgui.widgets.componentbase
             [flatgui.ids :as ids]
             [flatgui.comlogic :as fgc]
             [flatgui.paint :as fgp]
+            [flatgui.awt]
             [flatgui.util.matrix :as m]
             [flatgui.inputchannels.mouse :as mouse]
             [flatgui.inputchannels.timer :as timer])
@@ -165,21 +166,22 @@ flatgui.widgets.componentbase
       (assoc! (ensure-map! m) k (apply update-in! (get m k) ks f args))
       (assoc! (ensure-map! m) k (apply f (get m k) args)))))
 
-(defn- combine-dirty-rect [r pm clip]
-  (do ;(println " combine-dirty-rect " r pm clip)
-    (if (and pm clip)
-    (let [ pmx (m/mx-x pm)
-           pmy (m/mx-y pm)
-           clip-w (m/x clip)
-           clip-h (m/y clip)]
-      (if r
-        (let [ x1 (min (:x r) pmx)
-               y1 (min (:y r) pmy)
-               x2 (max (+ (:x r) (:w r)) (+ pmx clip-w))
-               y2 (max (+ (:y r) (:h r)) (+ pmy clip-h))]
-          {:x x1 :y y1 :w (- x2 x1) :h (- y2 y1)})
-        {:x pmx :y pmy :w clip-w :h clip-h}))
-    r)))
+;(defn- combine-dirty-rect [r pm clip]
+;  (do ;(println " combine-dirty-rect " r pm clip)
+;    (if (and pm clip)
+;    (let [ pmx (m/mx-x pm)
+;           pmy (m/mx-y pm)
+;           clip-w (m/x clip)
+;           clip-h (m/y clip)]
+;      (if r
+;        (let [ x1 (min (:x r) pmx)
+;               y1 (min (:y r) pmy)
+;               x2 (max (+ (:x r) (:w r)) (+ pmx clip-w))
+;               y2 (max (+ (:y r) (:h r)) (+ pmy clip-h))]
+;          {:x x1 :y y1 :w (- x2 x1) :h (- y2 y1)})
+;        {:x pmx :y pmy :w clip-w :h clip-h}))
+;    r)))
+(defn- combine-dirty-rect [r pm clip] nil)
 
 ;;;
 ;;; TODO Refactor into a set of smaller functions
@@ -379,6 +381,8 @@ flatgui.widgets.componentbase
               before-time (System/currentTimeMillis)
                with-evolved-target-fresh (evolve-component original-container (assoc container :has-changes false) original-target-id-path target-id-path reason remaining-to-evolve debug-shift initialization)
                new-has-changes (:has-changes with-evolved-target-fresh)
+              ; TODO 1. Time stasts should be optional
+              ; TODO 2. Make this per container isnstance like usage stast
               _time-spent (if initialization
                             nil
                             (loop [pi (dec (count remaining-to-evolve))
@@ -387,14 +391,19 @@ flatgui.widgets.componentbase
                                 (recur
                                   (dec pi)
                                   (let [t (- (System/currentTimeMillis) before-time)
+                                        pp-base (fgc/conjv
+                                                  (fgc/conjv target-id-path (nth remaining-to-evolve pi))
+                                                  (.getSimpleName (.getClass reason)))
                                         pp (fgc/conjv
-                                             (fgc/conjv
-                                               (fgc/conjv target-id-path (nth remaining-to-evolve pi))
-                                               (.getSimpleName (.getClass reason)))
+                                             pp-base
                                              (if new-has-changes "(Y)" "(N)"))
+                                        ppn (fgc/conjv
+                                              pp-base
+                                              "num")
                                         ]
                                     (do
-                                      (swap! stats (fn [s] (assoc s pp (+ (get s pp 0) t))))
+                                      (swap! stats (fn [s] (-> (assoc s pp (+ (get s pp 0) t))
+                                                               (assoc ppn (inc (get s ppn 0))))))
                                       ))))))
               has-changes (or prev-has-changes new-has-changes)
                with-evolved-target (assoc with-evolved-target-fresh :has-changes has-changes)
@@ -437,25 +446,38 @@ flatgui.widgets.componentbase
                   with-evolved-target))))))
 
 
-(defn rebuild-look [container target-id-path aux changed-only dirty-rect]
-  (let [k (fgc/get-access-key target-id-path)
-        this-container (if (or (not changed-only) (get-in aux (fgc/conjv k :changed-properties)))
-                         (let [look-fn (:look container)]
-                           (if look-fn
-                             (try
-                               (assoc container :look-vec (fgp/flatten-vector
-                                                            [(fgp/font-look container)
-                                                             (look-fn container dirty-rect)
-                                                             (if (:has-trouble container) (fgp/trouble-look container dirty-rect))]))
-                               (catch Exception ex
-                                 (do
-                                   (fg/log-error "Error painting " target-id-path ":" (.getMessage ex))
-                                   (.printStackTrace ex))))
-                             container))
-                         container)]
-    (assoc
-      this-container
-      :children (into (array-map) (for [[k v] (:children container)] [k (rebuild-look v (fgc/conjv target-id-path k) aux changed-only dirty-rect)])))))
+(defn rebuild-look
+  ([container target-id-path aux changed-only dirty-rect]
+   (let [                                                   ;_ (if (false? changed-only) (println "rebuilding look " (:id container)))
+         k (fgc/get-access-key target-id-path)
+         this-container (if (or (not changed-only) (get-in aux (fgc/conjv k :changed-properties)))
+                          (let [look-fn (:look container)
+                                font (:font container)]
+                            (if look-fn
+                              (try
+
+                                (do
+                                  (if font
+                                    (.setReferenceFont (:interop container) font (flatgui.awt/str->font font)))
+                                  (let [lv (fgp/flatten-vector
+                                             [(fgp/font-look container)
+                                              (look-fn container dirty-rect)
+                                              (if (:has-trouble container) (fgp/trouble-look container dirty-rect))])
+                                        c (assoc container :look-vec lv)
+                                        _ (if (= :theme-label (:id container)) (println (:id container) "--|" (:font container) "|" lv))
+                                        ]
+                                    c))
+
+                                (catch Exception ex
+                                  (do
+                                    (fg/log-error "Error painting " target-id-path ":" (.getMessage ex))
+                                    (.printStackTrace ex))))
+                              container))
+                          container)]
+     (assoc
+       this-container
+       :children (into (array-map) (for [[k v] (:children container)] [k (rebuild-look v (fgc/conjv target-id-path k) aux changed-only dirty-rect)])))))
+  ([container] (rebuild-look container [(:id container)] (:aux-container container) false nil)))
 
 
 ; TODO this was one more attempt to optimize for web
@@ -574,7 +596,7 @@ flatgui.widgets.componentbase
      "initialization"))
   ([root-container target-id-path] (evolve-all-component-only root-container target-id-path nil)))
 
-(defn- evolve-all
+(defn evolve-all
   ([root-container target-id-path component properties]
     (let [ fresh-root-container (evolve-all-component-only root-container target-id-path properties)]
       (loop [ ret fresh-root-container

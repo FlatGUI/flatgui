@@ -91,9 +91,7 @@ public class FGWebInteropUtil implements IFGInteropUtil
         return heightPx / unitSizePx_;
     }
 
-    // Non-public
-
-    public void setMetricsTransmission(byte[] metricsTransmission)
+    public String setMetricsTransmission(byte[] metricsTransmission)
     {
         int fontStrLen = metricsTransmission[1];
         int charCount = metricsTransmission.length-1-1-fontStrLen;
@@ -112,14 +110,18 @@ public class FGWebInteropUtil implements IFGInteropUtil
         byte[] charMetrics = new byte[charCount];
         System.arraycopy(metricsTransmission, 1+1+fontStrLen, charMetrics, 0, charCount);
         fontStrToCharMetrics_.put(fontStr, charMetrics);
+
+        return fontStr;
     }
 
-    void setReferenceFont(String fontStr, Font font)
+    public void setReferenceFont(String fontStr, Font font)
     {
         referenceFontStr_ = fontStr;
         referenceFont_ = font;
         updateFontMetrics();
     }
+
+    // Non-public
 
     private void updateFontMetrics()
     {

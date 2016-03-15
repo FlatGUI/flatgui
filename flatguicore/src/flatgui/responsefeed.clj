@@ -95,3 +95,6 @@
 
 (defn extract-cursor [container]
   (extract-single :cursor identity container))
+
+(defn extract-client-evolver [container]
+  (extract-single :client-evolver identity container))

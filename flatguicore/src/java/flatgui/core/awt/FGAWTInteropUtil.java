@@ -67,6 +67,14 @@ public class FGAWTInteropUtil implements IFGInteropUtil
         return heightPx / unitSizePx_;
     }
 
+    @Override
+    public void setReferenceFont(String fontStr, Font font)
+    {
+        referenceFontStr_ = fontStr;
+        referenceFont_ = font;
+        updateReferenceFontMetrics();
+    }
+
     // Non-public
 
     private void applyFontIfNeeded(String font)
@@ -76,13 +84,6 @@ public class FGAWTInteropUtil implements IFGInteropUtil
             setReferenceFont(font, (Font) strToFont_.invoke(font));
         }
 
-    }
-
-    void setReferenceFont(String fontStr, Font font)
-    {
-        referenceFontStr_ = fontStr;
-        referenceFont_ = font;
-        updateReferenceFontMetrics();
     }
 
     void setReferenceGraphics(Graphics g)

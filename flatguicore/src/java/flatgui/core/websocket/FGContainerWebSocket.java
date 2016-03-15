@@ -12,6 +12,7 @@ package flatgui.core.websocket;
 
 import clojure.lang.Keyword;
 
+import clojure.lang.Var;
 import flatgui.core.*;
 import flatgui.core.awt.HostComponent;
 
@@ -21,6 +22,7 @@ import org.eclipse.jetty.websocket.api.WebSocketListener;
 
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -39,8 +41,13 @@ public class FGContainerWebSocket implements WebSocketListener
 {
     private static final long SEND_PREDICTIONS_THRESHOLD = 500;
 
+    private static final Keyword fontKey_ = Keyword.intern("font");
+    private static final Keyword childrenKey_ = Keyword.intern("children");
+
     private static final int METRICS_INPUT_CODE = 407;
     private static final int PING_INPUT_CODE = 408;
+
+    private enum Phase {CollectingMetrics, Live};
 
     private final FGContainerSessionHolder sessionHolder_;
     // TODO have some template provider instead
@@ -63,6 +70,11 @@ public class FGContainerWebSocket implements WebSocketListener
     private double avgProcessingTime_ = 0;
 
     private final ContainerAccessor containerAccessor_;
+
+    private int fontsWaitingForMetrics_;
+    private Phase currentPhase_;
+    private List<byte[]> initialFontMetrics_;
+    private List<FGInputEventDecoder.BinaryInput> pendingEvents_;
 
     private static boolean acceptingRequests_ = true;
 
@@ -135,42 +147,31 @@ public class FGContainerWebSocket implements WebSocketListener
         }
 
         session_ = session;
-        StringBuilder statusMessage = new StringBuilder("Creating session...");
         endpointTransportService_ = Executors.newSingleThreadExecutor();
-        setTextToRemote(statusMessage.toString());
-
-        fgSession_ = sessionHolder_.getSession(template_, session_.getRemoteAddress().getAddress());
-        fgSession_.setAccosiatedWebSocket(this);
-
-        statusMessage.append("|created session");
-        setTextToRemote(statusMessage.toString());
-
         FGAppServer.getFGLogger().info("WS Connect " + System.identityHashCode(this) +
                 " session: " + fgSession_ +
-                " remote: " + session.getRemoteAddress());
+                " remote: " + session_.getRemoteAddress());
 
-        container_ = fgSession_.getContainer();
+        currentPhase_ = Phase.CollectingMetrics;
 
-        statusMessage.append("|created app");
-        setTextToRemote(statusMessage.toString());
+        Set<String> fonts = findAllFonts();
+        fontsWaitingForMetrics_ = fonts.size();
+        initialFontMetrics_ = new ArrayList<>(fontsWaitingForMetrics_);
+        pendingEvents_ = new ArrayList<>();
 
-        container_.initialize();
-        if (containerConsumer_ != null)
-        {
-            containerConsumer_.accept(containerAccessor_);
-        }
-
-        statusMessage.append("|initialized app");
-        setTextToRemote(statusMessage.toString());
-
-        parser_ = fgSession_.getParser();
-
-        statusMessage.append("|retrieving initial state...");
-        setTextToRemote(statusMessage.toString());
-
-        container_.resetCache();
-
-        collectAndSendResponse(null, false);
+        fonts.stream().forEach(f -> {
+            FGAppServer.getFGLogger().info(session_.getRemoteAddress() + " Requesting metrics for font: " + f);
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            FGWebContainerWrapper.StringTransmitter.writeString(stream, 1, f);
+            byte[] textBytes = stream.toByteArray();
+            byte[] cmd = new byte[textBytes.length+1];
+            cmd[0] = FGWebContainerWrapper.METRICS_REQUEST;
+            for (int i=0; i<textBytes.length; i++)
+            {
+                cmd[i+1] = textBytes[i];
+            }
+            sendBytesToRemote(ByteBuffer.wrap(cmd));
+        });
     }
 
     @Override
@@ -184,6 +185,26 @@ public class FGContainerWebSocket implements WebSocketListener
     @Override
     public synchronized void onWebSocketBinary(byte[] payload, int offset, int len)
     {
+        if (currentPhase_ == Phase.CollectingMetrics)
+        {
+            if (payload[0] == METRICS_INPUT_CODE - 400)
+            {
+                initialFontMetrics_.add(payload);
+                fontsWaitingForMetrics_--;
+                if (fontsWaitingForMetrics_ == 0)
+                {
+                    currentPhase_ = Phase.Live;
+                    sendBytesToRemote(ByteBuffer.wrap(new byte[]{FGWebContainerWrapper.FINISH_PREDICTION_TRANSMISSION}));
+                    startContainer();
+                }
+            }
+            else
+            {
+                pendingEvents_.add(new FGInputEventDecoder.BinaryInput(payload, offset, len));
+            }
+            return;
+        }
+
         long startTime = System.currentTimeMillis();
 
         fgSession_.markAccesed();
@@ -193,7 +214,8 @@ public class FGContainerWebSocket implements WebSocketListener
             if (payload[0] == METRICS_INPUT_CODE - 400)
             {
                 FGWebInteropUtil interop = (FGWebInteropUtil) container_.getContainer().getInterop();
-                interop.setMetricsTransmission(payload);
+                String fontStr = interop.setMetricsTransmission(payload);
+                container_.markFontAsHavingReceivedMetrics(fontStr);
             }
             else if (payload[0] == PING_INPUT_CODE - 400)
             {
@@ -227,8 +249,92 @@ public class FGContainerWebSocket implements WebSocketListener
         //logger_.debug("Received message #" + debugMessageCount_ + ": " + message);
     }
 
+    private Set<String> findAllFonts()
+    {
+        Var containerVar = clojure.lang.RT.var(template_.getContainerNamespace(), template_.getContainerVarName());
+        Map<Keyword, Object> container = (Map<Keyword, Object>) containerVar.get();
+        return getFonts(container);
+    }
+
+    private Set<String> getFonts(Map<Keyword, Object> container)
+    {
+        Set<String> fonts = new HashSet<>();
+
+        Object fontObj = container.get(fontKey_);
+        String containerFont = (String) fontObj;
+        if (containerFont != null)
+        {
+            fonts.add(containerFont);
+        }
+
+        Map<Keyword, Map<Keyword, Object>> children = (Map<Keyword, Map<Keyword, Object>>) container.get(childrenKey_);
+        if (children != null)
+        {
+            children.values().stream()
+                    .forEach(v -> fonts.addAll(getFonts(v)));
+
+        }
+
+        return fonts;
+    }
+
+    private void startContainer()
+    {
+        StringBuilder statusMessage = new StringBuilder("Creating session...");
+        setTextToRemote(statusMessage.toString());
+
+        Set<String> fonts = new HashSet<>();
+        fgSession_ = sessionHolder_.getSession(template_, session_.getRemoteAddress().getAddress(), initialFontMetrics_, fonts);
+        fgSession_.setAccosiatedWebSocket(this);
+
+        statusMessage.append("|created session");
+        setTextToRemote(statusMessage.toString());
+
+        FGAppServer.getFGLogger().info("Initializing container " + System.identityHashCode(this) +
+                " session: " + fgSession_ +
+                " remote: " + session_.getRemoteAddress());
+
+        container_ = fgSession_.getContainer();
+
+        fonts.forEach(container_::markFontAsHavingReceivedMetrics);
+
+        statusMessage.append("|created app");
+        setTextToRemote(statusMessage.toString());
+
+        container_.initialize();
+        if (containerConsumer_ != null)
+        {
+            containerConsumer_.accept(containerAccessor_);
+        }
+
+        statusMessage.append("|initialized app");
+        setTextToRemote(statusMessage.toString());
+
+        parser_ = fgSession_.getParser();
+
+        statusMessage.append("|retrieving initial state...");
+        setTextToRemote(statusMessage.toString());
+
+        container_.resetCache();
+
+        pendingEvents_.forEach(b -> onWebSocketBinary(b.getPayload(), b.getOffset(), b.getLen()));
+        pendingEvents_.clear();
+
+        collectAndSendResponse(null, false);
+    }
+
+    private boolean isStarted()
+    {
+        return container_ != null;
+    }
+
     private void processInputEvent(Object e)
     {
+        if (!isStarted())
+        {
+            return;
+        }
+
         if (e == null)
         {
             //logger_.debug("Processed message #" + debugMessageCount_ + ": not an input event.");

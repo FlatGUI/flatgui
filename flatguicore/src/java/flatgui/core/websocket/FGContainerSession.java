@@ -46,6 +46,11 @@ public class FGContainerSession
         containerWrapper_.initialize();
 
         interopUtil_ = (FGWebInteropUtil) container.getInterop();
+
+        // TODO
+        // get rid of this font listener concept. It is too late to set reference font like this.
+        // Reference font is needed when rebuilding look vectors after evolve.
+
         containerWrapper_.addFontStrListener(e -> interopUtil_.setReferenceFont(
                 e.getNewValue(), (Font) strToFont_.invoke(e.getNewValue())));
 

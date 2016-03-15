@@ -41,6 +41,7 @@ public class FGWebContainerWrapper
     public static final byte BOOLEAN_STATE_FLAGS_COMMAND_CODE = 5;
     public static final byte STRING_POOL_MAP_COMMAND_CODE = 7;
     public static final byte RESOURCE_STRING_POOL_MAP_COMMAND_CODE = 8;
+    public static final byte CLIENT_EVOLVER_MAP_COMMAND_CODE = 9;
 
     public static final byte PAINT_ALL_LIST_COMMAND_CODE = 64;
     public static final byte REPAINT_CACHED_COMMAND_CODE = 65;
@@ -54,6 +55,7 @@ public class FGWebContainerWrapper
     public static final byte MOUSE_MOVE_OR_DRAG_PREDICTION_HEADER = 72;
     public static final byte MOUSE_MOVE_OR_DRAG_PREDICTION = 73;
     public static final byte PING_RESPONSE = 74;
+    public static final byte METRICS_REQUEST = 75;
 
     public static final byte[] MOUSE_LEFT_CLICK_PREDICTION_SEQUENCE = new byte[]
     {
@@ -82,12 +84,16 @@ public class FGWebContainerWrapper
     private final IFGContainer fgContainer_;
     private Function<FGEvolveInputData, Future<FGEvolveResultData>> eventConsumer_;
 
+    private Set<String> fontsWithMetricsAlreadyReceived_;
+
     public FGWebContainerWrapper(IFGContainer fgContainer)
     {
         fgContainer_ = fgContainer;
         eventConsumer_ = fgContainer_.connect(e -> {}, this);
 
-        stateTransmitter_ = new FGContainerStateTransmitter(fgContainer_);
+        fontsWithMetricsAlreadyReceived_ = new HashSet<>();
+
+        stateTransmitter_ = new FGContainerStateTransmitter(fgContainer_, fontsWithMetricsAlreadyReceived_);
         stateTransmitterForks_ = new HashMap<>();
     }
 
@@ -177,6 +183,11 @@ public class FGWebContainerWrapper
         }
 
         return Collections.emptyList();
+    }
+
+    public synchronized boolean markFontAsHavingReceivedMetrics(String font)
+    {
+        return fontsWithMetricsAlreadyReceived_.add(font);
     }
 
     private void obtainForkIfNeeded(FGEvolveInputData evolveInputData)
@@ -689,10 +700,13 @@ public class FGWebContainerWrapper
     {
         private FGPaintVectorBinaryCoder coder_;
 
-        public LookVectorTransmitter(FGPaintVectorBinaryCoder.StringPoolIdSupplier stringPoolIdSupplier, IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
+        public LookVectorTransmitter(FGPaintVectorBinaryCoder.StringPoolIdSupplier stringPoolIdSupplier,
+                                     IKeyCache keyCache,
+                                     Supplier<Map<Object, Object>> sourceMapSupplier,
+                                     Set<String> fontsWithMetricsAlreadyReceived)
         {
             super(keyCache, sourceMapSupplier);
-            coder_ = new FGPaintVectorBinaryCoder(stringPoolIdSupplier);
+            coder_ = new FGPaintVectorBinaryCoder(stringPoolIdSupplier, fontsWithMetricsAlreadyReceived);
         }
 
         @Override
@@ -724,7 +738,7 @@ public class FGWebContainerWrapper
         }
     }
 
-    static abstract class StringTransmitter extends MapTransmitter<String>
+    public static abstract class StringTransmitter extends MapTransmitter<String>
     {
         public StringTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
         {
@@ -737,7 +751,7 @@ public class FGWebContainerWrapper
             return writeString(stream, n, value);
         }
 
-        static int writeString(ByteArrayOutputStream stream, int n, String value)
+        public static int writeString(ByteArrayOutputStream stream, int n, String value)
         {
             int strLen = value.length();
             stream.write((byte)(strLen & 0xFF));
@@ -804,6 +818,20 @@ public class FGWebContainerWrapper
         public byte getCommandCode()
         {
             return RESOURCE_STRING_POOL_MAP_COMMAND_CODE;
+        }
+    }
+
+    public static class ClientEvolverTransmitter extends StringTransmitter
+    {
+        public ClientEvolverTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
+        {
+            super(keyCache, sourceMapSupplier);
+        }
+
+        @Override
+        public byte getCommandCode()
+        {
+            return CLIENT_EVOLVER_MAP_COMMAND_CODE;
         }
     }
 
@@ -920,6 +948,7 @@ public class FGWebContainerWrapper
         private static final Var extractBitFlags_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-bit-flags");
         private static final Var extractStringPool_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-string-pool");
         private static final Var extractResourceStringPool_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-resource-string-pool");
+        private static final Var extractClientEvolver_ = clojure.lang.RT.var(RESPONSE_FEED_NS, "extract-client-evolver");
 
         private static final byte DEFAULT_CURSOR_CODE = 8;
         private static final Map<String, Integer> CURSOR_NAME_TO_CODE;
@@ -981,14 +1010,21 @@ public class FGWebContainerWrapper
 
         private final LookVectorTransmitter lookVectorTransmitter_;
 
+        private final Set<String> fontsWithMetricsAlreadyReceived_;
+
         boolean initialCycle_;
 
-        public FGContainerStateTransmitter(IFGContainer fgContainer)
+        public FGContainerStateTransmitter(IFGContainer fgContainer, Set<String> fontsWithMetricsAlreadyReceived)
         {
-            this(true, fgContainer, fgContainer.getFGModule(), null, new KeyCache());
+            this(true, fgContainer, fgContainer.getFGModule(), null, new KeyCache(), fontsWithMetricsAlreadyReceived);
         }
 
-        public FGContainerStateTransmitter(boolean initialCycle, IFGContainer fgContainer, IFGModule module, Map<Byte, Object> presetDataCache, IKeyCache keyCache)
+        public FGContainerStateTransmitter(boolean initialCycle,
+                                           IFGContainer fgContainer,
+                                           IFGModule module,
+                                           Map<Byte, Object> presetDataCache,
+                                           IKeyCache keyCache,
+                                           Set<String> fontsWithMetricsAlreadyReceived)
         {
             initialCycle_ = initialCycle;
 
@@ -998,6 +1034,8 @@ public class FGWebContainerWrapper
             cmdToDataTransmitter_ = new LinkedHashMap<>();
 
             stringPoolIdSupplier_ = fgModule_::getStringPoolId;
+
+            fontsWithMetricsAlreadyReceived_ = fontsWithMetricsAlreadyReceived;
 
             addDataTransmitter(new PositionMatrixMapTrasmitter(keyCache_,
                     () -> idPathToComponent_.entrySet().stream()
@@ -1017,7 +1055,8 @@ public class FGWebContainerWrapper
             lookVectorTransmitter_ = new LookVectorTransmitter(stringPoolIdSupplier_, keyCache_,
                 () -> idPathToComponent_.entrySet().stream()
                     .map(e -> checkMapEntry(e, "Look vector"))
-                    .collect(Collectors.toMap(e -> e.getKey(), e -> extractLookVector_.invoke(e.getValue()))));
+                    .collect(Collectors.toMap(e -> e.getKey(), e -> extractLookVector_.invoke(e.getValue()))),
+                    fontsWithMetricsAlreadyReceived);
 
             addDataTransmitter(lookVectorTransmitter_);
 
@@ -1036,6 +1075,8 @@ public class FGWebContainerWrapper
             addDataTransmitter(new StringPoolMapTransmitter(keyCache_, createStringPoolSupplier(extractStringPool_)));
 
             addDataTransmitter(new ResourceStringPoolMapTransmitter(keyCache_, createStringPoolSupplier(extractResourceStringPool_)));
+
+            addDataTransmitter(new ClientEvolverTransmitter(keyCache_, createClientEvolverSupplier()));
 
             if (presetDataCache == null)
             {
@@ -1069,7 +1110,7 @@ public class FGWebContainerWrapper
                 }
             }
 
-            return new FGContainerStateTransmitter(false, fgContainer_, module, cmdToLastData, keyCache_);
+            return new FGContainerStateTransmitter(false, fgContainer_, module, cmdToLastData, keyCache_, fontsWithMetricsAlreadyReceived_);
         }
 
         public Collection<ByteBuffer> computeDataDiffsToTransmit(Future<FGEvolveResultData> evolveResultFuture)
@@ -1225,6 +1266,16 @@ public class FGWebContainerWrapper
             };
         }
 
+        private Supplier<Map<Object, Object>> createClientEvolverSupplier()
+        {
+            return () -> {
+                Map<Object, Object> result = new HashMap<>();
+                idPathToComponent_.forEach((k, v) -> {
+                    Object clientEvolver = extractClientEvolver_.invoke(v);
+                    if (clientEvolver != null) result.put(k, clientEvolver);});
+                return result;
+            };
+        }
 
         private void addDataTransmitter(IDataTransmitter<?> dataTransmitter)
         {

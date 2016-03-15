@@ -15,9 +15,7 @@ import flatgui.core.IFGContainer;
 import flatgui.core.IFGContainerHost;
 import flatgui.core.IFGTemplate;
 import java.net.InetAddress;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -61,13 +59,22 @@ class FGContainerSessionHolder
         }, IDLE_SESSION_TIMEOUT, IDLE_SESSION_TIMEOUT);
     }
 
-    FGContainerSession getSession(IFGTemplate template, InetAddress remoteAddress)
+    FGContainerSession getSession(IFGTemplate template, InetAddress remoteAddress,
+                                  List<byte[]> initialFontMetricsTransmissions,
+                                  Set<String> fontCollector)
     {
         Object sessionId = getSessionId(template, remoteAddress);
 
+        // TODO always create new since font metrics may change?
+
         FGContainerSession s = sessionMap_.computeIfAbsent(
                 getSessionId(template, remoteAddress),
-                k -> sessionHost_.hostContainer(new FGContainer(template, sessionId.toString(), new FGWebInteropUtil(IFGContainer.UNIT_SIZE_PX))));
+                k -> {
+                    FGWebInteropUtil interop = new FGWebInteropUtil(IFGContainer.UNIT_SIZE_PX);
+                    initialFontMetricsTransmissions.forEach(t -> fontCollector.add(interop.setMetricsTransmission(t)));
+                    FGContainer container = new FGContainer(template, sessionId.toString(), interop);
+                    return sessionHost_.hostContainer(container);
+                });
 
         FGAppServer.getFGLogger().debug(toString() + " state:");
         FGAppServer.getFGLogger().debug(sessionMap_.toString());

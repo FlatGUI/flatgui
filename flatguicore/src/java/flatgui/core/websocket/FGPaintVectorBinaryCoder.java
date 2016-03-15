@@ -39,7 +39,7 @@ public class FGPaintVectorBinaryCoder
     private String lastFontStr_;
     private List<IFGChangeListener<String>> fontStrListeners_;
 
-    public FGPaintVectorBinaryCoder(StringPoolIdSupplier stringPoolIdSupplier)
+    public FGPaintVectorBinaryCoder(StringPoolIdSupplier stringPoolIdSupplier, Set<String> fontsWithMetricsAlreadyReceived)
     {
         cmdNameToCoder_ = new HashMap<>();
 
@@ -69,7 +69,7 @@ public class FGPaintVectorBinaryCoder
         registerCoder("fitImage", new ExtendedCommandCoder(fitImageCoder));
         registerCoder("fillImage", new ExtendedCommandCoder(fillImageCoder));
 
-        ICommandCoder setFontCoder = new SetFontStrPoolCoder(stringPoolIdSupplier);
+        ICommandCoder setFontCoder = new SetFontStrPoolCoder(stringPoolIdSupplier, fontsWithMetricsAlreadyReceived);
         registerCoder("setFont", new ExtendedCommandCoder(setFontCoder));
 
         uidAwareCoders_ = Arrays.asList(drawStringCoder, drawImageCoder, fitImageCoder, fillImageCoder, setFontCoder);
@@ -1098,12 +1098,12 @@ public class FGPaintVectorBinaryCoder
         private StringPoolIdSupplier stringPoolIdSupplier_;
         private Object componentId_;
 
-        private Set<Integer> alreadyRequestedMetricsFor_;
+        private Set<String> alreadyRequestedMetricsFor_;
 
-        public SetFontStrPoolCoder(StringPoolIdSupplier stringPoolIdSupplier)
+        public SetFontStrPoolCoder(StringPoolIdSupplier stringPoolIdSupplier, Set<String> alreadyRequestedMetricsFor)
         {
             stringPoolIdSupplier_ = stringPoolIdSupplier;
-            alreadyRequestedMetricsFor_ = new HashSet<>();
+            alreadyRequestedMetricsFor_ = alreadyRequestedMetricsFor;
         }
 
         @Override
@@ -1132,14 +1132,13 @@ public class FGPaintVectorBinaryCoder
             }
 
             // setFont command code (regular one or with instant metrics request)
-            if (alreadyRequestedMetricsFor_.contains(sId))
+            if (alreadyRequestedMetricsFor_.contains(s))
             {
                 stream[n] = 7;
             }
             else
             {
                 stream[n] = 8;
-                alreadyRequestedMetricsFor_.add(sId);
                 System.out.println(getClass().getSimpleName() + ": requested metrics for font '" + s + "'");
             }
             stream[n+1] = sId.byteValue();

@@ -10,6 +10,8 @@
 
 package flatgui.core;
 
+import java.awt.*;
+
 /**
  * @author Denis Lebedev
  */
@@ -20,4 +22,6 @@ public interface IFGInteropUtil
     double getFontHeight(String font);
 
     double getFontAscent(String font);
+
+    void setReferenceFont(String fontStr, Font font);
 }

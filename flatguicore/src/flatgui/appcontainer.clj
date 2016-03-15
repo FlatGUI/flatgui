@@ -39,6 +39,12 @@
                 (usage-stats-collector ec target-cell-ids reason)
                 ec)))))
 
+;; No need to recompute dependencies etc., but need to evolve all because of the new font metrics
+(defn app-init-instance [container-name]
+  (swap!
+    (get-container-atom container-name)
+    (fn [c] (flatgui.widgets.componentbase/rebuild-look c))))
+
 (defn app-fork-container [container-name target-cell-ids reason]
   (swap!
     (get-fork-map-atom container-name)
