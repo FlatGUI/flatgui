@@ -206,6 +206,7 @@ flatgui.widgets.componentbase
                                 :target-id-path-index (dec (count target-id-path))
                                 :evolve-reason-provider evolve-reason-provider
                                 :_initialization initialization)
+            target-evolvers (:evolvers target-component)
              ps-count (count properties-to-evolve)]
         (loop [ pi 0
                 tgt target-component
@@ -213,7 +214,7 @@ flatgui.widgets.componentbase
                 aux aux-container]
           (if (< pi ps-count)
                   (let [p (nth properties-to-evolve pi)
-                        evolver (p (:evolvers tgt))]
+                        evolver (p target-evolvers)]
                     (if (or initialization evolver)
                       (let [;; Remember: cannot use get in :evolved-properties check because of http://dev.clojure.org/jira/browse/CLJ-700
                             ;; We don track :children change during initialization. Current implementation of initialization
@@ -238,11 +239,11 @@ flatgui.widgets.componentbase
                              has-changes-raw (not (= old-value new-value))
                              has-changes has-changes-raw ;(or initialization has-changes-raw)
 
-                             new-aux-with-consume (if (evolve-reason-provider nil)
+                             new-aux-with-consume (if (and (evolve-reason-provider nil) ((:consumes? tgt) tgt))
                                                     (assoc!
                                                       aux-with-evolved-dependencies
                                                       :consumed
-                                                      (or (:consumed aux-with-evolved-dependencies) ((:consumes? tgt) tgt)))
+                                                      true)
                                                     aux-with-evolved-dependencies)
 
                              new-aux (if has-changes
@@ -279,49 +280,53 @@ flatgui.widgets.componentbase
                                              flex-target-id-paths-added (if flex-structure-changes (:_flex-target-id-paths-added new-value))
                                              new-value (if flex-structure-changes (dissoc new-value :_flexible-childset-added :_flex-target-id-paths-added) new-value)
 
+                                             root-with-new-value (assoc (assoc-in root-p (fgc/conjv k p) new-value)
+                                                                   :has-changes true
+                                                                   :aux-container new-aux)
+                                             fin-ret1 (if children-changed
+                                                        (assoc root-with-new-value
+                                                          :has-structure-changes (or (:has-structure-changes root-p) has-structure-changes)
+                                                          :flex-structure-changes (merge (:flex-structure-changes root-p) flex-structure-changes)
+                                                          ; For some reason that is still not clear enough, removing vec from here causes
+                                                          ; stack overflow related to lazy seq
+                                                          :flex-target-id-paths-added (vec (concat (:flex-target-id-paths-added root-p) flex-target-id-paths-added)))
+                                                        root-with-new-value)
 
-                                             fin-ret1 (assoc (assoc-in root-p (fgc/conjv k p) new-value)
-                                                         :has-structure-changes (or (:has-structure-changes root-p) has-structure-changes)
-                                                         :flex-structure-changes (merge (:flex-structure-changes root-p) flex-structure-changes)
-
-                                                         ; For some reason that is still not clear enough, removing vec from here causes
-                                                         ; stack overflow related to lazy seq
-                                                         :flex-target-id-paths-added (vec (concat (:flex-target-id-paths-added root-p) flex-target-id-paths-added))
-
-
-                                                         :has-changes (or (:has-changes root-p) has-changes)
-                                                         :aux-container new-aux)
-                                             fin-ret2 (if (and (:popup tgt) (= p :visible))
+                                             fin-ret2 (if (and (= p :visible) (:popup tgt))
                                                         (update-in fin-ret1 [:paths-having-visible-popups] (if new-value conj disj) (fgc/drop-lastv target-id-path))
                                                         fin-ret1)
                                              fin-ret (if (and (= p :->clipboard) new-value)
                                                         (update-in fin-ret2 [:data-for-clipboard] conj new-value)
                                                         fin-ret2)]
-                                         (condp = p
-                                           ;TODO 1. take into account viewport-matrix when combining?
 
-                                           :abs-position-matrix (assoc fin-ret :dirty-rect
-                                                                  (let [ cs (:clip-size tgt)
-                                                                         r (:dirty-rect fin-ret)]
-                                                                    (combine-dirty-rect
-                                                                      (combine-dirty-rect r old-value cs)
-                                                                      new-value
-                                                                      cs)))
-                                           :clip-size (assoc fin-ret :dirty-rect
-                                                        (let [ pm (:abs-position-matrix tgt)
-                                                               r (:dirty-rect fin-ret)]
-                                                          (combine-dirty-rect
-                                                            (combine-dirty-rect r pm old-value)
-                                                            pm
-                                                            new-value)))
-                                            (assoc fin-ret :dirty-rect
-                                                 (let [ pm (:abs-position-matrix tgt)
-                                                        cs (:clip-size tgt)
-                                                        r (:dirty-rect fin-ret)]
-                                                   (combine-dirty-rect
-                                                     r
-                                                     pm
-                                                     cs)))))
+                                         fin-ret
+                                         ;(condp = p
+                                         ;  ;TODO 1. take into account viewport-matrix when combining?
+                                         ;
+                                         ;  :abs-position-matrix (assoc fin-ret :dirty-rect
+                                         ;                         (let [ cs (:clip-size tgt)
+                                         ;                                r (:dirty-rect fin-ret)]
+                                         ;                           (combine-dirty-rect
+                                         ;                             (combine-dirty-rect r old-value cs)
+                                         ;                             new-value
+                                         ;                             cs)))
+                                         ;  :clip-size (assoc fin-ret :dirty-rect
+                                         ;               (let [ pm (:abs-position-matrix tgt)
+                                         ;                      r (:dirty-rect fin-ret)]
+                                         ;                 (combine-dirty-rect
+                                         ;                   (combine-dirty-rect r pm old-value)
+                                         ;                   pm
+                                         ;                   new-value)))
+                                         ;   (assoc fin-ret :dirty-rect
+                                         ;        (let [ pm (:abs-position-matrix tgt)
+                                         ;               cs (:clip-size tgt)
+                                         ;               r (:dirty-rect fin-ret)]
+                                         ;          (combine-dirty-rect
+                                         ;            r
+                                         ;            pm
+                                         ;            cs))))
+
+                                         )
                                        (assoc root-p
                                          :aux-container new-aux))]
                           (recur
