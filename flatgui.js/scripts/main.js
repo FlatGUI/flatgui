@@ -1006,6 +1006,8 @@ function measureConnection()
     sendPingToSever();
 }
 
+var tryAlternativeServers=true;
+var serverAttempt=0;
 function openSocket()
 {
     displayUserTextMessage("Establishing connection...", 10, 20);
@@ -1016,6 +1018,11 @@ function openSocket()
         return;
     }
 
+    serverWebSocketUri = serverWebSocketUris[serverAttempt];
+
+    var msg = "Trying "+serverWebSocketUri+" (server #"+serverAttempt+" of "+serverWebSocketUris.length+")";
+    console.log(msg);
+
     webSocket = new WebSocket(serverWebSocketUri);
 
     webSocket.binaryType = "arraybuffer";
@@ -1023,6 +1030,7 @@ function openSocket()
     webSocket.onopen = function(event)
     {
         connectionOpen = true;
+        tryAlternativeServers=false;// If re-connect then only to where it was
         displayUserTextMessage("Open.", 10, 30);
         displayStatus("open");
 
@@ -1153,9 +1161,24 @@ function openSocket()
 
     webSocket.onerror = function(event)
     {
-        displayUserTextMessage("Connection error. Please reload.", 10, 70);
-        displayStatus("error, closed");
-        connectionOpen = false;
+        var msg = "Could not connect to "+serverWebSocketUri+" (server #"+serverAttempt+" of "+serverWebSocketUris.length+")";
+        console.log(msg);
+
+        if (tryAlternativeServers && serverAttempt < serverWebSocketUris.length-1)
+        {
+            serverAttempt++;
+            openSocket();
+        }
+        else
+        {
+            if (tryAlternativeServers)
+            {
+                console.log("Fatal error: non of "+serverWebSocketUris.length+" servers responded.");
+            }
+            displayUserTextMessage(msg, 10, 70);
+            displayStatus("error, closed");
+            connectionOpen = false;
+        }
     };
 }
 
