@@ -41,12 +41,7 @@
   (let [_ (core/defevolverfn e1 (+ 1 (get-property [:this] :a)))
         _ (core/defevolverfn e2 (- 2 (get-property [:this :c1] :a)))
         _ (core/defevolverfn e11 (+ 2 (get-property [] :x)))
-        _ (core/defevolverfn e21 (+ 3 (get-property [:c1] :b))) ;TODO it results in nil here
-        _ (println ">>e1=" e1)
-        _ (println ">>e2=" e2)
-        _ (println ">>e11=" e11)
-        _ (println ">>e21=" e21)
-
+        _ (core/defevolverfn e21 (+ 3 (get-property [:c1] :b)))
         container {:id :main
                    :a 4
                    :b 5
@@ -64,11 +59,22 @@
         {:id :main
          :a 4
          :b 5
-         :evolvers {:a (list + 1 '(get-property [] :a))
-                    :b (list - 2 '(get-property [:c1] :a))}
+         :evolvers {:a '(+ 1 (get-property [] :a))
+                    :b '(- 2 (get-property [:c1] :a))}
          :children {:c1 {:id :c1
                          :b 5
-                         :evolvers {:b (list + 2 '(get-property [] :x))}}
+                         :evolvers {:b '(+ 2 (get-property [] :x))}}
                     :c2 {:id :c2
                          :d 6
-                         :evolvers {:d (list + 3 '(get-property [:c1] :b))}}}}))))
+                         :evolvers {:d '(+ 3 (get-property [:c1] :b))}}}}))))
+
+(test/deftest collect-evolver-dependencies-test
+  (let [_ (core/defevolverfn e1 (if (get-property [:main :x :y] :z)
+                                  (get-property [:main :a :b] :c)
+                                  (do
+                                    (println "Hello")
+                                    (get-property [:main] :v))))]
+    (test/is
+      (=
+        #{[:main :x :y :z] [:main :a :b :c] [:main :v]}
+        (set (core/collect-evolver-dependencies e1))))))

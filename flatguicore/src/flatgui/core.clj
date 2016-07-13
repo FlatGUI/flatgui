@@ -7,16 +7,33 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns flatgui.core
-  (:require [clojure.algo.generic.functor :as functor]))
+  (:require [clojure.algo.generic.functor :as functor]
+            [clojure.string :as str]))
+
+(def fg "__flatgui_")
+
+(defn- symbol->str [smb] (str fg (name smb)))
+
+(defn- str->symbol [str]
+  (if
+    ;(str/starts-with? str fg) (str/replace str fg "")
+    (.startsWith str fg) (symbol (.replace str fg ""))
+                              str))
+
+(defn shade-list [form]
+  (conj (map #(if (seq? %) (shade-list %) (if (symbol? %) (symbol->str %) %)) form) 'list))
+
+(defn replace-gp [form]
+  (map #(if (seq? %) (replace-gp %) (if (string? %) (str->symbol %) %)) form))
 
 (defmacro defevolverfn [fnname body]
-  "Defined deferred evolver. It is supposed to be compiled
+  "Defines deferred evolver. It is supposed to be compiled
    when parsing the container so component absolute location
    in the hierarchy is already known and relative paths in
    get-property calls are replaced with absolute paths"
   (list 'def fnname (list
                       'with-meta
-                      (list 'let ['get-property (list 'fn ['a 'b] (concat '(list 'get-property) (list 'a 'b)))] (conj body 'list))
+                      (list 'flatgui.core/replace-gp (shade-list body))
                       {:type :evolver})))
 
 ;;; TODO initialize
@@ -45,6 +62,8 @@
       (vector? (second form))
       (and (= 'component (second form)) (vector? (first (next (next form))))))))
 
+;; NOTE: in case of '(get-property component [:x] :y)' from, this fn
+;; omits 'component' part (as obsolete) and further processings rely on that
 (defn replace-rel-path [form component-path]
   (cond
 
@@ -64,7 +83,7 @@
   (if (get-property-call? form)
     (replace-rel-path form component-path)
     (map
-      (fn [e] (if (list? e) (replace-all-rel-paths e component-path) e))
+      (fn [e] (if (seq? e) (replace-all-rel-paths e component-path) e))
       form)))
 
 (defn- dissoc-nil-properties [c]
@@ -93,3 +112,13 @@
   "Parses container, compiles all evolvers having relative paths
    replaced with absolute paths"
   (parse-component container []))
+
+(defn collect-evolver-dependencies [form]
+  (if (get-property-call? form)
+    (let [path-&-prop (next form)]
+      (list (conj (first path-&-prop) (second path-&-prop))))
+    (filter seq (mapcat (fn [e] (if (seq? e) (collect-evolver-dependencies e))) form))))
+
+(defn collect-all-evolver-dependencies [component]
+  "Returns a map of property id to the collection of dependency paths"
+  (functor/fmap (fn [evolver] (collect-evolver-dependencies evolver))))
