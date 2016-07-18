@@ -8,7 +8,9 @@
 
 (ns flatgui.core-test
   (:require [clojure.test :as test]
-            [flatgui.core :as core]))
+            [flatgui.core :as core])
+  (:import (java.util.function Function)
+           (java.util ArrayList)))
 
 (test/deftest build-abs-path-test
   (test/is (= [:a :b :c] (core/build-abs-path [:a :b :c] [:this])))
@@ -78,3 +80,23 @@
       (=
         #{[:main :x :y :z] [:main :a :b :c] [:main :v]}
         (set (core/collect-evolver-dependencies e1))))))
+
+(test/deftest index-&-eval-test
+  (let [property-value-vec (ArrayList.)
+        _ (.add property-value-vec nil)
+        _ (.add property-value-vec 2)
+        _ (.add property-value-vec 4)
+        _ (.add property-value-vec 6)
+        index-provider (proxy [Function] []
+                         (apply [t] (get {:a 1 :b 2 :c 3} (first t))))
+        evolver-code '(+
+                        (get-property [] :a)
+                        (-
+                          (get-property [] :b)
+                          (get-property [] :c))
+                        (:x component))
+        evolver (core/eval-evolver
+                  (core/replace-dependencies-with-indices evolver-code property-value-vec index-provider))]
+    (test/is (=
+               5
+               (evolver {:x 5})))))

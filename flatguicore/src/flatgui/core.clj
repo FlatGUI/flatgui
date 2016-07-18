@@ -121,4 +121,35 @@
 
 (defn collect-all-evolver-dependencies [component]
   "Returns a map of property id to the collection of dependency paths"
-  (functor/fmap (fn [evolver] (collect-evolver-dependencies evolver))))
+  (functor/fmap (fn [evolver] (collect-evolver-dependencies evolver)) (:evolvers component)))
+
+(defn replace-dependencies-with-indices [form property-value-vec index-provider]
+  (map
+    (fn [e]
+      (cond
+
+        (and (seq? e) (get-property-call? e))
+        (let [path-&-prop (next e)
+              prop-full-path (conj (first path-&-prop) (second path-&-prop))
+              index (.apply index-provider prop-full-path)]
+          (list 'nth property-value-vec index))
+
+        (seq? e)
+        (replace-dependencies-with-indices e property-value-vec index-provider)
+
+        :else
+        e))
+    form))
+
+(defn eval-evolver [form]
+  (do
+    (println "Eval: form =" form)
+    (eval (conj (list form) ['component] 'fn))))
+
+(defn compile-evolver [form property-value-vec index-provider]
+  (eval-evolver (replace-dependencies-with-indices form property-value-vec index-provider)))
+
+;(defn compile-all-evovlers [component property-value-vec index-provider]
+;  (functor/map
+;    (fn [evolver] (eval-evolver (replace-dependencies-with-indices evolver property-value-vec index-provider)))
+;    (:evolvers component)))
