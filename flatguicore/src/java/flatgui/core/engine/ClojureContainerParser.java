@@ -9,7 +9,9 @@
  */
 package flatgui.core.engine;
 
+import clojure.lang.IFn;
 import clojure.lang.Keyword;
+import clojure.lang.Obj;
 import clojure.lang.Var;
 import flatgui.core.FGTimerEvent;
 import flatgui.core.awt.FGMouseEvent;
@@ -55,36 +57,48 @@ public class ClojureContainerParser implements Container.IContainerParser
     }
 
     @Override
-    public Collection<Container.SourceNode> processComponent(List<Object> componentPath, Map<Object, Object> component, List<Object> propertyValueVec, Function<List<Object>, Integer> indexProvider)
+    public Collection<Container.SourceNode> processComponent(List<Object> componentPath, Map<Object, Object> component)
     {
         Map<Object, Object> evolvers = (Map<Object, Object>) component.get(EVOLVERS_KEY);
 
         Map<Object, Collection<List<Object>>> propertyIdToDependencies =
                 (Map<Object, Collection<List<Object>>>) collectAllEvolverDependencies_.invoke(component);
 
-        Collection<Container.SourceNode> result = new ArrayList<>(propertyIdToDependencies.size());
+        Collection<Container.SourceNode> result = new ArrayList<>(component.size());
 
-        for (Object propertyId : propertyIdToDependencies.keySet())
+        for (Object propertyId : component.keySet())
         {
             List<Object> nodePath = new ArrayList<>(componentPath.size()+1);
             nodePath.addAll(componentPath);
             nodePath.add(propertyId);
 
+            boolean hasEvolver = evolvers.get(propertyId) != null;
+
             Object evolverCode = evolvers.get(propertyId);
             List<Object> evolverInputDependencies = (List<Object>) getInputDependencies_.invoke(evolverCode);
-            Var evolverFn = (Var) compileEvolver_.invoke(evolverCode, propertyValueVec, indexProvider);
 
             result.add(new Container.SourceNode(
                     propertyId,
                     nodePath,
-                    propertyIdToDependencies.get(propertyId),
-                    evolvers.get(propertyId) != null
-                            ? componentAccessor -> evolverFn.invoke(componentAccessor)
+                    hasEvolver
+                            ? propertyIdToDependencies.get(propertyId)
+                            : Collections.emptySet(),
+                    hasEvolver
+                            ? evolverCode
                             : null,
-                    evolverInputDependencies));
+                    hasEvolver
+                            ? evolverInputDependencies
+                            : null));
         }
 
         return result;
+    }
+
+    @Override
+    public Function<Map<Object, Object>, Object> compileEvolverCode(Object evolverCode, List<Object> propertyValueVec, Function<List<Object>, Integer> indexProvider)
+    {
+        IFn evolverFn = (IFn) compileEvolver_.invoke(evolverCode, propertyValueVec, indexProvider);
+        return componentAccessor -> evolverFn.invoke(componentAccessor);
     }
 
     @Override

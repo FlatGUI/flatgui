@@ -8,7 +8,9 @@
 
 (ns flatgui.core
   (:require [clojure.algo.generic.functor :as functor]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [flatgui.base])
+  (:import (flatgui.core.engine Container)))
 
 (def fg "__flatgui_")
 
@@ -111,7 +113,7 @@
 (defn defroot [container]
   "Parses container, compiles all evolvers having relative paths
    replaced with absolute paths"
-  (parse-component container []))
+  (parse-component container [(:id container)]))
 
 (defn collect-evolver-dependencies [form]
   (if (get-property-call? form)
@@ -132,7 +134,7 @@
         (let [path-&-prop (next e)
               prop-full-path (conj (first path-&-prop) (second path-&-prop))
               index (.apply index-provider prop-full-path)]
-          (list 'nth property-value-vec index))
+          (list '.getNodeValueByIndex 'component index))
 
         (seq? e)
         (replace-dependencies-with-indices e property-value-vec index-provider)
@@ -142,14 +144,7 @@
     form))
 
 (defn eval-evolver [form]
-  (do
-    (println "Eval: form =" form)
-    (eval (conj (list form) ['component] 'fn))))
+  (eval (conj (list form) ['component] 'fn)))
 
 (defn compile-evolver [form property-value-vec index-provider]
   (eval-evolver (replace-dependencies-with-indices form property-value-vec index-provider)))
-
-;(defn compile-all-evovlers [component property-value-vec index-provider]
-;  (functor/map
-;    (fn [evolver] (eval-evolver (replace-dependencies-with-indices evolver property-value-vec index-provider)))
-;    (:evolvers component)))

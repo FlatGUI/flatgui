@@ -9,6 +9,9 @@
  */
 package flatgui.core.engine;
 
+import clojure.lang.Var;
+
+import java.lang.reflect.Array;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -36,7 +39,9 @@ public class Container
     private Object[] reusableReasonBuffer_;
     private int indexBufferSize_;
 
-    private boolean initializationCycle_;
+    private Set<Integer> initializedNodes_;
+
+    private static boolean debug_ = true;
 
     public Container(IContainerParser containerParser, IResultCollector resultCollector, Map<Object, Object> container)
     {
@@ -51,16 +56,18 @@ public class Container
         pathToIndex_ = new HashMap<>();
 
         reusableNodeBuffer_ = new Node[128];
-        reusableReasonBuffer_ = new Integer[128];
+        reusableReasonBuffer_ = new Object[128];
         indexBufferSize_ = 0;
 
         addContainer(new ArrayList<>(), container);
+        finishContainerIndexing();
 
-        initializationCycle_ = true;
-
-        // TODO initialize;
-
-        initializationCycle_ = false;
+        initializedNodes_ = new HashSet<>();
+        log("========================Started initialization cycle================================");
+        initializeContainer();
+        log("=====Ended initialization cycle");
+        initializedNodes_.clear();
+        initializedNodes_ = null;
     }
 
     public Integer addComponent(List<Object> componentPath, ComponentAccessor component)
@@ -69,13 +76,14 @@ public class Container
         if (vacantComponentIndices_.isEmpty())
         {
             index = components_.size();
+            components_.add(index, component);
         }
         else
         {
             index = vacantComponentIndices_.stream().findAny().get();
             vacantComponentIndices_.remove(index);
+            components_.set(index, component);
         }
-        components_.set(index, component);
         componentPathToIndex_.put(componentPath, index);
         return index;
     }
@@ -92,8 +100,15 @@ public class Container
         {
             throw new IllegalArgumentException("Component path does not exist: " + targetPath);
         }
+        evolve(componentUid, evolveReason);
+    }
 
+    // TODO evolver should have access to reason
+    public void evolve(Integer componentUid, Object evolveReason)
+    {
         indexBufferSize_ = 0;
+
+        log("----------------Started evolve cycle ---- for reason: " + valueToString(evolveReason));
 
         ComponentAccessor componentAccessor = components_.get(componentUid);
         Map<Object, Integer> propertyIdToNodeIndex = componentAccessor.getPropertyIdToIndex();
@@ -101,43 +116,69 @@ public class Container
         {
             Integer nodeIndex = propertyIdToNodeIndex.get(propertyId);
             Node node = nodes_.get(nodeIndex);
-            if (containerParser_.isInterestedIn(node.getNodePath(), evolveReason))
+            if (evolveReason == null ||
+                    (node.getEvolver() != null && containerParser_.isInterestedIn(node.getInputDependencies(), evolveReason)))
             {
                 addNodeToReusableBuffer(node, evolveReason);
             }
         }
 
-        int currentNode = 0;
-        while (currentNode < indexBufferSize_)
+        for (int i=0; i<indexBufferSize_; i++)
         {
-            Node node = reusableNodeBuffer_[currentNode];
+            log(" Initial component: " + reusableNodeBuffer_[i].getNodePath());
+        }
+
+        int currentIndex = 0;
+        while (currentIndex < indexBufferSize_)
+        {
+            Node node = reusableNodeBuffer_[currentIndex];
+            Object triggeringReason = reusableReasonBuffer_[currentIndex];
             int nodeIndex = node.getNodeIndex().intValue();
             Function<Map<Object, Object>, Object> evolver = node.getEvolver();
 
-            Object oldValue;
-            Object newValue;
-            ComponentAccessor component = components_.get(node.getComponentUid());
-            if (initializationCycle_)
+            if (triggeringReason != null || !initializedNodes_.contains(nodeIndex))
             {
-                oldValue = null;
-                newValue = values_.get(nodeIndex);
-            }
-            else
-            {
-                oldValue = values_.get(nodeIndex);
-                newValue = evolver.apply(component);
+                Object oldValue;
+                Object newValue;
+                ComponentAccessor component = components_.get(node.getComponentUid());
+                if (triggeringReason == null)
+                {
+                    oldValue = null;
+                    newValue = values_.get(nodeIndex);
+                }
+                else
+                {
+                    oldValue = values_.get(nodeIndex);
+                    newValue = evolver.apply(component);
+                }
+
+                if (!Objects.equals(oldValue, newValue))
+                {
+                    log(" Evolved: " + nodeIndex + " " + node.getNodePath() + " for reason: " + valueToString(triggeringReason) +
+                            ": " + valueToString(oldValue) + " -> " + valueToString(newValue));
+
+                    values_.set(nodeIndex, newValue);
+
+                    resultCollector_.appendResult(component.getComponentPath(), node.getPropertyId(), newValue);
+
+                    addNodeDependentsToEvolvebuffer(node);
+                }
+                else
+                {
+                    log(" Evolved: " + nodeIndex + " " + node.getNodePath() + " for reason: " + valueToString(triggeringReason) +
+                            ": no change (" + oldValue + ").");
+                }
+
+                if (initializedNodes_ != null)
+                {
+                    initializedNodes_.add(nodeIndex);
+                }
             }
 
-            if (!Objects.equals(oldValue, newValue))
-            {
-                values_.set(nodeIndex, newValue);
-                resultCollector_.appendResult(component.getComponentPath(), node.getPropertyId(), newValue);
-
-                addNodeDependentsToEvolvebuffer(node);
-            }
-
-            currentNode++;
+            currentIndex++;
         }
+
+        log("---Ended evolve cycle");
     }
 
     // Private
@@ -147,12 +188,13 @@ public class Container
         // Add and thus index all components/properties
 
         List<Object> componentPath = new ArrayList<>(pathToContainer.size()+1);
+        componentPath.addAll(pathToContainer);
         componentPath.add(containerParser_.getComponentId(container));
 
         ComponentAccessor component = new ComponentAccessor(componentPath, values_);
         Integer componentUid = addComponent(componentPath, component);
         Collection<SourceNode> componentPropertyNodes = containerParser_.processComponent(
-                componentPath, container, values_, pathToIndex_::get);
+                componentPath, container);
         for (SourceNode node : componentPropertyNodes)
         {
             Integer nodeIndex = addNode(componentUid, node, container.get(node.getPropertyId()));
@@ -160,12 +202,23 @@ public class Container
         }
 
         Map<Object, Map<Object, Object>> children = containerParser_.getChildren(container);
-        for (Map<Object, Object> child : children.values())
+        if (children != null)
         {
-            addContainer(componentPath, child);
+            for (Map<Object, Object> child : children.values())
+            {
+                addContainer(componentPath, child);
+            }
         }
+    }
 
-        // Now that all components/properties are indexed, resolve dependency indices for each property
+    private void finishContainerIndexing()
+    {
+        // Now that all components/properties are indexed, compile evolvers
+
+        nodes_.forEach(n -> n.setEvolver(containerParser_.compileEvolverCode(
+                n.getEvolverCode(), values_, pathToIndex_::get)));
+
+        // and resolve dependency indices for each property
 
         nodes_.forEach(n -> n.resolveDependencyIndices(path -> pathToIndex_.get(path)));
 
@@ -191,22 +244,33 @@ public class Container
             index = vacantNodeIndices_.stream().findAny().get();
             vacantNodeIndices_.remove(index);
         }
-        nodes_.set(index.intValue(), new Node(
+        Node node = new Node(
                 componentUid,
                 sourceNode.getPropertyId(),
                 sourceNode.getNodePath(),
                 index,
                 sourceNode.getDependencyPaths(),
                 sourceNode.getInputDependencies(),
-                sourceNode.getEvolver()));
+                sourceNode.getEvolverCode());
+        int indexInt = index.intValue();
+        if (index < nodes_.size())
+        {
+            nodes_.set(indexInt, node);
+            values_.set(indexInt, initialValue);
+        }
+        else
+        {
+            nodes_.add(node);
+            values_.add(initialValue);
+        }
+
         pathToIndex_.put(sourceNode.getNodePath(), index);
-        values_.set(index.intValue(), initialValue);
         return index;
     }
 
     private void addNodeToReusableBuffer(Node node, Object evolveReason)
     {
-        ensureIndexBufferSize(reusableNodeBuffer_.length + 1);
+        ensureIndexBufferSize(indexBufferSize_ + 1);
         reusableNodeBuffer_[indexBufferSize_] = node;
         reusableReasonBuffer_[indexBufferSize_] = evolveReason;
         indexBufferSize_ ++;
@@ -216,11 +280,15 @@ public class Container
     {
         Collection<Integer> dependents = node.getDependentIndices();
         int dependentCollSize = dependents.size();
-        ensureIndexBufferSize(reusableNodeBuffer_.length + dependentCollSize);
+        ensureIndexBufferSize(indexBufferSize_ + dependentCollSize);
         for (Integer i : dependents)
         {
-            reusableNodeBuffer_[indexBufferSize_] = nodes_.get(i.intValue());
+            Node dependent = nodes_.get(i.intValue());
+            reusableNodeBuffer_[indexBufferSize_] = dependent;
             reusableReasonBuffer_[indexBufferSize_] = node.getNodePath();
+
+            log("    Triggered dependent: " + dependent.getNodePath());
+
             indexBufferSize_ ++;
         }
     }
@@ -238,15 +306,51 @@ public class Container
     {
         if (requestedSize >= oldBuffer.length)
         {
-            T[] newBuffer = (T[]) new Object[oldBuffer.length + 128];
+            T[] newBuffer = (T[]) Array.newInstance(oldBuffer.getClass().getComponentType(), oldBuffer.length + 128);
             System.arraycopy(oldBuffer, 0, newBuffer, 0, oldBuffer.length);
             return newBuffer;
         }
         return oldBuffer;
     }
 
+    private void initializeContainer()
+    {
+        for (int i=0; i<components_.size(); i++)
+        {
+            evolve(Integer.valueOf(i), null);
+        }
+    }
+
+    static void log(String message)
+    {
+        if (debug_)
+        {
+            System.out.println("[FG Eng]: " + message);
+        }
+    }
+
+    static String valueToString(Object v)
+    {
+        if (v != null)
+        {
+            String s = v.toString();
+            if (s.length() > 30)
+            {
+                return s.substring(0, 30) + "...";
+            }
+            else
+            {
+                return s;
+            }
+        }
+        else
+        {
+            return null;
+        }
+    }
 
     // // //
+
 
     /**
      * Represents a property of a component (internal indexed)
@@ -261,7 +365,7 @@ public class Container
 
         private final Collection<List<Object>> dependencyPaths_;
 
-        private final Function<Map<Object, Object>, Object> evolver_;
+        private final Object evolverCode_;
 
         private final List<Object> inputDependencies_;
 
@@ -269,13 +373,13 @@ public class Container
                 Object propertyId,
                 List<Object> nodePath,
                 Collection<List<Object>> dependencyPaths,
-                Function<Map<Object, Object>, Object> evolver,
+                Object evolverCode,
                 List<Object> inputDependencies)
         {
             propertyId_ = propertyId;
             nodePath_ = nodePath;
             dependencyPaths_ = dependencyPaths;
-            evolver_ = evolver;
+            evolverCode_ = evolverCode;
             inputDependencies_ = inputDependencies;
         }
 
@@ -294,9 +398,9 @@ public class Container
             return dependencyPaths_;
         }
 
-        public Function<Map<Object, Object>, Object> getEvolver()
+        public Object getEvolverCode()
         {
-            return evolver_;
+            return evolverCode_;
         }
 
         public List<Object> getInputDependencies()
@@ -313,9 +417,11 @@ public class Container
 
         Collection<SourceNode> processComponent(
                 List<Object> componentPath,
-                Map<Object, Object> component,
-                List<Object> propertyValueVec,
-                Function<List<Object>, Integer> indexProvider);
+                Map<Object, Object> component);
+
+        Function<Map<Object, Object>, Object> compileEvolverCode(Object evolverCode,
+                                                                 List<Object> propertyValueVec,
+                                                                 Function<List<Object>, Integer> indexProvider);
 
         /**
          * @param inputDependencies
@@ -327,7 +433,7 @@ public class Container
         boolean isInterestedIn(Collection<Object> inputDependencies, Object evolveReason);
     }
 
-    private static class ComponentAccessor implements Map
+    public static class ComponentAccessor implements Map
     {
         private final List<Object> componentPath_;
         private final Map<Object, Integer> propertyIdToIndex_;
@@ -434,6 +540,11 @@ public class Container
         {
             return propertyIdToIndex_;
         }
+
+        public Object getNodeValueByIndex(Integer index)
+        {
+            return values_.get(index);
+        }
     }
 
     /**
@@ -448,7 +559,8 @@ public class Container
         private final Collection<List<Object>> dependencyPaths_;
         private final Collection<Object> inputDependencies_;
         private Collection<Integer> dependencyIndices_;
-        private final Function<Map<Object, Object>, Object> evolver_;
+        private Object evolverCode_;
+        private Function<Map<Object, Object>, Object> evolver_;
 
         // TODO Optimize:
         // remove dependents covered by longer chains. Maybe not remove but just hide since longer chains may be provided
@@ -462,7 +574,7 @@ public class Container
                 Integer nodeUid,
                 Collection<List<Object>> dependencyPaths,
                 Collection<Object> inputDependencies,
-                Function<Map<Object, Object>, Object> evolver)
+                Object evolverCode)
         {
             componentUid_ = componentUid;
             propertyId_ = propertyId;
@@ -471,7 +583,7 @@ public class Container
             dependencyPaths_ = dependencyPaths;
             inputDependencies_ = inputDependencies;
             dependentIndices_ = new HashSet<>();
-            evolver_ = evolver;
+            evolverCode_ = evolverCode;
         }
 
         public Integer getComponentUid()
@@ -494,6 +606,11 @@ public class Container
             return nodePath_;
         }
 
+        public Collection<Object> getInputDependencies()
+        {
+            return inputDependencies_;
+        }
+
         public void resolveDependencyIndices(Function<List<Object>, Integer> pathIndexProvider)
         {
             dependencyIndices_ = Collections.unmodifiableSet(dependencyPaths_.stream().map(pathIndexProvider).collect(Collectors.toSet()));
@@ -514,12 +631,22 @@ public class Container
             dependentIndices_.add(nodeIndex);
         }
 
+        public Object getEvolverCode()
+        {
+            return evolverCode_;
+        }
+
         public Function<Map<Object, Object>, Object> getEvolver()
         {
             return evolver_;
         }
 
-//        public Object getValue()
+        public void setEvolver(Function<Map<Object, Object>, Object> evolver)
+        {
+            evolver_ = evolver;
+        }
+
+        //        public Object getValue()
 //        {
 //            return value_;
 //        }

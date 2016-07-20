@@ -8,9 +8,11 @@
 
 (ns flatgui.core-test
   (:require [clojure.test :as test]
-            [flatgui.core :as core])
+            [flatgui.core :as core]
+            [flatgui.dependency])
   (:import (java.util.function Function)
-           (java.util ArrayList)))
+           (java.util ArrayList)
+           (flatgui.core.engine IResultCollector Container ClojureContainerParser)))
 
 (test/deftest build-abs-path-test
   (test/is (= [:a :b :c] (core/build-abs-path [:a :b :c] [:this])))
@@ -61,14 +63,14 @@
         {:id :main
          :a 4
          :b 5
-         :evolvers {:a '(+ 1 (get-property [] :a))
-                    :b '(- 2 (get-property [:c1] :a))}
+         :evolvers {:a '(+ 1 (get-property [:main] :a))
+                    :b '(- 2 (get-property [:main :c1] :a))}
          :children {:c1 {:id :c1
                          :b 5
-                         :evolvers {:b '(+ 2 (get-property [] :x))}}
+                         :evolvers {:b '(+ 2 (get-property [:main] :x))}}
                     :c2 {:id :c2
                          :d 6
-                         :evolvers {:d '(+ 3 (get-property [:c1] :b))}}}}))))
+                         :evolvers {:d '(+ 3 (get-property [:main :c1] :b))}}}}))))
 
 (test/deftest collect-evolver-dependencies-test
   (let [_ (core/defevolverfn e1 (if (get-property [:main :x :y] :z)
@@ -100,3 +102,43 @@
     (test/is (=
                5
                (evolver {:x 5})))))
+
+(test/deftest init-&-evolve-test
+  (let [_ (core/defevolverfn evolver-c1-a (inc (get-property [] :src)))
+        _ (core/defevolverfn evolver-c2-b (+
+                                            (:d component)
+                                            (get-property [:this] :c)
+                                            (get-property [] :src)))
+        _ (core/defevolverfn evolver-res (*
+                                           (get-property [:this :c1] :a)
+                                           (get-property [:this :c2] :b)))
+        container (core/defroot
+                    {:id :main
+                     :src 1
+                     :res nil
+                     :evolvers {:res evolver-res} ; (* 2 8)
+                     :children {:c1 {:id :c1
+                                     :a 0
+                                     :evolvers {:a evolver-c1-a}} ;2
+                                :c2 {:id :c2
+                                     :b 0
+                                     :c 2
+                                     :d 5
+                                     ; (+ 5 2 1)
+                                     :evolvers {:b evolver-c2-b}}}})
+        results (atom {})
+        result-collector (proxy [IResultCollector] []
+                           (appendResult [path, property, newValue]
+                             (swap! results (fn [r]
+                                              (if (not (or (= :children property) (= :evolvers property)))
+                                                (assoc r [path property] newValue)
+                                                r)))
+                             ))
+        container-engine (Container.
+                           (ClojureContainerParser.)
+                           result-collector
+                           container)
+        ]
+    (test/is (= 16 (get @results [[:main] :res])))
+    (test/is (= 2 (get @results [[:main :c1] :a])))
+    (test/is (= 8 (get @results [[:main :c2] :b])))))
