@@ -95,9 +95,9 @@ public class ClojureContainerParser implements Container.IContainerParser
     }
 
     @Override
-    public Function<Map<Object, Object>, Object> compileEvolverCode(Object evolverCode, List<Object> propertyValueVec, Function<List<Object>, Integer> indexProvider)
+    public Function<Map<Object, Object>, Object> compileEvolverCode(Object evolverCode, Function<List<Object>, Integer> indexProvider)
     {
-        IFn evolverFn = (IFn) compileEvolver_.invoke(evolverCode, propertyValueVec, indexProvider);
+        IFn evolverFn = (IFn) compileEvolver_.invoke(evolverCode, indexProvider);
         return componentAccessor -> evolverFn.invoke(componentAccessor);
     }
 

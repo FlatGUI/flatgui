@@ -9,8 +9,7 @@
 (ns flatgui.core
   (:require [clojure.algo.generic.functor :as functor]
             [clojure.string :as str]
-            [flatgui.base])
-  (:import (flatgui.core.engine Container)))
+            [flatgui.base]))
 
 (def fg "__flatgui_")
 
@@ -63,6 +62,14 @@
     (or
       (vector? (second form))
       (and (= 'component (second form)) (vector? (first (next (next form))))))))
+
+(defn get-reason-call? [form]
+  (= 'get-reason (first form)))
+
+(def old-val-prefix "old-")
+
+(defn old-value-ref? [e]
+  (and (symbol? e) (.startsWith (name e) old-val-prefix)))
 
 ;; NOTE: in case of '(get-property component [:x] :y)' from, this fn
 ;; omits 'component' part (as obsolete) and further processings rely on that
@@ -125,7 +132,7 @@
   "Returns a map of property id to the collection of dependency paths"
   (functor/fmap (fn [evolver] (collect-evolver-dependencies evolver)) (:evolvers component)))
 
-(defn replace-dependencies-with-indices [form property-value-vec index-provider]
+(defn replace-dependencies-with-indices [form index-provider]
   (map
     (fn [e]
       (cond
@@ -136,8 +143,14 @@
               index (.apply index-provider prop-full-path)]
           (list '.getNodeValueByIndex 'component index))
 
+        (and (seq? e) (get-reason-call? e))
+        (list '.getEvolveReason 'component)
+
         (seq? e)
-        (replace-dependencies-with-indices e property-value-vec index-provider)
+        (replace-dependencies-with-indices e index-provider)
+
+        (old-value-ref? e)
+        (list (keyword (.substring (name e) (.length old-val-prefix))) 'component)
 
         :else
         e))
@@ -146,5 +159,5 @@
 (defn eval-evolver [form]
   (eval (conj (list form) ['component] 'fn)))
 
-(defn compile-evolver [form property-value-vec index-provider]
-  (eval-evolver (replace-dependencies-with-indices form property-value-vec index-provider)))
+(defn compile-evolver [form index-provider]
+  (eval-evolver (replace-dependencies-with-indices form index-provider)))

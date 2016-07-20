@@ -148,8 +148,19 @@ public class Container
                 }
                 else
                 {
+                    ComponentAccessor currentComponentUid = components_.get(node.getComponentUid());
+                    currentComponentUid.setEvolveReason(triggeringReason);
                     oldValue = values_.get(nodeIndex);
-                    newValue = evolver.apply(component);
+                    try
+                    {
+                        newValue = evolver.apply(component);
+                    }
+                    catch (Exception ex)
+                    {
+                        log(" Error evolving " + node.getNodePath() + " " + node.getPropertyId() +
+                                " for reason: " + triggeringReason);
+                        throw ex;
+                    }
                 }
 
                 if (!Objects.equals(oldValue, newValue))
@@ -215,8 +226,8 @@ public class Container
     {
         // Now that all components/properties are indexed, compile evolvers
 
-        nodes_.forEach(n -> n.setEvolver(containerParser_.compileEvolverCode(
-                n.getEvolverCode(), values_, pathToIndex_::get)));
+        nodes_.forEach(n -> n.setEvolver(n.getEvolverCode() != null ? containerParser_.compileEvolverCode(
+                n.getEvolverCode(), pathToIndex_::get) : null));
 
         // and resolve dependency indices for each property
 
@@ -420,7 +431,6 @@ public class Container
                 Map<Object, Object> component);
 
         Function<Map<Object, Object>, Object> compileEvolverCode(Object evolverCode,
-                                                                 List<Object> propertyValueVec,
                                                                  Function<List<Object>, Integer> indexProvider);
 
         /**
@@ -438,6 +448,8 @@ public class Container
         private final List<Object> componentPath_;
         private final Map<Object, Integer> propertyIdToIndex_;
         private final List<Object> values_;
+
+        private Object currentEvolveReason_;
 
         public ComponentAccessor(List<Object> componentPath, List<Object> values)
         {
@@ -526,6 +538,11 @@ public class Container
             throw new UnsupportedOperationException();
         }
 
+        public Map<Object, Integer> getPropertyIdToIndex()
+        {
+            return propertyIdToIndex_;
+        }
+
         void putPropertyIndex(Object key, Integer index)
         {
             propertyIdToIndex_.put(key, index);
@@ -536,14 +553,21 @@ public class Container
             return componentPath_;
         }
 
-        public Map<Object, Integer> getPropertyIdToIndex()
+        void setEvolveReason(Object reason)
         {
-            return propertyIdToIndex_;
+            currentEvolveReason_ = reason;
         }
+
+        // Methods immediately available for evolvers to implement get-property and get-reason
 
         public Object getNodeValueByIndex(Integer index)
         {
             return values_.get(index);
+        }
+
+        public Object getEvolveReason()
+        {
+            return currentEvolveReason_;
         }
     }
 
