@@ -9,8 +9,6 @@
  */
 package flatgui.core.engine;
 
-import clojure.lang.Var;
-
 import java.lang.reflect.Array;
 import java.util.*;
 import java.util.function.Function;
@@ -32,6 +30,8 @@ public class Container
     private final List<Node> nodes_;
     private final List<Object> values_;
     private final Map<List<Object>, Integer> pathToIndex_;
+
+    private final IContainerMutator containerMutator_;
 
     private final IContainerParser containerParser_;
 
@@ -58,6 +58,8 @@ public class Container
         reusableNodeBuffer_ = new Node[128];
         reusableReasonBuffer_ = new Object[128];
         indexBufferSize_ = 0;
+
+        containerMutator_ = (nodeIndex, newValue) -> values_.set(nodeIndex, newValue);
 
         addContainer(new ArrayList<>(), container);
         finishContainerIndexing();
@@ -103,15 +105,14 @@ public class Container
         evolve(componentUid, evolveReason);
     }
 
-    // TODO evolver should have access to reason
     public void evolve(Integer componentUid, Object evolveReason)
     {
         indexBufferSize_ = 0;
 
         log("----------------Started evolve cycle ---- for reason: " + valueToString(evolveReason));
 
-        ComponentAccessor componentAccessor = components_.get(componentUid);
-        Map<Object, Integer> propertyIdToNodeIndex = componentAccessor.getPropertyIdToIndex();
+        ComponentAccessor initialComponentAccessor = components_.get(componentUid);
+        Map<Object, Integer> propertyIdToNodeIndex = initialComponentAccessor.getPropertyIdToIndex();
         for (Object propertyId : propertyIdToNodeIndex.keySet())
         {
             Integer nodeIndex = propertyIdToNodeIndex.get(propertyId);
@@ -148,8 +149,7 @@ public class Container
                 }
                 else
                 {
-                    ComponentAccessor currentComponentUid = components_.get(node.getComponentUid());
-                    currentComponentUid.setEvolveReason(triggeringReason);
+                    component.setEvolveReason(triggeringReason);
                     oldValue = values_.get(nodeIndex);
                     try
                     {
@@ -168,9 +168,9 @@ public class Container
                     log(" Evolved: " + nodeIndex + " " + node.getNodePath() + " for reason: " + valueToString(triggeringReason) +
                             ": " + valueToString(oldValue) + " -> " + valueToString(newValue));
 
-                    values_.set(nodeIndex, newValue);
+                    containerMutator_.setValue(nodeIndex, newValue);
 
-                    resultCollector_.appendResult(component.getComponentPath(), node.getPropertyId(), newValue);
+                    resultCollector_.appendResult(component.getComponentPath(), componentUid, node.getPropertyId(), newValue);
 
                     addNodeDependentsToEvolvebuffer(node);
                 }
@@ -209,6 +209,7 @@ public class Container
         for (SourceNode node : componentPropertyNodes)
         {
             Integer nodeIndex = addNode(componentUid, node, container.get(node.getPropertyId()));
+            log("Indexing " + componentPath + " node " + node.getNodePath() + ": " + nodeIndex);
             component.putPropertyIndex(node.getPropertyId(), nodeIndex);
         }
 
@@ -430,6 +431,8 @@ public class Container
                 List<Object> componentPath,
                 Map<Object, Object> component);
 
+        void processComponentAfterIndexing(Map<Object, Object> componentData, IComponent component);
+
         Function<Map<Object, Object>, Object> compileEvolverCode(Object evolverCode,
                                                                  Function<List<Object>, Integer> indexProvider);
 
@@ -443,13 +446,34 @@ public class Container
         boolean isInterestedIn(Collection<Object> inputDependencies, Object evolveReason);
     }
 
-    public static class ComponentAccessor implements Map
+    public interface IComponent extends Map<Object, Object>
+    {
+        Integer getPropertyIndex(Object key);
+
+        Object getCustomData();
+
+        void setCustomData(Object data);
+    }
+
+    public interface IContainerAccessor
+    {
+        IComponent getComponent(int componentUid);
+    }
+
+    public interface IContainerMutator
+    {
+        void setValue(int nodeIndex, Object newValue);
+    }
+
+    public static class ComponentAccessor implements IComponent
     {
         private final List<Object> componentPath_;
         private final Map<Object, Integer> propertyIdToIndex_;
         private final List<Object> values_;
 
         private Object currentEvolveReason_;
+
+        private Object customData_;
 
         public ComponentAccessor(List<Object> componentPath, List<Object> values)
         {
@@ -461,7 +485,7 @@ public class Container
         @Override
         public Object get(Object key)
         {
-            Integer index = propertyIdToIndex_.get(key);
+            Integer index = getPropertyIndex(key);
             return index != null ? values_.get(index.intValue()) : null;
         }
 
@@ -533,9 +557,27 @@ public class Container
         }
 
         @Override
-        public Set<Entry> entrySet()
+        public Set<Entry<Object, Object>> entrySet()
         {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Integer getPropertyIndex(Object key)
+        {
+            return propertyIdToIndex_.get(key);
+        }
+
+        @Override
+        public Object getCustomData()
+        {
+            return customData_;
+        }
+
+        @Override
+        public void setCustomData(Object customData)
+        {
+            customData_ = customData;
         }
 
         public Map<Object, Integer> getPropertyIdToIndex()

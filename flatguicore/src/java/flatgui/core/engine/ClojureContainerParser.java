@@ -11,7 +11,6 @@ package flatgui.core.engine;
 
 import clojure.lang.IFn;
 import clojure.lang.Keyword;
-import clojure.lang.Obj;
 import clojure.lang.Var;
 import flatgui.core.FGTimerEvent;
 import flatgui.core.awt.FGMouseEvent;
@@ -22,7 +21,7 @@ import java.util.function.Function;
 /**
  * @author Denis Lebedev
  */
-public class ClojureContainerParser implements Container.IContainerParser
+public abstract class ClojureContainerParser implements Container.IContainerParser
 {
     private static final Keyword ID_KEY = Keyword.intern("id");
     private static final Keyword CHILDREN_KEY = Keyword.intern("children");

@@ -9,7 +9,8 @@
 (ns flatgui.core
   (:require [clojure.algo.generic.functor :as functor]
             [clojure.string :as str]
-            [flatgui.base]))
+            [flatgui.base]
+            [flatgui.paint :as fgp]))
 
 (def fg "__flatgui_")
 
@@ -36,8 +37,6 @@
                       'with-meta
                       (list 'flatgui.core/replace-gp (shade-list body))
                       {:type :evolver})))
-
-;;; TODO initialize
 
 (defn build-abs-path [component-path rel-path]
   (cond

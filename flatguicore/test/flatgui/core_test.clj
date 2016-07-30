@@ -10,7 +10,8 @@
   (:require [clojure.test :as test]
             [flatgui.core :as core]
             [flatgui.dependency])
-  (:import (flatgui.core.engine IResultCollector Container ClojureContainerParser)))
+  (:import (flatgui.core.engine IResultCollector Container)
+           (flatgui.core.engine.ui FGClojureContainerParser)))
 
 (test/deftest build-abs-path-test
   (test/is (= [:a :b :c] (core/build-abs-path [:a :b :c] [:this])))
@@ -83,10 +84,15 @@
 
 (test/deftest init-&-evolve-test
   (let [_ (core/defevolverfn evolver-c1-a (inc (get-property [] :src)))
-        _ (core/defevolverfn evolver-c2-b (+
-                                            (:d component)
-                                            (get-property [:this] :c)
-                                            (get-property [] :src)))
+        _ (core/defevolverfn evolver-c2-b (do
+                                            (println "--------------** "
+                                              (:d component)
+                                              (get-property [:this] :c)
+                                              (get-property [] :src))
+                                            (+
+                                              (:d component)
+                                              (get-property [:this] :c)
+                                              (get-property [] :src))))
         _ (core/defevolverfn evolver-res (*
                                            (get-property [:this :c1] :a)
                                            (get-property [:this :c2] :b)))
@@ -109,14 +115,14 @@
                                                 :d evolver-c2-d}}}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [path, property, newValue]
+                           (appendResult [path, _componentUid, property, newValue]
                              (swap! results (fn [r]
                                               (if (not (or (= :children property) (= :evolvers property)))
                                                 (assoc r [path property] newValue)
                                                 r)))
                              ))
         container-engine (Container.
-                           (ClojureContainerParser.)
+                           (FGClojureContainerParser.)
                            result-collector
                            container)
         init-res (get @results [[:main] :res])
