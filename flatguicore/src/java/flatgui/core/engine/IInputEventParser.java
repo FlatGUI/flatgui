@@ -11,5 +11,5 @@ import java.util.Map;
  */
 public interface IInputEventParser<Reason, FGEvent>
 {
-    Map<FGEvent, List<Object>> parseInputEvent(Reason inputEvent, Map<Object, Object> container);
+    Map<FGEvent, List<Object>> parseInputEvent(Reason inputEvent);
 }

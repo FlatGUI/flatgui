@@ -160,3 +160,24 @@
 
 (defn compile-evolver [form index-provider]
   (eval-evolver (replace-dependencies-with-indices form index-provider)))
+
+(defn rebuild-look [component]
+  (let [look-fn (:look component)
+        font (:font component)]
+    (if look-fn
+      (try
+
+        (do
+          (if font
+            (.setReferenceFont (:interop component) font (flatgui.awt/str->font font)))
+          (let [lv (fgp/flatten-vector
+                     [(fgp/font-look component)
+                      (look-fn component nil)
+                      (if (:has-trouble component) (fgp/trouble-look component nil))])]
+            lv))
+
+        (catch Exception ex
+          (do
+            ;(fg/log-error "Error painting " target-id-path ":" (.getMessage ex))
+            (.printStackTrace ex))))
+      component)))

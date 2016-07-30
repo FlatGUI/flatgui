@@ -167,20 +167,33 @@ public class FGWebContainerWrapper
         stateTransmitter_.addFontStrListener(listener);
     }
 
+    private volatile int debug_ = 0;
     public synchronized Collection<ByteBuffer> getResponseForClientImpl(
         FGContainerStateTransmitter stateTransmitter, Future<FGEvolveResultData> evolveResultsFuture)
     {
-        Future<Collection<ByteBuffer>> responseFuture =
-            fgContainer_.submitTask(() -> stateTransmitter.computeDataDiffsToTransmit(evolveResultsFuture));
-        try
+        // TODO
+        // 1. computeDataDiffsToTransmit needs to be heavily optimized
+        // 2. maybe for too frequent mouse move and drag events we can skip
+
+        //if (debug_ == 0 || stateTransmitter.initialCycle_)
         {
-            Collection<ByteBuffer> r =  responseFuture.get();
-            return r;
+            Future<Collection<ByteBuffer>> responseFuture =
+                    fgContainer_.submitTask(() -> stateTransmitter.computeDataDiffsToTransmit(evolveResultsFuture));
+            try
+            {
+                Collection<ByteBuffer> r = responseFuture.get();
+                debug_ = 4;
+                return r;
+            }
+            catch (InterruptedException | ExecutionException e)
+            {
+                e.printStackTrace();
+            }
         }
-        catch (InterruptedException | ExecutionException e)
-        {
-            e.printStackTrace();
-        }
+//        else
+//        {
+//            debug_--;
+//        }
 
         return Collections.emptyList();
     }
@@ -1113,8 +1126,11 @@ public class FGWebContainerWrapper
             return new FGContainerStateTransmitter(false, fgContainer_, module, cmdToLastData, keyCache_, fontsWithMetricsAlreadyReceived_);
         }
 
+        private long debugStartTime_;
         public Collection<ByteBuffer> computeDataDiffsToTransmit(Future<FGEvolveResultData> evolveResultFuture)
         {
+            debugStartTime_ = System.nanoTime();
+
             FGEvolveResultData evolveResultData = null;
 
             if (!initialCycle_ && evolveResultFuture != null)
@@ -1233,6 +1249,9 @@ public class FGWebContainerWrapper
             }
 
             mergeNewDatasToLast(newDatas);
+
+            long spentTime = System.nanoTime() - debugStartTime_;
+            System.out.println("spentTime = " + (spentTime/1000));
 
             return result;
         }

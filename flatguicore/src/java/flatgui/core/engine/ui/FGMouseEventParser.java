@@ -16,7 +16,7 @@ import java.util.Map;
 public abstract class FGMouseEventParser implements IInputEventParser<MouseEvent, FGMouseEvent>
 {
     @Override
-    public Map<FGMouseEvent, List<Object>> parseInputEvent(MouseEvent inputEvent, Map<Object, Object> container)
+    public Map<FGMouseEvent, List<Object>> parseInputEvent(MouseEvent inputEvent)
     {
         return null;
     }

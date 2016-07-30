@@ -31,6 +31,7 @@ public class Container
     private final List<Object> values_;
     private final Map<List<Object>, Integer> pathToIndex_;
 
+    private final IContainerAccessor containerAccessor_;
     private final IContainerMutator containerMutator_;
 
     private final IContainerParser containerParser_;
@@ -59,6 +60,7 @@ public class Container
         reusableReasonBuffer_ = new Object[128];
         indexBufferSize_ = 0;
 
+        containerAccessor_ = components_::get;
         containerMutator_ = (nodeIndex, newValue) -> values_.set(nodeIndex, newValue);
 
         addContainer(new ArrayList<>(), container);
@@ -189,7 +191,14 @@ public class Container
             currentIndex++;
         }
 
+        resultCollector_.postProcessAfterEvolveCycle(containerAccessor_, containerMutator_);
+
         log("---Ended evolve cycle");
+    }
+
+    public IContainerAccessor getContainerAccessor()
+    {
+        return containerAccessor_;
     }
 
     // Private
@@ -212,6 +221,8 @@ public class Container
             log("Indexing " + componentPath + " node " + node.getNodePath() + ": " + nodeIndex);
             component.putPropertyIndex(node.getPropertyId(), nodeIndex);
         }
+
+        containerParser_.processComponentAfterIndexing(component);
 
         Map<Object, Map<Object, Object>> children = containerParser_.getChildren(container);
         if (children != null)
@@ -431,7 +442,7 @@ public class Container
                 List<Object> componentPath,
                 Map<Object, Object> component);
 
-        void processComponentAfterIndexing(Map<Object, Object> componentData, IComponent component);
+        void processComponentAfterIndexing(IComponent component);
 
         Function<Map<Object, Object>, Object> compileEvolverCode(Object evolverCode,
                                                                  Function<List<Object>, Integer> indexProvider);
@@ -559,7 +570,12 @@ public class Container
         @Override
         public Set<Entry<Object, Object>> entrySet()
         {
-            throw new UnsupportedOperationException();
+            Map<Object, Object> propertyIdToVal = new HashMap<>();
+            for (Object propId : propertyIdToIndex_.keySet())
+            {
+                propertyIdToVal.put(propId, get(propId));
+            }
+            return propertyIdToVal.entrySet();
         }
 
         @Override

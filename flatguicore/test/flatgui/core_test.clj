@@ -9,9 +9,11 @@
 (ns flatgui.core-test
   (:require [clojure.test :as test]
             [flatgui.core :as core]
-            [flatgui.dependency])
+            [flatgui.dependency]
+            [flatgui.paint :as fgp]
+            [flatgui.awt :as awt])
   (:import (flatgui.core.engine IResultCollector Container)
-           (flatgui.core.engine.ui FGClojureContainerParser)))
+           (flatgui.core.engine.ui FGClojureContainerParser FGAppContainer)))
 
 (test/deftest build-abs-path-test
   (test/is (= [:a :b :c] (core/build-abs-path [:a :b :c] [:this])))
@@ -84,15 +86,10 @@
 
 (test/deftest init-&-evolve-test
   (let [_ (core/defevolverfn evolver-c1-a (inc (get-property [] :src)))
-        _ (core/defevolverfn evolver-c2-b (do
-                                            (println "--------------** "
-                                              (:d component)
-                                              (get-property [:this] :c)
-                                              (get-property [] :src))
-                                            (+
-                                              (:d component)
-                                              (get-property [:this] :c)
-                                              (get-property [] :src))))
+        _ (core/defevolverfn evolver-c2-b (+
+                                            (:d component)
+                                            (get-property [:this] :c)
+                                            (get-property [] :src)))
         _ (core/defevolverfn evolver-res (*
                                            (get-property [:this :c1] :a)
                                            (get-property [:this :c2] :b)))
@@ -120,7 +117,8 @@
                                               (if (not (or (= :children property) (= :evolvers property)))
                                                 (assoc r [path property] newValue)
                                                 r)))
-                             ))
+                             )
+                           (postProcessAfterEvolveCycle [_a _m]))
         container-engine (Container.
                            (FGClojureContainerParser.)
                            result-collector
@@ -137,3 +135,18 @@
     (test/is (= 2 (get @results [[:main :c1] :a])))
     (test/is (= 18 (get @results [[:main :c2] :b])))
     (test/is (= 15 (get @results [[:main :c2] :d])))))
+
+(test/deftest reuild-look-test
+  (let [_ (core/defevolverfn evolver-a (* (get-property [:this] :b) 2))
+        _ (fgp/deflookfn test-look (:a) (awt/fillRect 0 0 a a))
+        container (core/defroot
+                    {:id :main
+                     :a nil
+                     :b 2
+                     :look test-look
+                     :look-vec []
+                     :evolvers {:a evolver-a}})
+        ui-app (FGAppContainer. container)
+        _ (.initialize ui-app)
+        container-accessor (.getContainerAccessor ui-app)]
+    (test/is (= [["fillRect" 0 0 4 4]] (.get (.getComponent container-accessor 0) :look-vec)))))
