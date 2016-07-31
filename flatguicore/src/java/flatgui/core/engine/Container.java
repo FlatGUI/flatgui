@@ -26,6 +26,7 @@ public class Container
 
     private final List<ComponentAccessor> components_;
     private final Map<List<Object>, Integer> componentPathToIndex_;
+    private final List<Integer> naturalComponentOrder_;
 
     private final List<Node> nodes_;
     private final List<Object> values_;
@@ -49,6 +50,7 @@ public class Container
         containerParser_ = containerParser;
         resultCollector_ = resultCollector;
         components_ = new ArrayList<>();
+        naturalComponentOrder_ = new ArrayList<>();
         componentPathToIndex_ = new HashMap<>();
         vacantComponentIndices_ = new HashSet<>();
         vacantNodeIndices_ = new HashSet<>();
@@ -76,20 +78,7 @@ public class Container
 
     public Integer addComponent(List<Object> componentPath, ComponentAccessor component)
     {
-        Integer index;
-        if (vacantComponentIndices_.isEmpty())
-        {
-            index = components_.size();
-            components_.add(index, component);
-        }
-        else
-        {
-            index = vacantComponentIndices_.stream().findAny().get();
-            vacantComponentIndices_.remove(index);
-            components_.set(index, component);
-        }
-        componentPathToIndex_.put(componentPath, index);
-        return index;
+        return addComponent(componentPath, component, false);
     }
 
     public int indexOfPath(List<Object> path)
@@ -201,9 +190,57 @@ public class Container
         return containerAccessor_;
     }
 
+    public Iterable<Integer> getComponentNaturalOrder()
+    {
+        return naturalComponentOrder_;
+    }
+
+    public IComponent getRootComponent()
+    {
+        return components_.get(0);
+    }
+
+    public IComponent getComponent(Integer componentUid)
+    {
+        return components_.get(componentUid.intValue());
+    }
+
+    public <V> V getPropertyValue(Integer index)
+    {
+        return (V) values_.get(index.intValue());
+    }
+
     // Private
 
-    private void addContainer(List<Object> pathToContainer, Map<Object, Object> container)
+    private Integer addComponent(List<Object> componentPath, ComponentAccessor component, boolean needToResolveNaturalOrder)
+    {
+        Integer index;
+        if (vacantComponentIndices_.isEmpty())
+        {
+            index = components_.size();
+            components_.add(index, component);
+        }
+        else
+        {
+            index = vacantComponentIndices_.stream().findAny().get();
+            vacantComponentIndices_.remove(index);
+            components_.set(index, component);
+        }
+        componentPathToIndex_.put(componentPath, index);
+
+        if (needToResolveNaturalOrder)
+        {
+            // TODO
+        }
+        else
+        {
+            naturalComponentOrder_.add(index);
+        }
+
+        return index;
+    }
+
+    private Integer addContainer(List<Object> pathToContainer, Map<Object, Object> container)
     {
         // Add and thus index all components/properties
 
@@ -227,11 +264,16 @@ public class Container
         Map<Object, Map<Object, Object>> children = containerParser_.getChildren(container);
         if (children != null)
         {
+            Collection<Integer> childIndices = new HashSet<>(children.size());
             for (Map<Object, Object> child : children.values())
             {
-                addContainer(componentPath, child);
+                Integer childIndex = addContainer(componentPath, child);
+                childIndices.add(childIndex);
             }
+            component.setChildIndices(childIndices);
         }
+
+        return componentUid;
     }
 
     private void finishContainerIndexing()
@@ -315,6 +357,28 @@ public class Container
             indexBufferSize_ ++;
         }
     }
+//
+//    private void computeChildIndices(ComponentAccessor container)
+//    {
+//        Collection<Integer> childIndices = new HashSet<>();
+//
+//        List<Object> containerPath = container.getComponentPath();
+//        Map<Object, Map<Object, Object>> children = containerParser_.getChildren(container);
+//        for (Object childId : children.keySet())
+//        {
+//            List<Object> childPath = new ArrayList<>(containerPath.size()+1);
+//            childPath.addAll(containerPath);
+//            childPath.add(childId);
+//
+//            Integer childComponentUid = componentPathToIndex_.get(childPath);
+//            if (childComponentUid == null)
+//            {
+//                throw new IllegalStateException("Child component path does not exist: " + childPath);
+//            }
+//
+//            childIndices.add(childComponentUid);
+//        }
+//    }
 
     private void ensureIndexBufferSize(int requestedSize)
     {
@@ -461,6 +525,8 @@ public class Container
     {
         Integer getPropertyIndex(Object key);
 
+        Iterable<Integer> getChildIndices();
+
         Object getCustomData();
 
         void setCustomData(Object data);
@@ -479,8 +545,9 @@ public class Container
     public static class ComponentAccessor implements IComponent
     {
         private final List<Object> componentPath_;
-        private final Map<Object, Integer> propertyIdToIndex_;
+        private Map<Object, Integer> propertyIdToIndex_;
         private final List<Object> values_;
+        private Collection<Integer> childIndices_;
 
         private Object currentEvolveReason_;
 
@@ -488,9 +555,9 @@ public class Container
 
         public ComponentAccessor(List<Object> componentPath, List<Object> values)
         {
-            componentPath_ = componentPath;
+            componentPath_ = Collections.unmodifiableList(componentPath);
             propertyIdToIndex_ = new HashMap<>();
-            values_ = values;
+            values_ = Collections.unmodifiableList(values);
         }
 
         @Override
@@ -596,6 +663,12 @@ public class Container
             customData_ = customData;
         }
 
+        @Override
+        public Iterable<Integer> getChildIndices()
+        {
+            return childIndices_;
+        }
+
         public Map<Object, Integer> getPropertyIdToIndex()
         {
             return propertyIdToIndex_;
@@ -606,9 +679,24 @@ public class Container
             propertyIdToIndex_.put(key, index);
         }
 
+        void finishInitialization()
+        {
+            propertyIdToIndex_ = Collections.unmodifiableMap(propertyIdToIndex_);
+        }
+
         List<Object> getComponentPath()
         {
             return componentPath_;
+        }
+
+//        Collection<Integer> getChildIndices()
+//        {
+//            return childIndices_;
+//        }
+
+        void setChildIndices(Collection<Integer> childIndices)
+        {
+            childIndices_ = childIndices;
         }
 
         void setEvolveReason(Object reason)

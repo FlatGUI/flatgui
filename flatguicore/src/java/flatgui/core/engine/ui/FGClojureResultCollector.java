@@ -8,9 +8,7 @@ import clojure.lang.Var;
 import flatgui.core.engine.Container;
 import flatgui.core.engine.IResultCollector;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Denis Lebedev
@@ -23,11 +21,33 @@ public class FGClojureResultCollector implements IResultCollector
     private static final String FG_NS = "flatgui.core";
     private static final Var rebuildLook_ = clojure.lang.RT.var(FG_NS, "rebuild-look");
 
-    private Set<Integer> changedComponents_;
+    private final Set<Integer> changedComponents_;
+
+    private final List<List<Object>> lookVectors_;
 
     public FGClojureResultCollector()
     {
         changedComponents_ = new HashSet<>();
+        lookVectors_ = new ArrayList<>();
+    }
+
+    @Override
+    public void componentAdded(Integer componentUid)
+    {
+        if (lookVectors_.size() < componentUid.intValue())
+        {
+            int add = componentUid.intValue() - lookVectors_.size();
+            for (int i=0; i<add; i++)
+            {
+                lookVectors_.add(null);
+            }
+        }
+    }
+
+    @Override
+    public void componentRemoved(Integer componentUid)
+    {
+        lookVectors_.set(componentUid.intValue(), null);
     }
 
     @Override
@@ -49,11 +69,16 @@ public class FGClojureResultCollector implements IResultCollector
 
             // TODO creating Clojure map should not be needed after (*1)
             Object componentClj = PersistentHashMap.create(componentAccessor);
-            Object lookVec = rebuildLook_.invoke(componentClj);
+            List<Object> lookVec = (List<Object>) rebuildLook_.invoke(componentClj);
 
             containerMutator.setValue(componentDataCache.getLookVecIndex(), lookVec);
         }
 
         changedComponents_.clear();
+    }
+
+    public List<Object> getLookVector(Integer componentUid)
+    {
+        return lookVectors_.get(componentUid.intValue());
     }
 }

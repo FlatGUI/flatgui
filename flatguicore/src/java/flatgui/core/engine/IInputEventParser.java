@@ -3,7 +3,6 @@
  */
 package flatgui.core.engine;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -11,5 +10,5 @@ import java.util.Map;
  */
 public interface IInputEventParser<Reason, FGEvent>
 {
-    Map<FGEvent, List<Object>> parseInputEvent(Reason inputEvent);
+    Map<FGEvent, Integer> parseInputEvent(Container container, Reason inputEvent);
 }

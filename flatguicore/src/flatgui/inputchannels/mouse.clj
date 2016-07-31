@@ -55,7 +55,9 @@
 
 (channelbase/definputparser get-mouse-rel-x FGMouseEvent
   (try
-    (nth (.getXRelativeVec repaint-reason) (:target-id-path-index comp-property-map))
+    (if (.getXRelativeVec repaint-reason)
+      (nth (.getXRelativeVec repaint-reason) (:target-id-path-index comp-property-map))
+      (.getXRel repaint-reason))
     (catch IndexOutOfBoundsException e
       (do
         (println "Caught IOB. Event " (.getID repaint-reason) " path" (.getTargetIdPath repaint-reason)
@@ -65,8 +67,9 @@
         0.0))))
 
 (channelbase/definputparser get-mouse-rel-y FGMouseEvent
-  (nth (.getYRelativeVec repaint-reason) (:target-id-path-index comp-property-map)))
-
+  (if (.getYRelativeVec repaint-reason)
+    (nth (.getYRelativeVec repaint-reason) (:target-id-path-index comp-property-map))
+    (.getYRel repaint-reason)))
 
 (channelbase/definputparser mouse-wheel? MouseWheelEvent true)
 

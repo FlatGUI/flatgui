@@ -10,19 +10,19 @@ import java.util.concurrent.*;
 /**
  * @author Denis Lebedev
  */
-public class AppContainer
+public class AppContainer<ContainerParser extends Container.IContainerParser, ResultCollector extends IResultCollector>
 {
-    private Container.IContainerParser containerParser_;
-    private IResultCollector resultCollector_;
+    private ContainerParser containerParser_;
+    private ResultCollector resultCollector_;
     private Map<Object, Object> containerMap_;
     private Container container_;
 
-    protected final InputEventParser reasonParser_;
+    private final InputEventParser reasonParser_;
     private ThreadPoolExecutor evolverExecutorService_;
 
     private boolean active_ = false;
 
-    public AppContainer(Container.IContainerParser containerParser, IResultCollector resultCollector, Map<Object, Object> container)
+    public AppContainer(ContainerParser containerParser, ResultCollector resultCollector, Map<Object, Object> container)
     {
         containerParser_ = containerParser;
         resultCollector_ = resultCollector;
@@ -72,11 +72,31 @@ public class AppContainer
     public void evolve(Object evolveReason)
     {
         evolverExecutorService_.submit(() -> {
-            Map<Object, List<Object>> eventsToPaths = reasonParser_.parseInputEvent(evolveReason);
-            for (Object event : eventsToPaths.keySet())
+            Map<Object, Integer> eventsToTargetIndex = reasonParser_.parseInputEvent(getContainer(), evolveReason);
+            for (Object event : eventsToTargetIndex.keySet())
             {
-                evolve(eventsToPaths.get(event), event);
+                evolve(eventsToTargetIndex.get(event), event);
             }
         });
+    }
+
+    protected final InputEventParser getInputEventParser()
+    {
+        return reasonParser_;
+    }
+
+    protected final Container getContainer()
+    {
+        return container_;
+    }
+
+    protected final ContainerParser getReasonParser()
+    {
+        return containerParser_;
+    }
+
+    protected final ResultCollector getResultCollector()
+    {
+        return resultCollector_;
     }
 }

@@ -18,19 +18,16 @@ import flatgui.core.util.Tuple;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
 * @author Denis Lebedev
 */
-public class HostComponent extends Canvas
+public class HostComponent extends AbstractHostComponent
 {
     private static final Var extractCursor_ = clojure.lang.RT.var(IFGModule.RESPONSE_FEED_NS, "extract-cursor");
     private static final Var getDataForClipboard_ = clojure.lang.RT.var(IFGModule.RESPONSE_FEED_NS, "get-data-for-clipboard");
@@ -52,38 +49,10 @@ public class HostComponent extends Canvas
 
 
     private IFGContainer fgContainer_;
-    private IFGPrimitivePainter primitivePainter_;
-
-    private Image bufferImage_;
-
-    private boolean appTriggered_ = false;
-
-    private final FGAWTInteropUtil interopUtil_;
-
-    private String lastUserDefinedFontStr_ = null;
-    private Font lastUserDefinedFont_ = null;
 
     private Function<FGEvolveInputData, Future<FGEvolveResultData>> feedFn_;
 
     Future<FGEvolveResultData> changedPathsFuture_;
-
-    public HostComponent()
-    {
-        setFocusTraversalKeysEnabled(false);
-        interopUtil_ = new FGAWTInteropUtil(FGContainer.UNIT_SIZE_PX);
-        primitivePainter_ = new FGDefaultPrimitivePainter(FGContainer.UNIT_SIZE_PX);
-        primitivePainter_.addFontChangeListener(e -> {
-            Tuple newValue = e.getNewValue();
-            lastUserDefinedFontStr_ = newValue.getFirst();
-            lastUserDefinedFont_ = newValue.getSecond();
-            interopUtil_.setReferenceFont(lastUserDefinedFontStr_, lastUserDefinedFont_);});
-        setFocusable(true);
-    }
-
-    public final IFGInteropUtil getInterop()
-    {
-        return interopUtil_;
-    }
 
     public void initialize(IFGContainer fgContainer)
     {
@@ -98,93 +67,29 @@ public class HostComponent extends Canvas
     public void setInputEventConsumer(Function<FGEvolveInputData, Future<FGEvolveResultData>> feedFn)
     {
         feedFn_ = feedFn;
-
-        Consumer<Object> eventConsumer = this::acceptEvolveReason;
-
-        addMouseListener(new ContainerMouseListener(eventConsumer));
-        addMouseMotionListener(new ContainerMouseMotionListener(eventConsumer));
-        addMouseWheelListener(new ContainerMouseWheelListener(eventConsumer));
-        addKeyListener(new ContainerKeyListener(eventConsumer));
-        addComponentListener(new ContainerComponentListener(eventConsumer));
-        setupBlinkHelperTimer(eventConsumer);
-    }
-
-    public static Timer setupBlinkHelperTimer(Consumer<Object> timerEventConsumer)
-    {
-        Timer blinkTimer = new Timer("FlatGUI Blink Helper Timer", true);
-        blinkTimer.schedule(new TimerTask()
-        {
-            @Override
-            public void run()
-            {
-                timerEventConsumer.accept(new FGTimerEvent(System.currentTimeMillis()));
-            }
-        }, 530, 530);
-        return blinkTimer;
     }
 
     @Override
-    public void paint(Graphics g)
+    protected void changeCursorIfNeeded() throws Exception
     {
-        if (appTriggered_)
+        FGEvolveResultData evolveResultData = changedPathsFuture_.get();
+        Set<Object> reasons = evolveResultData.getEvolveReasonToTargetPath().keySet();
+        if (!reasons.isEmpty() && reasons.stream().anyMatch(r -> r instanceof MouseEvent))
         {
-            // TODO possibly use dirty rects to optimize
-            g.drawImage(getPendingImage(), 0, 0, null);
+            Collection<List<Keyword>> targetComponentPaths = evolveResultData.getEvolveReasonToTargetPath().values();
+            Map<List<Keyword>, Map<Keyword, Object>> targetIdPathToComponent = fgContainer_.getFGModule().getComponentIdPathToComponent(targetComponentPaths);
+            Keyword c = resolveCursor(targetIdPathToComponent, fgContainer_);
+            Integer cursor = c != null ? FG_TO_AWT_CUSROR_MAP.get(c) : null;
+            setCursor(cursor != null ? Cursor.getPredefinedCursor(cursor.intValue()) : Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
         }
-        else
-        {
-            g.drawImage(getPendingImage(), 0, 0, null);
-        }
-
-        appTriggered_ = false;
     }
 
     @Override
-    public void update(Graphics g)
+    protected Iterable<Object> getPaintList(double clipX, double clipY, double clipW, double clipH) throws Exception
     {
-        try
-        {
-            Rectangle clipBounds = g.getClipBounds();
-            double clipX = clipBounds.getX() / FGContainer.UNIT_SIZE_PX;
-            double clipY = clipBounds.getY() / FGContainer.UNIT_SIZE_PX;
-            double clipW = clipBounds.getWidth() / FGContainer.UNIT_SIZE_PX;
-            double clipH = clipBounds.getHeight() / FGContainer.UNIT_SIZE_PX;
-
-            Future<java.util.List<Object>> paintResult = fgContainer_.submitTask(() -> fgContainer_.getFGModule().getPaintAllSequence(clipX, clipY, clipW, clipH));
-
-            Graphics bg = getBufferGraphics();
-            ((Graphics2D) bg).setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            if (lastUserDefinedFont_ != null)
-            {
-                bg.setFont(lastUserDefinedFont_);
-            }
-            else
-            {
-                interopUtil_.setReferenceFont(null, bg.getFont());
-            }
-            interopUtil_.setReferenceGraphics(bg);
-
-            java.util.List<Object> pList = paintResult.get();
-            paintSequence(bg, pList);
-
-            appTriggered_ = true;
-            paint(g);
-
-            FGEvolveResultData evolveResultData = changedPathsFuture_.get();
-            Set<Object> reasons = evolveResultData.getEvolveReasonToTargetPath().keySet();
-            if (!reasons.isEmpty() && reasons.stream().anyMatch(r -> r instanceof MouseEvent))
-            {
-                Collection<List<Keyword>> targetComponentPaths = evolveResultData.getEvolveReasonToTargetPath().values();
-                Map<List<Keyword>, Map<Keyword, Object>> targetIdPathToComponent = fgContainer_.getFGModule().getComponentIdPathToComponent(targetComponentPaths);
-                Keyword c = resolveCursor(targetIdPathToComponent, fgContainer_);
-                Integer cursor = c != null ? FG_TO_AWT_CUSROR_MAP.get(c) : null;
-                setCursor(cursor != null ? Cursor.getPredefinedCursor(cursor.intValue()) : Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-            }
-        }
-        catch (InterruptedException | ExecutionException e)
-        {
-            e.printStackTrace();
-        }
+        Future<List<Object>> paintListFuture =
+                fgContainer_.submitTask(() -> fgContainer_.getFGModule().getPaintAllSequence(clipX, clipY, clipW, clipH));
+        return paintListFuture.get();
     }
 
     public static Keyword resolveCursor(Map<java.util.List<Keyword>, Map<Keyword, Object>> idPathToComponent,
@@ -219,143 +124,9 @@ public class HostComponent extends Canvas
         return data != null ? data.toString() : null;
     }
 
-    Image getPendingImage()
-    {
-        return bufferImage_;
-    }
-
-    private Graphics getBufferGraphics()
-    {
-        if (bufferImage_ == null)
-        {
-            bufferImage_ = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
-        }
-        return bufferImage_.getGraphics();
-    }
-
-    private int paintSequence(Graphics g, java.util.List<Object> paintingSequence)
-    {
-       // System.out.println("paintSequence starts at " + System.currentTimeMillis());
-
-        int painted = 0;
-
-        for (Object obj : paintingSequence)
-        {
-            // Null is possible here. It is allowed for look functions to
-            // be able to use condtionals easy
-
-            if (obj instanceof java.util.List)
-            {
-                primitivePainter_.paintPrimitive(g, (java.util.List<Object>)obj);
-                painted++;
-            }
-            else if (obj != null)
-            {
-                System.out.println("Error: not a list: " + paintingSequence);
-            }
-        }
-
-      //  System.out.println("paintSequence ends at " + System.currentTimeMillis());
-
-        return painted;
-    }
-
-    private void acceptEvolveReason(Object evolveReason)
+    @Override
+    protected void acceptEvolveReason(Object evolveReason)
     {
         changedPathsFuture_ = feedFn_.apply(new FGEvolveInputData(evolveReason, false));
-    }
-
-    // Inner classes
-
-    private static class ContainerListener
-    {
-        private final Consumer<Object> eventConsumer_;
-
-        ContainerListener(Consumer<Object> eventConsumer)
-        {
-            eventConsumer_ = eventConsumer;
-        }
-
-        protected final void eventImpl(Object e)
-        {
-            eventConsumer_.accept(e);
-        }
-    }
-
-    private static class ContainerMouseListener extends ContainerListener implements MouseListener
-    {
-        ContainerMouseListener(Consumer<Object> eventConsumer)
-        {super(eventConsumer);}
-        @Override
-        public void mouseClicked(MouseEvent e)
-        {eventImpl(e);}
-        @Override
-        public void mousePressed(MouseEvent e)
-        {eventImpl(e);}
-        @Override
-        public void mouseReleased(MouseEvent e)
-        {eventImpl(e);}
-        @Override
-        public void mouseEntered(MouseEvent e)
-        {eventImpl(e);}
-        @Override
-        public void mouseExited(MouseEvent e)
-        {eventImpl(e);}
-    }
-
-    private static class ContainerMouseMotionListener extends ContainerListener implements MouseMotionListener
-    {
-        ContainerMouseMotionListener(Consumer<Object> eventConsumer)
-        {super(eventConsumer);}
-        @Override
-        public void mouseDragged(MouseEvent e)
-        {eventImpl(e);}
-        @Override
-        public void mouseMoved(MouseEvent e)
-        {eventImpl(e);}
-    }
-
-    private static class ContainerMouseWheelListener extends ContainerListener implements MouseWheelListener
-    {
-        ContainerMouseWheelListener(Consumer<Object> eventConsumer)
-        {super(eventConsumer);}
-        @Override
-        public void mouseWheelMoved(MouseWheelEvent e)
-        {eventImpl(e);}
-    }
-
-    private static class ContainerKeyListener extends ContainerListener implements KeyListener
-    {
-        ContainerKeyListener(Consumer<Object> eventConsumer)
-        {super(eventConsumer);}
-        @Override
-        public void keyTyped(KeyEvent e)
-        {eventImpl(e);}
-        @Override
-        public void keyPressed(KeyEvent e)
-        {eventImpl(e);}
-        @Override
-        public void keyReleased(KeyEvent e)
-        {eventImpl(e);}
-    }
-
-    private static class ContainerComponentListener extends ContainerListener implements ComponentListener
-    {
-        ContainerComponentListener(Consumer<Object> eventConsumer)
-        {super(eventConsumer);}
-        @Override
-        public void componentResized(ComponentEvent e)
-        {eventImpl(parseResizeEvent(e));}
-        @Override
-        public void componentMoved(ComponentEvent e) {}
-        @Override
-        public void componentShown(ComponentEvent e) {}
-        @Override
-        public void componentHidden(ComponentEvent e) {}
-
-        private static FGHostStateEvent parseResizeEvent(ComponentEvent e)
-        {
-            return FGHostStateEvent.createHostSizeEvent(e.getComponent().getSize());
-        }
     }
 }

@@ -29,6 +29,10 @@ public class FGMouseEvent extends MouseEvent
      */
     private final Object yRelativeVec_;
 
+    private final Double xRel_;
+
+    private final Double yRel_;
+
     private final Collection<Object> targetIdPath_;
 
     public FGMouseEvent(
@@ -45,11 +49,15 @@ public class FGMouseEvent extends MouseEvent
             int button,
             Object xRelativeVec,
             Object yRelativeVec,
+            Double xRel,
+            Double yRel,
             Collection<Object> targetIdPath)
     {
         super(source, id, when, modifiers, x, y, xAbs, yAbs, clickCount, popupTrigger, button);
         xRelativeVec_ = xRelativeVec;
         yRelativeVec_ = yRelativeVec;
+        xRel_ = xRel;
+        yRel_ = yRel;
         targetIdPath_ = targetIdPath;
     }
 
@@ -61,6 +69,16 @@ public class FGMouseEvent extends MouseEvent
     public Object getYRelativeVec()
     {
         return yRelativeVec_;
+    }
+
+    public Double getXRel()
+    {
+        return xRel_;
+    }
+
+    public Double getYRel()
+    {
+        return yRel_;
     }
 
     public Collection<Object> getTargetIdPath()

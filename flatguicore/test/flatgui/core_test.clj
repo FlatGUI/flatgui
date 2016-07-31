@@ -12,8 +12,9 @@
             [flatgui.dependency]
             [flatgui.paint :as fgp]
             [flatgui.awt :as awt])
-  (:import (flatgui.core.engine IResultCollector Container)
-           (flatgui.core.engine.ui FGClojureContainerParser FGAppContainer)))
+  (:import (flatgui.core.engine IResultCollector Container ClojureContainerParser)
+           (flatgui.core.engine.ui FGAppContainer)
+           (flatgui.core.awt FGAWTInteropUtil)))
 
 (test/deftest build-abs-path-test
   (test/is (= [:a :b :c] (core/build-abs-path [:a :b :c] [:this])))
@@ -120,7 +121,7 @@
                              )
                            (postProcessAfterEvolveCycle [_a _m]))
         container-engine (Container.
-                           (FGClojureContainerParser.)
+                           (ClojureContainerParser.)
                            result-collector
                            container)
         init-res (get @results [[:main] :res])
@@ -145,8 +146,12 @@
                      :b 2
                      :look test-look
                      :look-vec []
+                     :position-matrix nil
+                     :clip-size nil
                      :evolvers {:a evolver-a}})
-        ui-app (FGAppContainer. container)
+        ui-app (FGAppContainer. container (FGAWTInteropUtil. 64))
         _ (.initialize ui-app)
         container-accessor (.getContainerAccessor ui-app)]
     (test/is (= [["fillRect" 0 0 4 4]] (.get (.getComponent container-accessor 0) :look-vec)))))
+
+()

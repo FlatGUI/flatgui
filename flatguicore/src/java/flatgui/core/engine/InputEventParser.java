@@ -34,12 +34,12 @@ public class InputEventParser implements IInputEventParser<Object, Object>
     }
 
     @Override
-    public Map<Object, List<Object>> parseInputEvent(Object inputEvent)
+    public Map<Object, Integer> parseInputEvent(Container container, Object inputEvent)
     {
         IInputEventParser<Object, Object> parser = getEventParser(inputEvent);
         if (parser != null)
         {
-            return parser.parseInputEvent(inputEvent);
+            return parser.parseInputEvent(container, inputEvent);
         }
         else
         {

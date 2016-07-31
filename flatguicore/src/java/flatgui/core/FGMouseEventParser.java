@@ -165,6 +165,8 @@ public class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
                     ((MouseWheelEvent) e).getPreciseWheelRotation(),
                     xRelativeVec,
                     yRelativeVec,
+                    null,
+                    null,
                     targetIdPath);
         }
         else
@@ -183,6 +185,8 @@ public class FGMouseEventParser implements IFGInputEventParser<MouseEvent>
                     e.getButton(),
                     xRelativeVec,
                     yRelativeVec,
+                    null,
+                    null,
                     targetIdPath);
         }
     }

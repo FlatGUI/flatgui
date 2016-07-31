@@ -21,7 +21,7 @@ import java.util.function.Function;
 /**
  * @author Denis Lebedev
  */
-public abstract class ClojureContainerParser implements Container.IContainerParser
+public class ClojureContainerParser implements Container.IContainerParser
 {
     private static final Keyword ID_KEY = Keyword.intern("id");
     private static final Keyword CHILDREN_KEY = Keyword.intern("children");
@@ -105,5 +105,10 @@ public abstract class ClojureContainerParser implements Container.IContainerPars
     {
         Keyword kw = INPUT_EVENT_KEYS.get(evolveReason.getClass());
         return kw != null ? inputDependencies.contains(kw) : true;
+    }
+
+    @Override
+    public void processComponentAfterIndexing(Container.IComponent component)
+    {
     }
 }
