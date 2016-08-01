@@ -71,10 +71,10 @@ public class ClojureContainerParser implements Container.IContainerParser
             nodePath.addAll(componentPath);
             nodePath.add(propertyId);
 
-            boolean hasEvolver = evolvers.get(propertyId) != null;
+            boolean hasEvolver = evolvers != null && evolvers.get(propertyId) != null;
 
-            Object evolverCode = evolvers.get(propertyId);
-            List<Object> evolverInputDependencies = (List<Object>) getInputDependencies_.invoke(evolverCode);
+            Object evolverCode = evolvers != null ? evolvers.get(propertyId) : null;
+            List<Object> evolverInputDependencies = evolvers != null ? (List<Object>) getInputDependencies_.invoke(evolverCode) : null;
 
             result.add(new Container.SourceNode(
                     propertyId,
