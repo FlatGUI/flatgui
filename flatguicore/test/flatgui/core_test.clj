@@ -44,10 +44,10 @@
 
 
 (test/deftest defroot-test
-  (let [_ (core/defevolverfn e1 (+ 1 (get-property [:this] :a)))
-        _ (core/defevolverfn e2 (- 2 (get-property [:this :c1] :a)))
-        _ (core/defevolverfn e11 (+ 2 (get-property [] :x)))
-        _ (core/defevolverfn e21 (+ 3 (get-property [:c1] :b)))
+  (let [_ (core/defevolverfn e1 :a (+ 1 (get-property [:this] :a)))
+        _ (core/defevolverfn e2 :b (- 2 (get-property [:this :c1] :a)))
+        _ (core/defevolverfn e11 :b (+ 2 (get-property [] :x)))
+        _ (core/defevolverfn e21 :d (+ 3 (get-property [:c1] :b)))
         container {:id :main
                    :a 4
                    :b 5
@@ -75,7 +75,7 @@
                          :evolvers {:d '(+ 3 (get-property [:main :c1] :b))}}}}))))
 
 (test/deftest collect-evolver-dependencies-test
-  (let [_ (core/defevolverfn e1 (if (get-property [:main :x :y] :z)
+  (let [_ (core/defevolverfn :x (if (get-property [:main :x :y] :z)
                                   (get-property [:main :a :b] :c)
                                   (do
                                     (println "Hello")
@@ -83,18 +83,18 @@
     (test/is
       (=
         #{[:main :x :y :z] [:main :a :b :c] [:main :v]}
-        (set (core/collect-evolver-dependencies e1))))))
+        (set (core/collect-evolver-dependencies x-evolver))))))
 
 (test/deftest init-&-evolve-test
-  (let [_ (core/defevolverfn evolver-c1-a (inc (get-property [] :src)))
-        _ (core/defevolverfn evolver-c2-b (+
+  (let [_ (core/defevolverfn evolver-c1-a :a (inc (get-property [] :src)))
+        _ (core/defevolverfn evolver-c2-b :b (+
                                             (:d component)
                                             (get-property [:this] :c)
                                             (get-property [] :src)))
-        _ (core/defevolverfn evolver-res (*
+        _ (core/defevolverfn evolver-res :res (*
                                            (get-property [:this :c1] :a)
                                            (get-property [:this :c2] :b)))
-        _ (core/defevolverfn evolver-c2-d (if (not (nil? (get-reason)))
+        _ (core/defevolverfn evolver-c2-d :d (if (not (nil? (get-reason)))
                                             (+ (:d component) (:x (get-reason)))
                                             (:d component)))
         container (core/defroot
@@ -138,7 +138,7 @@
     (test/is (= 15 (get @results [[:main :c2] :d])))))
 
 (test/deftest reuild-look-test
-  (let [_ (core/defevolverfn evolver-a (* (get-property [:this] :b) 2))
+  (let [_ (core/defevolverfn :a (* (get-property [:this] :b) 2))
         _ (fgp/deflookfn test-look (:a) (awt/fillRect 0 0 a a))
         container (core/defroot
                     {:id :main
@@ -148,7 +148,7 @@
                      :look-vec []
                      :position-matrix nil
                      :clip-size nil
-                     :evolvers {:a evolver-a}})
+                     :evolvers {:a a-evolver}})
         ui-app (FGAppContainer. container (FGAWTInteropUtil. 64))
         _ (.initialize ui-app)
         container-accessor (.getContainerAccessor ui-app)]

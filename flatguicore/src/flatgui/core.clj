@@ -28,15 +28,26 @@
 (defn replace-gp [form]
   (map #(if (seq? %) (replace-gp %) (if (string? %) (str->symbol %) %)) form))
 
-(defmacro defevolverfn [fnname body]
+(defn- gen-evolver [body]
+  (list 'flatgui.core/replace-gp (shade-list body)))
+
+(defn- gen-evolver-decl
+  ([fnname _property body]
+   (list 'def fnname (gen-evolver body)))
+  ([property body]
+   (gen-evolver-decl (symbol (str (name property) "-evolver")) property body)))
+
+(defmacro defevolverfn [& args]
   "Defines deferred evolver. It is supposed to be compiled
    when parsing the container so component absolute location
    in the hierarchy is already known and relative paths in
    get-property calls are replaced with absolute paths"
-  (list 'def fnname (list
-                      'with-meta
-                      (list 'flatgui.core/replace-gp (shade-list body))
-                      {:type :evolver})))
+  (apply gen-evolver-decl args))
+
+(defmacro accessorfn [body] (gen-evolver body))
+
+(defmacro defaccessorfn [fnname params body]
+  (list 'def fnname params (gen-evolver body)))
 
 (defn build-abs-path [component-path rel-path]
   (cond
