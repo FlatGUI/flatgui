@@ -35,6 +35,11 @@
              (core/replace-rel-path (list 'get-property [:this] :c) [:a :b])
              (list 'get-property [:a :b] :c))))
 
+(test/deftest replace-rel-path-test2
+  (test/is (=
+             (core/replace-rel-path (list 'get-property 'component [:this] :c) [:a :b])
+             (list 'get-property [:a :b] :c))))
+
 (test/deftest replace-all-rel-paths-test
   (test/is (=
              (core/replace-all-rel-paths
@@ -42,6 +47,12 @@
                [:a :b])
              (list 'println 1 2 (list 'get-property [:a :b :d] :c)))))
 
+(test/deftest replace-all-rel-paths-test2
+  (test/is (=
+             (core/replace-all-rel-paths
+               (list 'let ['a (list 'get-property 'component [:this] :c)] (list '+ 'a 1))
+               [:a :b])
+             (list 'let ['a (list 'get-property [:a :b] :c)] (list '+ 'a 1)))))
 
 (test/deftest defroot-test
   (let [_ (core/defevolverfn e1 :a (+ 1 (get-property [:this] :a)))
@@ -127,8 +138,7 @@
         init-res (get @results [[:main] :res])
         init-a (get @results [[:main :c1] :a])
         init-b (get @results [[:main :c2] :b])
-        _ (.evolve container-engine [:main :c2] {:x 10})
-        ]
+        _ (.evolve container-engine [:main :c2] {:x 10})]
     (test/is (= 16 init-res))
     (test/is (= 2 init-a))
     (test/is (= 8 init-b))
@@ -136,6 +146,33 @@
     (test/is (= 2 (get @results [[:main :c1] :a])))
     (test/is (= 18 (get @results [[:main :c2] :b])))
     (test/is (= 15 (get @results [[:main :c2] :d])))))
+
+(test/deftest init-&-evolve-test2
+  (let [_ (core/defevolverfn :z-position
+                             (let [pz (get-property component [] :z-position)]
+                               (+ pz 1)))
+        container (core/defroot
+                    {:id :main
+                     :z-position 1
+                     :children {:c1 {:id :c1
+                                     :popup false
+                                     :z-position nil
+                                     :evolvers {:z-position z-position-evolver}}}})
+        results (atom {})
+        result-collector (proxy [IResultCollector] []
+                           (appendResult [path, _componentUid, property, newValue]
+                             (swap! results (fn [r]
+                                              (if (not (or (= :children property) (= :evolvers property)))
+                                                (assoc r [path property] newValue)
+                                                r)))
+                             )
+                           (postProcessAfterEvolveCycle [_a _m]))
+        _container-engine (Container.
+                            (ClojureContainerParser.)
+                            result-collector
+                            container)
+        z-res (get @results [[:main :c1] :z-position])]
+    (test/is (= 2 z-res))))
 
 (test/deftest reuild-look-test
   (let [_ (core/defevolverfn :a (* (get-property [:this] :b) 2))
