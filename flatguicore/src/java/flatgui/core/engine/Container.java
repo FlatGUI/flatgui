@@ -88,7 +88,7 @@ public class Container
 
     public void evolve(List<Object> targetPath, Object evolveReason)
     {
-        Integer componentUid = componentPathToIndex_.get(targetPath);
+        Integer componentUid = getComponentUid(targetPath);
         if (componentUid == null)
         {
             throw new IllegalArgumentException("Component path does not exist: " + targetPath);
@@ -193,6 +193,11 @@ public class Container
     public Iterable<Integer> getComponentNaturalOrder()
     {
         return naturalComponentOrder_;
+    }
+
+    public Integer getComponentUid(List<Object> componentPath)
+    {
+        return componentPathToIndex_.get(componentPath);
     }
 
     public IComponent getRootComponent()

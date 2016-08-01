@@ -161,6 +161,8 @@
 (defn compile-evolver [form index-provider]
   (eval-evolver (replace-dependencies-with-indices form index-provider)))
 
+;;; TODO move below to dedicated namespace(s)
+
 (defn rebuild-look [component]
   (let [look-fn (:look component)
         font (:font component)]
@@ -181,3 +183,35 @@
             ;(fg/log-error "Error painting " target-id-path ":" (.getMessage ex))
             (.printStackTrace ex))))
       component)))
+
+(defn- properties-merger [a b]
+  (if (and (map? a) (map? b))
+    (merge-with properties-merger a b)
+    b))
+
+(defmacro defwidget [widget-type dflt-properties & base-widget-types]
+  "Creates widget property map and associates it with a symbol."
+  `(def
+     ~(symbol widget-type)
+     (merge-with properties-merger
+                 ~@base-widget-types
+                 ~dflt-properties
+                 {:widget-type ~widget-type})))
+
+;;
+;; TODO   For component inheritance, merge-properties should throw exception in case same property found in more than one parent,
+;; TODO   and inheriting component does not declare its own value
+;;
+(defn defcomponent [type id properties & children]
+  "Defines component of speficied type, with
+   specified id and optionally with child components"
+  (let [c (merge-with
+            properties-merger
+            ;; Do not inherit :skin-key from parent type if :look is defined explicitly
+            (if (:look properties) (dissoc type :skin-key) type)
+            properties)]
+    (merge-with
+      properties-merger
+      c
+      {:children (into {} (for [c children] [(:id c) c]))
+       :id id})))

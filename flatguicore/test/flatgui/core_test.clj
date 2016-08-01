@@ -153,5 +153,3 @@
         _ (.initialize ui-app)
         container-accessor (.getContainerAccessor ui-app)]
     (test/is (= [["fillRect" 0 0 4 4]] (.get (.getComponent container-accessor 0) :look-vec)))))
-
-()
