@@ -81,9 +81,14 @@ public class Container
         return addComponent(componentPath, component, false);
     }
 
-    public int indexOfPath(List<Object> path)
+    public Integer indexOfPath(List<Object> path)
     {
-        return pathToIndex_.get(path);
+        Integer i = pathToIndex_.get(path);
+        if (i == null)
+        {
+            throw new IllegalArgumentException("No index for path: " + path);
+        }
+        return i;
     }
 
     public void evolve(List<Object> targetPath, Object evolveReason)
@@ -286,11 +291,11 @@ public class Container
         // Now that all components/properties are indexed, compile evolvers
 
         nodes_.forEach(n -> n.setEvolver(n.getEvolverCode() != null ? containerParser_.compileEvolverCode(
-                n.getEvolverCode(), pathToIndex_::get) : null));
+                n.getEvolverCode(), this::indexOfPath) : null));
 
         // and resolve dependency indices for each property
 
-        nodes_.forEach(n -> n.resolveDependencyIndices(path -> pathToIndex_.get(path)));
+        nodes_.forEach(n -> n.resolveDependencyIndices(this::indexOfPath));
 
         // For each component N, take its dependencies and mark that components that they have N as a dependent
 

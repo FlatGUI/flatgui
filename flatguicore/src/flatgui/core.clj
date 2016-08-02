@@ -23,34 +23,36 @@
                               str))
 
 (declare shade-list)
-
 (declare shade-vec)
+(declare shade-map)
 
 (defn- shader [%]
   (cond
     (seq? %) (shade-list %)
-    (symbol? %) (symbol->str %)
     (vector? %) (shade-vec %)
+    (map? %) (shade-map %)
+    (symbol? %) (symbol->str %)
     :else %))
 
 (defn shade-vec [v] (mapv shader v))
-
 (defn shade-list [form] (conj (map shader form) 'list))
+(defn shade-map [m] (functor/fmap shader m))
 
 (declare replace-gp)
-
 (declare replace-gpv)
+(declare replace-gpmap)
 
 (defn- unshader [%]
   (cond
     (seq? %) (replace-gp %)
-    (string? %) (str->symbol %)
     (vector? %) (replace-gpv %)
+    (map? %) (replace-gpmap %)
+    (string? %) (str->symbol %)
     :else %))
 
 (defn replace-gp [form] (map unshader form))
-
 (defn replace-gpv [v] (mapv unshader v))
+(defn replace-gpmap [form] (functor/fmap unshader form))
 
 (defn- gen-evolver [body] (list 'flatgui.core/replace-gp (shade-list body)))
 
@@ -122,13 +124,14 @@
       (next (next (next form))))))
 
 (declare replace-all-rel-paths)
-
 (declare replace-all-rel-pathsv)
+(declare replace-all-rel-pathsmap)
 
 (defn- rel-replacer [e component-path]
   (cond
     (seq? e) (replace-all-rel-paths e component-path)
     (vector? e) (replace-all-rel-pathsv e component-path)
+    (map? e) (replace-all-rel-pathsmap e component-path)
     :else e))
 
 (defn replace-all-rel-pathsv [form component-path]
@@ -138,6 +141,9 @@
   (if (get-property-call? form)
     (replace-rel-path form component-path)
     (map #(rel-replacer % component-path) form)))
+
+(defn replace-all-rel-pathsmap [m component-path]
+  (functor/fmap #(rel-replacer % component-path) m))
 
 (defn- dissoc-nil-properties [c]
   (let [properties [:children :evolvers]]
@@ -168,7 +174,8 @@
 
 (defn collect-evolver-dependencies [form]
   (if (get-property-call? form)
-    (let [path-&-prop (next form)]
+    (let [_ (println "====FORM " form)
+          path-&-prop (next form)]
       (list (conj (first path-&-prop) (second path-&-prop))))
     (filter seq (mapcat (fn [e] (if (coll? e) (collect-evolver-dependencies e))) form))))
 
@@ -177,8 +184,8 @@
   (functor/fmap (fn [evolver] (collect-evolver-dependencies evolver)) (:evolvers component)))
 
 (declare replace-dependencies-with-indices)
-
 (declare replace-dependencies-with-indicesv)
+(declare replace-dependencies-with-indicesmap)
 
 (defn- dep-replacer [e index-provider]
   (cond
@@ -198,6 +205,9 @@
     (vector? e)
     (replace-dependencies-with-indicesv e index-provider)
 
+    (map? e)
+    (replace-dependencies-with-indicesmap e index-provider)
+
     (old-value-ref? e)
     (list (keyword (.substring (name e) (.length old-val-prefix))) 'component)
 
@@ -209,6 +219,9 @@
 
 (defn replace-dependencies-with-indicesv [form index-provider]
   (mapv #(dep-replacer % index-provider) form))
+
+(defn replace-dependencies-with-indicesmap [m index-provider]
+  (functor/fmap #(dep-replacer % index-provider) m))
 
 (defn eval-evolver [form]
   (eval (conj (list form) ['component] 'fn)))
@@ -239,7 +252,7 @@
             (.printStackTrace ex))))
       component)))
 
-(defn- properties-merger [a b]
+(defn properties-merger [a b]
   (if (and (map? a) (map? b))
     (merge-with properties-merger a b)
     b))

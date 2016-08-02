@@ -54,6 +54,13 @@
                [:a :b])
              (list 'let ['a (list 'get-property [:a :b] :c)] (list '+ 'a 1)))))
 
+(test/deftest replace-all-rel-paths-test3
+  (test/is (=
+             (core/replace-all-rel-paths
+               (list 'let ['a {:x (list 'get-property 'component [:this] :c)}] (list '+ {:x 'a} 1))
+               [:a :b])
+             (list 'let ['a {:x (list 'get-property [:a :b] :c)}] (list '+ {:x 'a} 1)))))
+
 (test/deftest defroot-test
   (let [_ (core/defevolverfn e1 :a (+ 1 (get-property [:this] :a)))
         _ (core/defevolverfn e2 :b (- 2 (get-property [:this :c1] :a)))
@@ -149,8 +156,8 @@
 
 (test/deftest init-&-evolve-test2
   (let [_ (core/defevolverfn :z-position
-                             (let [pz (get-property component [] :z-position)]
-                               (+ pz 1)))
+                             (let [pz {:a (get-property component [] :z-position)}]
+                               (+ (:a pz) 1)))
         container (core/defroot
                     {:id :main
                      :z-position 1
