@@ -21,10 +21,11 @@
 (test/deftest uiapp-test
   (let [a-text "aa123"
         b-text "bb456"
-        _ (core/defevolverfn text-evolver
+        _ (core/defevolverfn :text
                              (if (get-property [:sw-text] :pressed)
-                               b-text
-                               a-text))
+                               "bb456";b-text
+                               "aa123";a-text
+                               ))
         _ (println "E=" text-evolver)
         t-win (core/defcomponent
                 window/window
@@ -51,8 +52,8 @@
         container (core/defroot t-win)
         ui-app (FGAppContainer. container (FGAWTInteropUtil. 64))
         _ (.initialize ui-app)
-        txt-uid (.getComponentUid container [:main :txt])
         dummy-source (Container.)
+        txt-uid (.getComponentUid ui-app [:main :txt])
         container-accessor (.getContainerAccessor ui-app)
         look-before-click (.get (.getComponent container-accessor txt-uid) :look-vec)
         _ (.evolve container (MouseEvent. dummy-source MouseEvent/MOUSE_PRESSED 0 MouseEvent/BUTTON1_DOWN_MASK 129 129 129 129 1 false MouseEvent/BUTTON1))

@@ -83,14 +83,14 @@
         {:id :main
          :a 4
          :b 5
-         :evolvers {:a '(+ 1 (get-property [:main] :a))
-                    :b '(- 2 (get-property [:main :c1] :a))}
+         :evolvers {:a '(clojure.core/+ 1 (get-property [:main] :a))
+                    :b '(clojure.core/- 2 (get-property [:main :c1] :a))}
          :children {:c1 {:id :c1
                          :b 5
-                         :evolvers {:b '(+ 2 (get-property [:main] :x))}}
+                         :evolvers {:b '(clojure.core/+ 2 (get-property [:main] :x))}}
                     :c2 {:id :c2
                          :d 6
-                         :evolvers {:d '(+ 3 (get-property [:main :c1] :b))}}}}))))
+                         :evolvers {:d '(clojure.core/+ 3 (get-property [:main :c1] :b))}}}}))))
 
 (test/deftest collect-evolver-dependencies-test
   (let [_ (core/defevolverfn :x (if (get-property [:main :x :y] :z)
@@ -155,7 +155,8 @@
     (test/is (= 15 (get @results [[:main :c2] :d])))))
 
 (test/deftest init-&-evolve-test2
-  (let [_ (core/defevolverfn :z-position
+  (let [; TODO try using (System/currentTimeMillis) - System is lost
+        _ (core/defevolverfn :z-position
                              (let [pz {:a (get-property component [] :z-position)}]
                                (+ (:a pz) 1)))
         container (core/defroot
@@ -181,7 +182,86 @@
         z-res (get @results [[:main :c1] :z-position])]
     (test/is (= 2 z-res))))
 
-(test/deftest reuild-look-test
+(defn- get-cmpnd-key [m k]
+  (second (first (filter (fn [[mk _mv]] (= mk k)) m))))
+
+(test/deftest init-&-evolve-test-non-const-path
+  (let [_ (core/defevolverfn evolver-a :a (+ 1 (get-property [:this] :b) (if (map? (get-reason)) (:x (get-reason)) 0)))
+        _ (core/defevolverfn evolver-res :res (if (map? (get-reason))
+                                                (get-property [:this (:x (get-reason))] :a)
+                                                old-res))
+        _ (core/defevolverfn :dep-test (let [;synthetically create dependency on both [:main :c1 :a] and [:main :c2 :a]
+                                             _a :c1
+                                             _b (get-property [:this _a] :a)]
+                                         (conj old-dep-test (get-reason))))
+        container (core/defroot
+                    {:id :main
+                     :src 1
+                     :res 0
+                     :dep-test #{}
+                     :evolvers {:res evolver-res
+                                :dep-test dep-test-evolver
+                                }
+                     :children {:c1 {:id :c1
+                                     :a 0
+                                     :b 1
+                                     :evolvers {:a evolver-a}}
+                                :c2 {:id :c2
+                                     :a 0
+                                     :b 2
+                                     :evolvers {:a evolver-a}}}})
+        results (atom {})
+        result-collector (proxy [IResultCollector] []
+                           (appendResult [path, _componentUid, property, newValue]
+                             (swap! results (fn [r]
+                                              (if (not (or (= :children property) (= :evolvers property)))
+                                                (assoc r [path property] newValue)
+                                                r)))
+                             )
+                           (postProcessAfterEvolveCycle [_a _m]))
+        container-engine (Container.
+                           (ClojureContainerParser.)
+                           result-collector
+                           container)
+        _ (.evolve container-engine [:main :c1] {:x 1})
+        _ (.evolve container-engine [:main :c2] {:x 2})
+        _ (.evolve container-engine [:main] {:x :c2})
+        result-map @results
+        dep-test-results (set (map str (get-cmpnd-key result-map [[:main] :dep-test])))]
+    (test/is (= 5 (get-cmpnd-key result-map [[:main] :res])))
+    (test/is (= 3 (get-cmpnd-key result-map [[:main :c1] :a])))
+    (test/is (= 5 (get-cmpnd-key result-map [[:main :c2] :a])))
+    (test/is (= 3 (count dep-test-results)))
+    (test/is (= true (contains? dep-test-results "[:main, :c1, :a]")))
+    (test/is (= true (contains? dep-test-results "[:main, :c2, :a]")))
+    (test/is (= true (contains? dep-test-results "{:x :c2}")))))
+
+(test/deftest inline-accessor-test
+  (let [_ (core/defaccessorfn tfn [x] (+ x 2 (:a {:a (first [x 1 2])})))
+        _ (core/defevolverfn :a (if (not (nil? (get-reason)))
+                                  (+ (:x (get-reason)) (tfn 3))
+                                  old-a))
+        container (core/defroot
+                    {:id :main
+                     :a 0
+                     :evolvers {:a a-evolver}})
+        results (atom {})
+        result-collector (proxy [IResultCollector] []
+                           (appendResult [path, _componentUid, property, newValue]
+                             (swap! results (fn [r]
+                                              (if (not (or (= :children property) (= :evolvers property)))
+                                                (assoc r [path property] newValue)
+                                                r)))
+                             )
+                           (postProcessAfterEvolveCycle [_a _m]))
+        container-engine (Container.
+                            (ClojureContainerParser.)
+                            result-collector
+                            container)
+        _ (.evolve container-engine [:main] {:x 1})]
+    (test/is (= 9 (get @results [[:main] :a])))))
+
+(test/deftest rebuild-look-test
   (let [_ (core/defevolverfn :a (* (get-property [:this] :b) 2))
         _ (fgp/deflookfn test-look (:a) (awt/fillRect 0 0 a a))
         container (core/defroot

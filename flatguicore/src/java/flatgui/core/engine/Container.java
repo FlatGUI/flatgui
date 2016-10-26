@@ -9,10 +9,13 @@
  */
 package flatgui.core.engine;
 
+import clojure.lang.Keyword;
+
 import java.lang.reflect.Array;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Denis Lebedev
@@ -83,12 +86,22 @@ public class Container
 
     public Integer indexOfPath(List<Object> path)
     {
+        return pathToIndex_.get(path);
+    }
+
+    public Integer indexOfPathStrict(List<Object> path)
+    {
         Integer i = pathToIndex_.get(path);
-        if (i == null)
-        {
-            throw new IllegalArgumentException("No index for path: " + path);
-        }
+//        if (i == null)
+//        {
+//            throw new IllegalArgumentException("No index for path: " + path);
+//        }
         return i;
+    }
+
+    public Stream<Integer> allMatchingIndicesOfPath(List<Object> path)
+    {
+        return pathToIndex_.keySet().stream().filter(k -> pathMatches(path, k)).map(pathToIndex_::get);
     }
 
     public void evolve(List<Object> targetPath, Object evolveReason)
@@ -200,7 +213,7 @@ public class Container
         return naturalComponentOrder_;
     }
 
-    public Integer getComponentUid(List<Object> componentPath)
+    public final Integer getComponentUid(List<Object> componentPath)
     {
         return componentPathToIndex_.get(componentPath);
     }
@@ -217,7 +230,8 @@ public class Container
 
     public <V> V getPropertyValue(Integer index)
     {
-        return (V) values_.get(index.intValue());
+        //TODO see "strict" return (V) values_.get(index.intValue());
+        return index != null ? (V) values_.get(index.intValue()) : null;
     }
 
     // Private
@@ -258,7 +272,8 @@ public class Container
         componentPath.addAll(pathToContainer);
         componentPath.add(containerParser_.getComponentId(container));
 
-        ComponentAccessor component = new ComponentAccessor(componentPath, values_);
+        ComponentAccessor component = new ComponentAccessor(
+                componentPath, values_, path -> getPropertyValue(indexOfPathStrict(path)));
         Integer componentUid = addComponent(componentPath, component);
         Collection<SourceNode> componentPropertyNodes = containerParser_.processComponent(
                 componentPath, container);
@@ -295,7 +310,8 @@ public class Container
 
         // and resolve dependency indices for each property
 
-        nodes_.forEach(n -> n.resolveDependencyIndices(this::indexOfPath));
+        //nodes_.forEach(n -> n.resolveDependencyIndices(this::indexOfPath));
+        nodes_.forEach(n -> n.resolveDependencyIndices(this::allMatchingIndicesOfPath));
 
         // For each component N, take its dependencies and mark that components that they have N as a dependent
 
@@ -446,6 +462,34 @@ public class Container
         }
     }
 
+//    /**
+//     * @return true if given path consists of keywords only which means it is a constant path
+//     */
+//    private boolean isDeterminedPath(List<Object> path)
+//    {
+//        return path.stream().allMatch(e -> e instanceof Keyword);
+//    }
+
+    private boolean pathMatches(List<Object> path, List<Object> mapKey)
+    {
+        if (path.size() == mapKey.size())
+        {
+            for (int i=0; i<path.size(); i++)
+            {
+                if (!(path.get(i).equals(mapKey.get(i)) || !(path.get(i) instanceof Keyword)))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+
     // // //
 
 
@@ -559,15 +603,18 @@ public class Container
         private final List<Object> values_;
         private Collection<Integer> childIndices_;
 
+        private final Function<List<Object>, Object> globalIndexToValueProvider_;
+
         private Object currentEvolveReason_;
 
         private Object customData_;
 
-        public ComponentAccessor(List<Object> componentPath, List<Object> values)
+        public ComponentAccessor(List<Object> componentPath, List<Object> values, Function<List<Object>, Object> globalIndexToValueProvider)
         {
             componentPath_ = Collections.unmodifiableList(componentPath);
             propertyIdToIndex_ = new HashMap<>();
             values_ = Collections.unmodifiableList(values);
+            globalIndexToValueProvider_ = globalIndexToValueProvider;
         }
 
         @Override
@@ -725,6 +772,11 @@ public class Container
         {
             return currentEvolveReason_;
         }
+
+        public Object getValueByAbsPath(List<Object> asbPath)
+        {
+            return globalIndexToValueProvider_.apply(asbPath);
+        }
     }
 
     /**
@@ -791,9 +843,13 @@ public class Container
             return inputDependencies_;
         }
 
-        public void resolveDependencyIndices(Function<List<Object>, Integer> pathIndexProvider)
+//        public void resolveDependencyIndices(Function<List<Object>, Integer> pathIndexProvider)
+//        {
+//            dependencyIndices_ = Collections.unmodifiableSet(dependencyPaths_.stream().map(pathIndexProvider).collect(Collectors.toSet()));
+//        }
+        public void resolveDependencyIndices(Function<List<Object>, Stream<Integer>> pathIndexProvider)
         {
-            dependencyIndices_ = Collections.unmodifiableSet(dependencyPaths_.stream().map(pathIndexProvider).collect(Collectors.toSet()));
+            dependencyIndices_ = dependencyPaths_.stream().flatMap(pathIndexProvider).collect(Collectors.toSet());
         }
 
         public Collection<Integer> getDependencyIndices()

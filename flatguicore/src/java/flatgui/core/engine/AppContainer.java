@@ -54,9 +54,14 @@ public class AppContainer<ContainerParser extends Container.IContainerParser, Re
         evolverExecutorService_.shutdown();
     }
 
-    public Container.IContainerAccessor getContainerAccessor()
+    public final Container.IContainerAccessor getContainerAccessor()
     {
         return container_.getContainerAccessor();
+    }
+
+    public final Integer getComponentUid(List<Object> componentPath)
+    {
+        return container_.getComponentUid(componentPath);
     }
 
     public void evolve(List<Object> targetPath, Object evolveReason)

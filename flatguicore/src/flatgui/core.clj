@@ -14,7 +14,17 @@
 
 (def fg "__flatgui_")
 
-(defn- symbol->str [smb] (str fg (name smb)))
+(defn- symbol->str-impl [smb]
+  (if-let [smb-ns (:ns (meta (resolve smb)))]
+    (str smb-ns "/" (name smb))
+    (name smb)))
+
+;;; TODO
+;;; 1. this leads to error: see capture-area fn in floatingbar
+;;; 2. could not handle Integer/MAX_VALUE in component
+;;; 3. see uiapp-test: Unable to resolve symbol: b-text...
+;;; x. see "strict"-related comments in Container
+(defn- symbol->str [smb] (str fg (symbol->str-impl smb)))
 
 (defn- str->symbol [str]
   (if
@@ -22,17 +32,66 @@
     (.startsWith str fg) (symbol (.replace str fg ""))
                               str))
 
+(defn- accessor-call-form->accessor-body [form]
+  (if-let [obj (resolve (first form))] (var-get obj)))
+
+(defn- accessor-body->params [ab] (:accessor_fn_params (meta ab)))
+
+(defn- accessor-call-form->params [form] (accessor-body->params (accessor-call-form->accessor-body form)))
+
+(defn accessor-call? [form]
+  (do
+    ; Form to inline: (var-get (resolve (first form)))
+    ;
+    ;(println "=== accessor-call? called for ===" form (seq? form) "; (first form): " (if (and (seq? form) (symbol? (first form))) (meta (accessor-call-form->accessor-body form))) )
+    (and
+      (seq? form)
+      (symbol? (first form))
+      (not (nil? (accessor-call-form->params form))))))
+
+(declare replace-occur-seq)
+(declare replace-occur-vec)
+(declare replace-occur-map)
+
+(defn- occur-replacer [% from-vec to-vec]
+  (cond
+    (seq? %) (replace-occur-seq % from-vec to-vec)
+    (vector? %) (replace-occur-vec % from-vec to-vec)
+    (map? %) (replace-occur-map % from-vec to-vec)
+    (symbol? %) (let [i (.indexOf from-vec %)]
+                  (if (>= i 0)
+                    (nth to-vec i)
+                    %))
+    :else %))
+
+(defn replace-occur-seq [form from-vec to-vec]
+  (map #(occur-replacer % from-vec to-vec) form))
+
+(defn replace-occur-vec [form from-vec to-vec]
+  (mapv #(occur-replacer % from-vec to-vec) form))
+
+(defn replace-occur-map [form from-vec to-vec]
+  (functor/fmap #(occur-replacer % from-vec to-vec) form))
+
 (declare shade-list)
 (declare shade-vec)
 (declare shade-map)
 
 (defn- shader [%]
-  (cond
-    (seq? %) (shade-list %)
-    (vector? %) (shade-vec %)
-    (map? %) (shade-map %)
-    (symbol? %) (symbol->str %)
-    :else %))
+  (do
+    ;(println "------------ % = " % "acc?" (accessor-call? %))
+    (cond
+      ;(accessor-call? %) (let [accessor-form (eval (first %))
+      ;                         _ (println "accessor-form" accessor-form)]
+      ;                     (replace-occur-seq
+      ;                       accessor-form
+      ;                       ["__flatgui_x"] ;(:accessor_fn_params (meta accessor-form))
+      ;                       (next %)))
+      (seq? %) (shade-list %)
+      (vector? %) (shade-vec %)
+      (map? %) (shade-map %)
+      (symbol? %) (symbol->str %)
+      :else %)))
 
 (defn shade-vec [v] (mapv shader v))
 (defn shade-list [form] (conj (map shader form) 'list))
@@ -71,8 +130,33 @@
 
 (defmacro accessorfn [body] (gen-evolver body))
 
+; TODO  1. param list to meta
+; TODO  2. inline calls to accessors in both evolvers and accessors
+
+; (def a (with-meta (list 1 2 3) {:type :accessor}))
+; (var-get #'a)
+; (eval (first l)) ; -> (1 2 3)
+; (meta (eval (first l))) ; -> {:type :accessor}
+
+
+;(defmacro defaccessorfn [fnname params body]
+;  (list 'def fnname params (gen-evolver body)))
+
+;;; TODO !! It should inline accessors when doing eval-evolver
+
 (defmacro defaccessorfn [fnname params body]
-  (list 'def fnname params (gen-evolver body)))
+  ;(list 'def ^{:accessor_fn_params params} fnname (gen-evolver body))
+  (list 'def fnname (list 'with-meta (gen-evolver body) (list 'hash-map :accessor_fn_params (shade-vec params))))
+  )
+
+
+;(defmacro defaccessorfn [fnname params body]
+;  (list 'def fnname (with-meta
+;                (gen-evolver body)
+;                {:flatgui_accessor true
+;                 :accessor_fn_params params})))
+
+
 
 (defn build-abs-path [component-path rel-path]
   (cond
@@ -161,7 +245,11 @@
     (update-in
       component
       [:evolvers]
-      (fn [evolver-map] (functor/fmap (fn [form] (replace-all-rel-paths form component-path)) evolver-map)))
+      (fn [evolver-map]
+        (do
+          (println "FUNCS: " (filter #(instance? clojure.lang.IFn (second %)) evolver-map))
+          (functor/fmap (fn [form] (replace-all-rel-paths form component-path)) evolver-map))
+        ))
     (update-in
       [:children]
       (fn [child-map] (functor/fmap (fn [child] (parse-component child (conj component-path (:id child)))) child-map)))
@@ -174,8 +262,7 @@
 
 (defn collect-evolver-dependencies [form]
   (if (get-property-call? form)
-    (let [_ (println "====FORM " form)
-          path-&-prop (next form)]
+    (let [path-&-prop (next form)]
       (list (conj (first path-&-prop) (second path-&-prop))))
     (filter seq (mapcat (fn [e] (if (coll? e) (collect-evolver-dependencies e))) form))))
 
@@ -191,10 +278,19 @@
   (cond
 
     (and (seq? e) (get-property-call? e))
-    (let [path-&-prop (next e)
+    (let [e (if (symbol? (second e)) (conj (drop 2 e) (first e)) e) ;backward compatibility
+          path-&-prop (next e)
           prop-full-path (conj (first path-&-prop) (second path-&-prop))
           index (.apply index-provider prop-full-path)]
-      (list '.getNodeValueByIndex 'component index))
+      ;See :input-channel-subscribers evolver in component: k is not known during dependency replacement with indices
+      ; so need to
+      ; 1) calculate proper dependecies - all possible nodes matching templete
+      ; 2) put s-expr that will resolve in runtime instead of .getNodeValueByIndex
+      (if index
+        (list '.getNodeValueByIndex 'component index)
+        ; Here replace-dependencies-with-indicesv is called for prop-full-path because
+        ; prop-full-path may contain exsressions (e.g. calls to get-property)
+        (list '.getValueByAbsPath 'component (replace-dependencies-with-indicesv prop-full-path index-provider))))
 
     (and (seq? e) (get-reason-call? e))
     (list '.getEvolveReason 'component)
@@ -223,11 +319,49 @@
 (defn replace-dependencies-with-indicesmap [m index-provider]
   (functor/fmap #(dep-replacer % index-provider) m))
 
+
+(declare replace-param-value)
+(declare replace-param-valuev)
+(declare replace-param-valuemap)
+(defn- param-value-replacer [e replace-map]
+  (cond
+    (symbol? e) (if-let [replacement (get replace-map e)] replacement e)
+    (seq? e) (replace-param-value e replace-map)
+    (vector? e) (replace-param-valuev e replace-map)
+    (map? e) (replace-param-valuemap e replace-map)
+    :else e))
+(defn replace-param-value [form replace-map] (map #(param-value-replacer % replace-map) form))
+(defn replace-param-valuev [form replace-map] (mapv #(param-value-replacer % replace-map) form))
+(defn replace-param-valuemap [form replace-map] (functor/fmap #(param-value-replacer % replace-map) form))
+
+(declare inline-accessors)
+(declare inline-accessorsv)
+(declare inline-accessorsmap)
+(defn- inliner [form]
+  (cond
+    (accessor-call? form) (let [accessor-body (accessor-call-form->accessor-body form)
+                                params (replace-gpv (accessor-body->params accessor-body))
+                                params-values (vec (next form))
+                                repace-map (into {} (map (fn [%] [(nth params %) (nth params-values %)]) (range (count params))))]
+                            (replace-param-value accessor-body repace-map))
+    (seq? form) (inline-accessors form)
+    (vector? form) (inline-accessorsv form)
+    (map? form) (inline-accessorsmap form)
+    :else form))
+(defn inline-accessors [form] (map inliner form))
+(defn inline-accessorsv [form] (mapv inliner form))
+(defn inline-accessorsmap [form] (functor/fmap inliner form))
+
 (defn eval-evolver [form]
   (eval (conj (list form) ['component] 'fn)))
 
 (defn compile-evolver [form index-provider]
-  (eval-evolver (replace-dependencies-with-indices form index-provider)))
+  (try
+    (eval-evolver (replace-dependencies-with-indices (inline-accessors form) index-provider))
+    (catch Exception ex
+      (do
+        (println "Error compiling evolver " form)
+        (.printStackTrace ex)))))
 
 ;;; TODO move below to dedicated namespace(s)
 
@@ -282,4 +416,5 @@
       properties-merger
       c
       {:children (into {} (for [c children] [(:id c) c]))
-       :id id})))
+       :id id
+       :look-vec nil})))
