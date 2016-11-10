@@ -104,7 +104,7 @@
         (set (core/collect-evolver-dependencies x-evolver))))))
 
 (test/deftest init-&-evolve-test
-  (let [_ (core/defevolverfn evolver-c1-a :a (inc (get-property [] :src)))
+  (let [_ (core/defevolverfn evolver-c1-a :a (let [src (get-property [] :src)] (inc src)))
         _ (core/defevolverfn evolver-c2-b :b (+
                                             (:d component)
                                             (get-property [:this] :c)
@@ -137,6 +137,7 @@
                                                 (assoc r [path property] newValue)
                                                 r)))
                              )
+                           (componentAdded [_componentUid])
                            (postProcessAfterEvolveCycle [_a _m]))
         container-engine (Container.
                            (ClojureContainerParser.)
@@ -174,6 +175,7 @@
                                                 (assoc r [path property] newValue)
                                                 r)))
                              )
+                           (componentAdded [_componentUid])
                            (postProcessAfterEvolveCycle [_a _m]))
         _container-engine (Container.
                             (ClojureContainerParser.)
@@ -218,6 +220,7 @@
                                                 (assoc r [path property] newValue)
                                                 r)))
                              )
+                           (componentAdded [_componentUid])
                            (postProcessAfterEvolveCycle [_a _m]))
         container-engine (Container.
                            (ClojureContainerParser.)
@@ -253,12 +256,39 @@
                                                 (assoc r [path property] newValue)
                                                 r)))
                              )
+                           (componentAdded [_componentUid])
                            (postProcessAfterEvolveCycle [_a _m]))
         container-engine (Container.
                             (ClojureContainerParser.)
                             result-collector
                             container)
         _ (.evolve container-engine [:main] {:x 1})]
+    (test/is (= 9 (get @results [[:main] :a])))))
+
+(test/deftest inline-evolver-test
+  (let [_ (core/defevolverfn tfn :a (+ (get (get-reason) :y) 2 (:a {:a (first [(get (get-reason) :y) 1 2])})))
+        _ (core/defevolverfn :a (if (not (nil? (get-reason)))
+                                  (+ (:x (get-reason)) (tfn component))
+                                  old-a))
+        container (core/defroot
+                    {:id :main
+                     :a 0
+                     :evolvers {:a a-evolver}})
+        results (atom {})
+        result-collector (proxy [IResultCollector] []
+                           (appendResult [path, _componentUid, property, newValue]
+                             (swap! results (fn [r]
+                                              (if (not (or (= :children property) (= :evolvers property)))
+                                                (assoc r [path property] newValue)
+                                                r)))
+                             )
+                           (componentAdded [_componentUid])
+                           (postProcessAfterEvolveCycle [_a _m]))
+        container-engine (Container.
+                           (ClojureContainerParser.)
+                           result-collector
+                           container)
+        _ (.evolve container-engine [:main] {:x 1 :y 3})]
     (test/is (= 9 (get @results [[:main] :a])))))
 
 (test/deftest rebuild-look-test

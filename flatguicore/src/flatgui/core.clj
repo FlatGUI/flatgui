@@ -35,19 +35,24 @@
 (defn- accessor-call-form->accessor-body [form]
   (if-let [obj (resolve (first form))] (var-get obj)))
 
+(defn- evolver-call-form->evolver-body [form]
+  (if-let [obj (resolve (first form))] (var-get obj)))
+
 (defn- accessor-body->params [ab] (:accessor_fn_params (meta ab)))
 
 (defn- accessor-call-form->params [form] (accessor-body->params (accessor-call-form->accessor-body form)))
 
 (defn accessor-call? [form]
-  (do
-    ; Form to inline: (var-get (resolve (first form)))
-    ;
-    ;(println "=== accessor-call? called for ===" form (seq? form) "; (first form): " (if (and (seq? form) (symbol? (first form))) (meta (accessor-call-form->accessor-body form))) )
-    (and
-      (seq? form)
-      (symbol? (first form))
-      (not (nil? (accessor-call-form->params form))))))
+  (and
+    (seq? form)
+    (symbol? (first form))
+    (not (nil? (accessor-call-form->params form)))))
+
+(defn evolver-call? [form]
+  (and
+    (seq? form)
+    (symbol? (first form))
+    (:evolver (meta (evolver-call-form->evolver-body form)))))
 
 (declare replace-occur-seq)
 (declare replace-occur-vec)
@@ -117,7 +122,7 @@
 
 (defn- gen-evolver-decl
   ([fnname _property body]
-   (list 'def fnname (gen-evolver body)))
+    (list 'def fnname (list 'with-meta (gen-evolver body) (list 'hash-map :evolver true))))
   ([property body]
    (gen-evolver-decl (symbol (str (name property) "-evolver")) property body)))
 
@@ -130,33 +135,8 @@
 
 (defmacro accessorfn [body] (gen-evolver body))
 
-; TODO  1. param list to meta
-; TODO  2. inline calls to accessors in both evolvers and accessors
-
-; (def a (with-meta (list 1 2 3) {:type :accessor}))
-; (var-get #'a)
-; (eval (first l)) ; -> (1 2 3)
-; (meta (eval (first l))) ; -> {:type :accessor}
-
-
-;(defmacro defaccessorfn [fnname params body]
-;  (list 'def fnname params (gen-evolver body)))
-
-;;; TODO !! It should inline accessors when doing eval-evolver
-
 (defmacro defaccessorfn [fnname params body]
-  ;(list 'def ^{:accessor_fn_params params} fnname (gen-evolver body))
-  (list 'def fnname (list 'with-meta (gen-evolver body) (list 'hash-map :accessor_fn_params (shade-vec params))))
-  )
-
-
-;(defmacro defaccessorfn [fnname params body]
-;  (list 'def fnname (with-meta
-;                (gen-evolver body)
-;                {:flatgui_accessor true
-;                 :accessor_fn_params params})))
-
-
+  (list 'def fnname (list 'with-meta (gen-evolver body) (list 'hash-map :accessor_fn_params (shade-vec params)))))
 
 (defn build-abs-path [component-path rel-path]
   (cond
@@ -344,6 +324,7 @@
                                 params-values (vec (next form))
                                 repace-map (into {} (map (fn [%] [(nth params %) (nth params-values %)]) (range (count params))))]
                             (replace-param-value accessor-body repace-map))
+    (evolver-call? form) (evolver-call-form->evolver-body form)
     (seq? form) (inline-accessors form)
     (vector? form) (inline-accessorsv form)
     (map? form) (inline-accessorsmap form)
@@ -384,7 +365,7 @@
           (do
             ;(fg/log-error "Error painting " target-id-path ":" (.getMessage ex))
             (.printStackTrace ex))))
-      component)))
+      [])))
 
 (defn properties-merger [a b]
   (if (and (map? a) (map? b))
