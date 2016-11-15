@@ -317,28 +317,34 @@
 (declare inline-accessors)
 (declare inline-accessorsv)
 (declare inline-accessorsmap)
-(defn- inliner [form]
+(defn- inliner [form component-path]
   (cond
     (accessor-call? form) (let [accessor-body (accessor-call-form->accessor-body form)
                                 params (replace-gpv (accessor-body->params accessor-body))
                                 params-values (vec (next form))
                                 repace-map (into {} (map (fn [%] [(nth params %) (nth params-values %)]) (range (count params))))]
                             (replace-param-value accessor-body repace-map))
-    (evolver-call? form) (evolver-call-form->evolver-body form)
-    (seq? form) (inline-accessors form)
-    (vector? form) (inline-accessorsv form)
-    (map? form) (inline-accessorsmap form)
+    (evolver-call? form) (replace-all-rel-paths (evolver-call-form->evolver-body form) component-path)
+    (seq? form) (inline-accessors form component-path)
+    (vector? form) (inline-accessorsv form component-path)
+    (map? form) (inline-accessorsmap form component-path)
     :else form))
-(defn inline-accessors [form] (map inliner form))
-(defn inline-accessorsv [form] (mapv inliner form))
-(defn inline-accessorsmap [form] (functor/fmap inliner form))
+(defn inline-accessors [form component-path] (map (fn [%] (inliner % component-path)) form))
+(defn inline-accessorsv [form component-path] (mapv (fn [%] (inliner % component-path)) form))
+(defn inline-accessorsmap [form component-path] (functor/fmap (fn [%] (inliner % component-path)) form))
 
 (defn eval-evolver [form]
   (eval (conj (list form) ['component] 'fn)))
 
-(defn compile-evolver [form index-provider]
+(defn ls->str [a]
+  (if (seq? a)
+    (mapv ls->str a)
+    (str a)))
+
+(defn compile-evolver [form index-provider component-path]
   (try
-    (eval-evolver (replace-dependencies-with-indices (inline-accessors form) index-provider))
+    (let [full-form (replace-dependencies-with-indices (inline-accessors form component-path) index-provider)]
+      (with-meta (eval-evolver full-form) {:source (ls->str full-form)}))
     (catch Exception ex
       (do
         (println "Error compiling evolver " form)
@@ -370,7 +376,7 @@
 (defn properties-merger [a b]
   (if (and (map? a) (map? b))
     (merge-with properties-merger a b)
-    b))
+    (if (not (nil? b)) b a)))
 
 (defmacro defwidget [widget-type dflt-properties & base-widget-types]
   "Creates widget property map and associates it with a symbol."

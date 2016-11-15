@@ -266,13 +266,19 @@
     (test/is (= 9 (get @results [[:main] :a])))))
 
 (test/deftest inline-evolver-test
-  (let [_ (core/defevolverfn tfn :a (+ (get (get-reason) :y) 2 (:a {:a (first [(get (get-reason) :y) 1 2])})))
+  (let [_ (core/defevolverfn tfn :a (+
+                                      (get (get-reason) :y)
+                                      2
+                                      (:a {:a (first [(get (get-reason) :y) 1 2])})
+                                      (get-property [:this] :t)
+                                      ))
         _ (core/defevolverfn :a (if (not (nil? (get-reason)))
                                   (+ (:x (get-reason)) (tfn component))
                                   old-a))
         container (core/defroot
                     {:id :main
                      :a 0
+                     :t 3
                      :evolvers {:a a-evolver}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
@@ -289,7 +295,7 @@
                            result-collector
                            container)
         _ (.evolve container-engine [:main] {:x 1 :y 3})]
-    (test/is (= 9 (get @results [[:main] :a])))))
+    (test/is (= 12 (get @results [[:main] :a])))))
 
 (test/deftest rebuild-look-test
   (let [_ (core/defevolverfn :a (* (get-property [:this] :b) 2))
