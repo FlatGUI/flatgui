@@ -10,6 +10,8 @@
 package flatgui.core.engine;
 
 import clojure.lang.Keyword;
+import clojure.lang.PersistentVector;
+import flatgui.core.util.Tuple;
 
 import java.lang.reflect.Array;
 import java.util.*;
@@ -36,6 +38,7 @@ public class Container
     private final Map<List<Object>, Integer> pathToIndex_;
 
     private final IContainerAccessor containerAccessor_;
+    private final IPropertyValueAccessor propertyValueAccessor_;
     private final IContainerMutator containerMutator_;
 
     private final IContainerParser containerParser_;
@@ -66,6 +69,7 @@ public class Container
         indexBufferSize_ = 0;
 
         containerAccessor_ = components_::get;
+        propertyValueAccessor_ = this::getPropertyValue;
         containerMutator_ = (nodeIndex, newValue) -> values_.set(nodeIndex, newValue);
 
         addContainer(new ArrayList<>(), container);
@@ -99,9 +103,9 @@ public class Container
         return i;
     }
 
-    public Stream<Integer> allMatchingIndicesOfPath(List<Object> path)
+    public Collection<Integer> allMatchingIndicesOfPath(List<Object> path)
     {
-        return pathToIndex_.keySet().stream().filter(k -> pathMatches(path, k)).map(pathToIndex_::get);
+        return pathToIndex_.keySet().stream().filter(k -> pathMatches(path, k)).map(pathToIndex_::get).collect(Collectors.toList());
     }
 
     public void evolve(List<Object> targetPath, Object evolveReason)
@@ -146,7 +150,7 @@ public class Container
             int nodeIndex = node.getNodeIndex().intValue();
             Function<Map<Object, Object>, Object> evolver = node.getEvolver();
 
-            if (triggeringReason != null || !initializedNodes_.contains(nodeIndex))
+            if (triggeringReason != null || initializedNodes_ != null && !initializedNodes_.contains(nodeIndex))
             {
                 Object oldValue;
                 Object newValue;
@@ -168,18 +172,19 @@ public class Container
                     {
                         log(" Error evolving " + node.getNodePath() + " " + node.getPropertyId() +
                                 " for reason: " + triggeringReason);
+                        ex.printStackTrace();
                         throw ex;
                     }
                 }
 
-                if (!Objects.equals(oldValue, newValue))
+                if (!Objects.equals(oldValue, newValue) || initializedNodes_ != null && !initializedNodes_.contains(nodeIndex))
                 {
                     log(" Evolved: " + nodeIndex + " " + node.getNodePath() + " for reason: " + valueToString(triggeringReason) +
                             ": " + valueToString(oldValue) + " -> " + valueToString(newValue));
 
                     containerMutator_.setValue(nodeIndex, newValue);
 
-                    resultCollector_.appendResult(component.getComponentPath(), componentUid, node.getPropertyId(), newValue);
+                    resultCollector_.appendResult(component.getComponentPath(), node.getComponentUid(), node.getPropertyId(), newValue);
 
                     addNodeDependentsToEvolvebuffer(node);
                 }
@@ -206,6 +211,11 @@ public class Container
     public IContainerAccessor getContainerAccessor()
     {
         return containerAccessor_;
+    }
+
+    public IPropertyValueAccessor getPropertyValueAccessor()
+    {
+        return propertyValueAccessor_;
     }
 
     public Iterable<Integer> getComponentNaturalOrder()
@@ -261,6 +271,8 @@ public class Container
             naturalComponentOrder_.add(index);
         }
 
+        resultCollector_.componentAdded(index);
+
         return index;
     }
 
@@ -275,8 +287,9 @@ public class Container
         ComponentAccessor component = new ComponentAccessor(
                 componentPath, values_, path -> getPropertyValue(indexOfPathStrict(path)));
         Integer componentUid = addComponent(componentPath, component);
+        log("Added and indexed component " + componentPath + ": " + componentUid);
         Collection<SourceNode> componentPropertyNodes = containerParser_.processComponent(
-                componentPath, container);
+                componentPath, container, propertyValueAccessor_);
         for (SourceNode node : componentPropertyNodes)
         {
             Integer nodeIndex = addNode(componentUid, node, container.get(node.getPropertyId()));
@@ -301,12 +314,19 @@ public class Container
         return componentUid;
     }
 
+    private static List<Object> dropLast(List<Object> path)
+    {
+        List<Object> list = new ArrayList<>(path);
+        list.remove(list.size()-1);
+        return list;
+    }
+
     private void finishContainerIndexing()
     {
         // Now that all components/properties are indexed, compile evolvers
 
         nodes_.forEach(n -> n.setEvolver(n.getEvolverCode() != null ? containerParser_.compileEvolverCode(
-                n.getEvolverCode(), this::indexOfPath) : null));
+                n.getPropertyId(), n.getEvolverCode(), this::indexOfPath, dropLast(n.getNodePath()), propertyValueAccessor_) : null));
 
         // and resolve dependency indices for each property
 
@@ -316,7 +336,7 @@ public class Container
         // For each component N, take its dependencies and mark that components that they have N as a dependent
 
         nodes_.forEach(n -> n.getDependencyIndices()
-                .forEach(dependencyIndex -> nodes_.get(dependencyIndex).addDependent(n.getNodeIndex())));
+                .forEach(dependencyTuple -> nodes_.get(dependencyTuple.getFirst()).addDependent(n.getNodeIndex(), dependencyTuple.getSecond())));
 
         // TODO Optimize:
         // remove dependents covered by longer chains. Maybe not remove but just hide since longer chains may be provided
@@ -340,7 +360,7 @@ public class Container
                 sourceNode.getPropertyId(),
                 sourceNode.getNodePath(),
                 index,
-                sourceNode.getDependencyPaths(),
+                sourceNode.getRelAndAbsDependencyPaths(),
                 sourceNode.getInputDependencies(),
                 sourceNode.getEvolverCode());
         int indexInt = index.intValue();
@@ -369,16 +389,23 @@ public class Container
 
     private void addNodeDependentsToEvolvebuffer(Node node)
     {
-        Collection<Integer> dependents = node.getDependentIndices();
+        Map<Integer, List<Object>> dependents = node.getDependentIndices();
         int dependentCollSize = dependents.size();
         ensureIndexBufferSize(indexBufferSize_ + dependentCollSize);
-        for (Integer i : dependents)
+        for (Integer i : dependents.keySet())
         {
             Node dependent = nodes_.get(i.intValue());
-            reusableNodeBuffer_[indexBufferSize_] = dependent;
-            reusableReasonBuffer_[indexBufferSize_] = node.getNodePath();
+            List<Object> invokerRefRelPath = new ArrayList<>(dependents.get(i));
+            // By convention, do not include property into what (get-reason) returns
+            invokerRefRelPath.remove(invokerRefRelPath.size()-1);
 
-            log("    Triggered dependent: " + dependent.getNodePath());
+            // TODO delegate reference to Clojure to parser
+            invokerRefRelPath = PersistentVector.create(invokerRefRelPath);
+
+            reusableNodeBuffer_[indexBufferSize_] = dependent;
+            reusableReasonBuffer_[indexBufferSize_] = invokerRefRelPath;
+
+            log("    Triggered dependent: " + dependent.getNodePath() + " referenced as " + invokerRefRelPath);
 
             indexBufferSize_ ++;
         }
@@ -447,9 +474,9 @@ public class Container
         if (v != null)
         {
             String s = v.toString();
-            if (s.length() > 30)
+            if (s.length() > 100)
             {
-                return s.substring(0, 30) + "...";
+                return s.substring(0, 100) + "...";
             }
             else
             {
@@ -476,7 +503,8 @@ public class Container
         {
             for (int i=0; i<path.size(); i++)
             {
-                if (!(path.get(i).equals(mapKey.get(i)) || !(path.get(i) instanceof Keyword)))
+                Object e = path.get(i);
+                if (!(e.equals(mapKey.get(i)) || containerParser_.isWildcardPathElement(e) /* TODO(IND) !(path.get(i) instanceof Keyword)*/))
                 {
                     return false;
                 }
@@ -504,7 +532,7 @@ public class Container
 
         private final List<Object> nodePath_;
 
-        private final Collection<List<Object>> dependencyPaths_;
+        private final Collection<Tuple> relAndAbsDependencyPaths_;
 
         private final Object evolverCode_;
 
@@ -513,13 +541,13 @@ public class Container
         public SourceNode(
                 Object propertyId,
                 List<Object> nodePath,
-                Collection<List<Object>> dependencyPaths,
+                Collection<Tuple> relAndAbsDependencyPaths,
                 Object evolverCode,
                 List<Object> inputDependencies)
         {
             propertyId_ = propertyId;
             nodePath_ = nodePath;
-            dependencyPaths_ = dependencyPaths;
+            relAndAbsDependencyPaths_ = relAndAbsDependencyPaths;
             evolverCode_ = evolverCode;
             inputDependencies_ = inputDependencies;
         }
@@ -534,9 +562,9 @@ public class Container
             return nodePath_;
         }
 
-        public Collection<List<Object>> getDependencyPaths()
+        public Collection<Tuple> getRelAndAbsDependencyPaths()
         {
-            return dependencyPaths_;
+            return relAndAbsDependencyPaths_;
         }
 
         public Object getEvolverCode()
@@ -558,12 +586,15 @@ public class Container
 
         Collection<SourceNode> processComponent(
                 List<Object> componentPath,
-                Map<Object, Object> component);
+                Map<Object, Object> component,
+                Container.IPropertyValueAccessor propertyValueAccessor);
 
         void processComponentAfterIndexing(IComponent component);
 
-        Function<Map<Object, Object>, Object> compileEvolverCode(Object evolverCode,
-                                                                 Function<List<Object>, Integer> indexProvider);
+        Function<Map<Object, Object>, Object> compileEvolverCode(Object propertyId, Object evolverCode,
+                                                                 Function<List<Object>, Integer> indexProvider,
+                                                                 List<Object> componentPath,
+                                                                 IPropertyValueAccessor propertyValueAccessor);
 
         /**
          * @param inputDependencies
@@ -573,6 +604,8 @@ public class Container
          *         depend on given evolveReason
          */
         boolean isInterestedIn(Collection<Object> inputDependencies, Object evolveReason);
+
+        boolean isWildcardPathElement(Object e);
     }
 
     public interface IComponent extends Map<Object, Object>
@@ -589,6 +622,11 @@ public class Container
     public interface IContainerAccessor
     {
         IComponent getComponent(int componentUid);
+    }
+
+    public interface IPropertyValueAccessor
+    {
+        Object getPropertyValue(Integer index);
     }
 
     public interface IContainerMutator
@@ -788,23 +826,23 @@ public class Container
         private final Object propertyId_;
         private final List<Object> nodePath_;
         private final Integer nodeUid_;
-        private final Collection<List<Object>> dependencyPaths_;
+        private final Collection<Tuple> relAndAbsDependencyPaths_;
         private final Collection<Object> inputDependencies_;
-        private Collection<Integer> dependencyIndices_;
+        private Collection<Tuple> dependencyIndices_;
         private Object evolverCode_;
         private Function<Map<Object, Object>, Object> evolver_;
 
         // TODO Optimize:
         // remove dependents covered by longer chains. Maybe not remove but just hide since longer chains may be provided
         // by components that may be removed
-        private final Collection<Integer> dependentIndices_;
+        private final Map<Integer, List<Object>> dependentIndexToRelPath_;
 
         public Node(
                 Integer componentUid,
                 Object propertyId,
                 List<Object> nodePath,
                 Integer nodeUid,
-                Collection<List<Object>> dependencyPaths,
+                Collection<Tuple> relAndAbsDependencyPaths,
                 Collection<Object> inputDependencies,
                 Object evolverCode)
         {
@@ -812,9 +850,9 @@ public class Container
             propertyId_ = propertyId;
             nodePath_ = nodePath;
             nodeUid_ = nodeUid;
-            dependencyPaths_ = dependencyPaths;
+            relAndAbsDependencyPaths_ = relAndAbsDependencyPaths;
             inputDependencies_ = inputDependencies;
-            dependentIndices_ = new HashSet<>();
+            dependentIndexToRelPath_ = new HashMap<>();
             evolverCode_ = evolverCode;
         }
 
@@ -847,24 +885,36 @@ public class Container
 //        {
 //            dependencyIndices_ = Collections.unmodifiableSet(dependencyPaths_.stream().map(pathIndexProvider).collect(Collectors.toSet()));
 //        }
-        public void resolveDependencyIndices(Function<List<Object>, Stream<Integer>> pathIndexProvider)
+        public void resolveDependencyIndices(Function<List<Object>, Collection<Integer>> pathIndexProvider)
         {
-            dependencyIndices_ = dependencyPaths_.stream().flatMap(pathIndexProvider).collect(Collectors.toSet());
+            //dependencyIndices_ = dependencyPaths_.stream().flatMap(pathIndexProvider).collect(Collectors.toSet());
+            dependencyIndices_ = new ArrayList<>(relAndAbsDependencyPaths_.size());
+            for (Tuple d : relAndAbsDependencyPaths_)
+            {
+                List<Object> relPath = d.getFirst();
+                List<Object> absPath = d.getSecond();
+                Collection<Integer> allMatchingIndices = pathIndexProvider.apply(absPath);
+                for (Integer i : allMatchingIndices)
+                {
+                    dependencyIndices_.add(Tuple.pair(i, relPath));
+                }
+            }
         }
 
-        public Collection<Integer> getDependencyIndices()
+        public Collection<Tuple> getDependencyIndices()
         {
             return dependencyIndices_;
         }
 
-        public Collection<Integer> getDependentIndices()
+        public Map<Integer, List<Object>> getDependentIndices()
         {
-            return dependentIndices_;
+            return dependentIndexToRelPath_;
         }
 
-        public void addDependent(Integer nodeIndex)
+        public void addDependent(Integer nodeIndex, List<Object> relPath)
         {
-            dependentIndices_.add(nodeIndex);
+            log(nodeUid_ + " added dependednt: " + nodeIndex + " referenced as " + relPath);
+            dependentIndexToRelPath_.put(nodeIndex, relPath);
         }
 
         public Object getEvolverCode()

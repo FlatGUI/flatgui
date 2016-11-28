@@ -64,6 +64,10 @@ public class AppContainer<ContainerParser extends Container.IContainerParser, Re
         return container_.getComponentUid(componentPath);
     }
 
+    // TODO
+    // Fisrt two methods hide exception in evolve java code
+    // Third one must not call get() by itself
+
     public void evolve(List<Object> targetPath, Object evolveReason)
     {
         evolverExecutorService_.submit(() -> container_.evolve(targetPath, evolveReason));
@@ -74,13 +78,13 @@ public class AppContainer<ContainerParser extends Container.IContainerParser, Re
         evolverExecutorService_.submit(() -> container_.evolve(componentUid, evolveReason));
     }
 
-    public void evolve(Object evolveReason)
+    public Future<?> evolve(Object evolveReason)
     {
-        evolverExecutorService_.submit(() -> {
+        return evolverExecutorService_.submit(() -> {
             Map<Object, Integer> eventsToTargetIndex = reasonParser_.parseInputEvent(getContainer(), evolveReason);
             for (Object event : eventsToTargetIndex.keySet())
             {
-                evolve(eventsToTargetIndex.get(event), event);
+                container_.evolve(eventsToTargetIndex.get(event), event);
             }
         });
     }

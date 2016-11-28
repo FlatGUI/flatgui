@@ -11,97 +11,103 @@
             [flatgui.core :as core]
             [flatgui.dependency]
             [flatgui.paint :as fgp]
-            [flatgui.awt :as awt])
+            [flatgui.awt :as awt]
+            [flatgui.util.matrix :as m])
   (:import (flatgui.core.engine IResultCollector Container ClojureContainerParser)
-           (flatgui.core.engine.ui FGAppContainer)
-           (flatgui.core.awt FGAWTInteropUtil)))
+           (flatgui.core.engine.ui FGAppContainer FGAWTAppContainer)
+           (flatgui.core.awt FGAWTInteropUtil)
+           (java.util ArrayList)
+           (java.util.function Consumer)
+           (java.awt.geom AffineTransform)))
 
-(test/deftest build-abs-path-test
-  (test/is (= [:a :b :c] (core/build-abs-path [:a :b :c] [:this])))
-  (test/is (= [:a :b :c :d] (core/build-abs-path [:a :b :c] [:this :d])))
-  (test/is (= [:a :b :c :d :e] (core/build-abs-path [:a :b :c] [:this :d :e])))
-  (test/is (= [:a :b] (core/build-abs-path [:a :b :c] [])))
-  (test/is (= [:a :u :v] (core/build-abs-path [:a :b :c] [:_ :u :v])))
-  (test/is (= [:a] (core/build-abs-path [:a :b :c] [:_])))
-  (test/is (= [:c] (core/build-abs-path [] [:c]))))
-
+;(test/deftest build-abs-path-test
+;  (test/is (= [:a :b :c] (core/build-abs-path [:a :b :c] [:this])))
+;  (test/is (= [:a :b :c :d] (core/build-abs-path [:a :b :c] [:this :d])))
+;  (test/is (= [:a :b :c :d :e] (core/build-abs-path [:a :b :c] [:this :d :e])))
+;  (test/is (= [:a :b] (core/build-abs-path [:a :b :c] [])))
+;  (test/is (= [:a :u :v] (core/build-abs-path [:a :b :c] [:_ :u :v])))
+;  (test/is (= [:a] (core/build-abs-path [:a :b :c] [:_])))
+;  (test/is (= [:c] (core/build-abs-path [] [:c]))))
+;
 (test/deftest get-property-call?-test
   (test/is (true? (core/get-property-call? (list 'get-property [:a :b] :c))))
   (test/is (true? (core/get-property-call? (list 'get-property 'component [:a :b] :c))))
   (test/is (false? (core/get-property-call? (list 'component [:a :b] :c)))))
 
-(test/deftest replace-rel-path-test
-  (test/is (=
-             (core/replace-rel-path (list 'get-property [:this] :c) [:a :b])
-             (list 'get-property [:a :b] :c))))
+;(test/deftest replace-rel-path-test
+;  (test/is (=
+;             (core/replace-rel-path (list 'get-property [:this] :c) [:a :b])
+;             (list 'get-property [:a :b] :c))))
+;
+;(test/deftest replace-rel-path-test2
+;  (test/is (=
+;             (core/replace-rel-path (list 'get-property 'component [:this] :c) [:a :b])
+;             (list 'get-property [:a :b] :c))))
+;
+;(test/deftest replace-all-rel-paths-test
+;  (test/is (=
+;             (core/replace-all-rel-paths
+;               (list 'println 1 2 (list 'get-property [:this :d] :c))
+;               [:a :b])
+;             (list 'println 1 2 (list 'get-property [:a :b :d] :c)))))
+;
+;(test/deftest replace-all-rel-paths-test2
+;  (test/is (=
+;             (core/replace-all-rel-paths
+;               (list 'let ['a (list 'get-property 'component [:this] :c)] (list '+ 'a 1))
+;               [:a :b])
+;             (list 'let ['a (list 'get-property [:a :b] :c)] (list '+ 'a 1)))))
+;
+;(test/deftest replace-all-rel-paths-test3
+;  (test/is (=
+;             (core/replace-all-rel-paths
+;               (list 'let ['a {:x (list 'get-property 'component [:this] :c)}] (list '+ {:x 'a} 1))
+;               [:a :b])
+;             (list 'let ['a {:x (list 'get-property [:a :b] :c)}] (list '+ {:x 'a} 1)))))
+;
+;(test/deftest defroot-test
+;  (let [_ (core/defevolverfn e1 :a (+ 1 (get-property [:this] :a)))
+;        _ (core/defevolverfn e2 :b (- 2 (get-property [:this :c1] :a)))
+;        _ (core/defevolverfn e11 :b (+ 2 (get-property [] :x)))
+;        _ (core/defevolverfn e21 :d (+ 3 (get-property [:c1] :b)))
+;        container {:id :main
+;                   :a 4
+;                   :b 5
+;                   :evolvers {:a e1
+;                              :b e2}
+;                   :children {:c1 {:id :c1
+;                                   :b 5
+;                                   :evolvers {:b e11}}
+;                              :c2 {:id :c2
+;                                   :d 6
+;                                   :evolvers {:d e21}}}}]
+;    (test/is
+;      (=
+;        (core/defroot container)
+;        {:id :main
+;         :a 4
+;         :b 5
+;         :evolvers {:a '(clojure.core/+ 1 (get-property [:main] :a))
+;                    :b '(clojure.core/- 2 (get-property [:main :c1] :a))}
+;         :children {:c1 {:id :c1
+;                         :b 5
+;                         :evolvers {:b '(clojure.core/+ 2 (get-property [:main] :x))}}
+;                    :c2 {:id :c2
+;                         :d 6
+;                         :evolvers {:d '(clojure.core/+ 3 (get-property [:main :c1] :b))}}}}))))
+;
+;(test/deftest collect-evolver-dependencies-test
+;  (let [_ (core/defevolverfn :x (if (get-property [:main :x :y] :z)
+;                                  (get-property [:main :a :b] :c)
+;                                  (do
+;                                    (println "Hello")
+;                                    (get-property [:main] :v))))]
+;    (test/is
+;      (=
+;        #{[:main :x :y :z] [:main :a :b :c] [:main :v]}
+;        (set (core/collect-evolver-dependencies x-evolver))))))
 
-(test/deftest replace-rel-path-test2
-  (test/is (=
-             (core/replace-rel-path (list 'get-property 'component [:this] :c) [:a :b])
-             (list 'get-property [:a :b] :c))))
 
-(test/deftest replace-all-rel-paths-test
-  (test/is (=
-             (core/replace-all-rel-paths
-               (list 'println 1 2 (list 'get-property [:this :d] :c))
-               [:a :b])
-             (list 'println 1 2 (list 'get-property [:a :b :d] :c)))))
-
-(test/deftest replace-all-rel-paths-test2
-  (test/is (=
-             (core/replace-all-rel-paths
-               (list 'let ['a (list 'get-property 'component [:this] :c)] (list '+ 'a 1))
-               [:a :b])
-             (list 'let ['a (list 'get-property [:a :b] :c)] (list '+ 'a 1)))))
-
-(test/deftest replace-all-rel-paths-test3
-  (test/is (=
-             (core/replace-all-rel-paths
-               (list 'let ['a {:x (list 'get-property 'component [:this] :c)}] (list '+ {:x 'a} 1))
-               [:a :b])
-             (list 'let ['a {:x (list 'get-property [:a :b] :c)}] (list '+ {:x 'a} 1)))))
-
-(test/deftest defroot-test
-  (let [_ (core/defevolverfn e1 :a (+ 1 (get-property [:this] :a)))
-        _ (core/defevolverfn e2 :b (- 2 (get-property [:this :c1] :a)))
-        _ (core/defevolverfn e11 :b (+ 2 (get-property [] :x)))
-        _ (core/defevolverfn e21 :d (+ 3 (get-property [:c1] :b)))
-        container {:id :main
-                   :a 4
-                   :b 5
-                   :evolvers {:a e1
-                              :b e2}
-                   :children {:c1 {:id :c1
-                                   :b 5
-                                   :evolvers {:b e11}}
-                              :c2 {:id :c2
-                                   :d 6
-                                   :evolvers {:d e21}}}}]
-    (test/is
-      (=
-        (core/defroot container)
-        {:id :main
-         :a 4
-         :b 5
-         :evolvers {:a '(clojure.core/+ 1 (get-property [:main] :a))
-                    :b '(clojure.core/- 2 (get-property [:main :c1] :a))}
-         :children {:c1 {:id :c1
-                         :b 5
-                         :evolvers {:b '(clojure.core/+ 2 (get-property [:main] :x))}}
-                    :c2 {:id :c2
-                         :d 6
-                         :evolvers {:d '(clojure.core/+ 3 (get-property [:main :c1] :b))}}}}))))
-
-(test/deftest collect-evolver-dependencies-test
-  (let [_ (core/defevolverfn :x (if (get-property [:main :x :y] :z)
-                                  (get-property [:main :a :b] :c)
-                                  (do
-                                    (println "Hello")
-                                    (get-property [:main] :v))))]
-    (test/is
-      (=
-        #{[:main :x :y :z] [:main :a :b :c] [:main :v]}
-        (set (core/collect-evolver-dependencies x-evolver))))))
 
 (test/deftest init-&-evolve-test
   (let [_ (core/defevolverfn evolver-c1-a :a (let [src (get-property [] :src)] (inc src)))
@@ -156,8 +162,7 @@
     (test/is (= 15 (get @results [[:main :c2] :d])))))
 
 (test/deftest init-&-evolve-test2
-  (let [; TODO try using (System/currentTimeMillis) - System is lost
-        _ (core/defevolverfn :z-position
+  (let [_ (core/defevolverfn :z-position
                              (let [pz {:a (get-property component [] :z-position)}]
                                (+ (:a pz) 1)))
         container (core/defroot
@@ -183,6 +188,37 @@
                             container)
         z-res (get @results [[:main :c1] :z-position])]
     (test/is (= 2 z-res))))
+
+(test/deftest init-&-evolve-test3
+  (let [_ (core/defevolverfn evolver-res :res (if (= [:this :c2] (get-reason))
+                                                (get-property [:this :c2] :b)
+                                                -1))
+        _ (core/defevolverfn evolver-c2-b :b (* 3 old-b))
+        container (core/defroot
+                    {:id :main
+                     :res nil
+                     :evolvers {:res evolver-res}
+                     :children {:c1 {:id :c1
+                                     :a 5}
+                                :c2 {:id :c2
+                                     :b 3
+                                     :evolvers {:b evolver-c2-b}}}})
+        results (atom {})
+        result-collector (proxy [IResultCollector] []
+                           (appendResult [_path, _componentUid, property, newValue]
+                             (swap! results (fn [r]
+                                              (if (not (or (= :children property) (= :evolvers property)))
+                                                (assoc r property newValue)
+                                                r)))
+                             )
+                           (componentAdded [_componentUid])
+                           (postProcessAfterEvolveCycle [_a _m]))
+        container-engine (Container.
+                           (ClojureContainerParser.)
+                           result-collector
+                           container)
+        _ (.evolve container-engine [:main :c2] {})]
+    (test/is (= 9 (get @results :res)))))
 
 (defn- get-cmpnd-key [m k]
   (second (first (filter (fn [[mk _mv]] (= mk k)) m))))
@@ -234,12 +270,48 @@
     (test/is (= 5 (get-cmpnd-key result-map [[:main] :res])))
     (test/is (= 3 (get-cmpnd-key result-map [[:main :c1] :a])))
     (test/is (= 5 (get-cmpnd-key result-map [[:main :c2] :a])))
-    (test/is (= 3 (count dep-test-results)))
-    (test/is (= true (contains? dep-test-results "[:main, :c1, :a]")))
-    (test/is (= true (contains? dep-test-results "[:main, :c2, :a]")))
+    (test/is (= 2 (count dep-test-results)))
+    (test/is (= true (contains? dep-test-results "[:this, :*]")))
     (test/is (= true (contains? dep-test-results "{:x :c2}")))))
 
-(test/deftest inline-accessor-test
+(test/deftest init-&-evolve-test-non-const-path2
+  (let [_ (core/defevolverfn evolver-res :res (let [child-list (list :c1 :c2)
+                                                    propetry-list-1 (list :x :y)]
+                                                (+
+                                                  (apply + (map #(get-property [:this %] :a) child-list))
+                                                  (apply + (map #(get-property [:this] %) propetry-list-1))
+                                                  (apply + (map #(get-property [:this %] %) child-list)))))
+        container (core/defroot
+                    {:id :main
+                     :src 1
+                     :res nil
+                     :x 11
+                     :y 22
+                     :evolvers {:res evolver-res}
+                     :children {:c1 {:id :c1
+                                     :a 5
+                                     :c1 100}
+                                :c2 {:id :c2
+                                     :a 3
+                                     :c2 200}}})
+        results (atom {})
+        result-collector (proxy [IResultCollector] []
+                           (appendResult [_path, _componentUid, property, newValue]
+                             (swap! results (fn [r]
+                                              (if (not (or (= :children property) (= :evolvers property)))
+                                                (assoc r property newValue)
+                                                r)))
+                             )
+                           (componentAdded [_componentUid])
+                           (postProcessAfterEvolveCycle [_a _m]))
+        container-engine (Container.
+                           (ClojureContainerParser.)
+                           result-collector
+                           container)
+        _ (.evolve container-engine [:main] {})]
+    (test/is (= (+ 5 3 11 22 100 200) (get @results :res)))))
+
+(test/deftest accessor-call-test
   (let [_ (core/defaccessorfn tfn [x] (+ x 2 (:a {:a (first [x 1 2])})))
         _ (core/defevolverfn :a (if (not (nil? (get-reason)))
                                   (+ (:x (get-reason)) (tfn 3))
@@ -265,7 +337,7 @@
         _ (.evolve container-engine [:main] {:x 1})]
     (test/is (= 9 (get @results [[:main] :a])))))
 
-(test/deftest inline-evolver-test
+(test/deftest evolver-call-test
   (let [_ (core/defevolverfn tfn :a (+
                                       (get (get-reason) :y)
                                       2
@@ -304,12 +376,60 @@
                     {:id :main
                      :a nil
                      :b 2
+                     :popup false
                      :look test-look
                      :look-vec []
                      :position-matrix nil
+                     :viewport-matrix nil
                      :clip-size nil
                      :evolvers {:a a-evolver}})
         ui-app (FGAppContainer. container (FGAWTInteropUtil. 64))
         _ (.initialize ui-app)
         container-accessor (.getContainerAccessor ui-app)]
     (test/is (= [["fillRect" 0 0 4 4]] (.get (.getComponent container-accessor 0) :look-vec)))))
+
+(test/deftest paint-all-test
+  (let [_ (core/defevolverfn :a (* (get-property [:this] :b) 2))
+        _ (fgp/deflookfn test-look (:a) (awt/fillRect 0 0 a a))
+        _ (fgp/deflookfn child-look () (awt/fillRect 0 0 1 1))
+        container (core/defroot
+                    {:id :main
+                     :a nil
+                     :b 2
+                     :popup false
+                     :look test-look
+                     :look-vec []
+                     :position-matrix (m/translation 2 1)
+                     :viewport-matrix m/IDENTITY-MATRIX
+                     :clip-size (m/defpoint 10 10)
+                     :evolvers {:a a-evolver}
+                     :children {:c1 {:id :c1
+                                     :popup false
+                                     :look child-look
+                                     :look-vec []
+                                     :clip-size (m/defpoint 5 5)
+                                     :position-matrix (m/translation 3 2)
+                                     :viewport-matrix m/IDENTITY-MATRIX}}})
+        ui-app (FGAWTAppContainer. container 1)
+        _ (.initialize ui-app)
+        ;container-accessor (.getContainerAccessor ui-app)
+        paint-all-vec (ArrayList.)
+        primitive-painter (proxy [Consumer] []
+                            (accept [look-vec] (.add paint-all-vec look-vec)))
+        _ (.paintAllFromRoot ui-app primitive-painter)]
+    (test/is (= [["pushCurrentClip"]
+                 ["transform" (AffineTransform. 1.0 0.0 0.0 1.0 2.0 1.0)]
+                 ["clipRect" 0 0 10.0 10.0]
+                 ["transform" (AffineTransform. 1.0 0.0 0.0 1.0 0.0 0.0)]
+                 [["fillRect" 0 0 4 4]]
+                     ["pushCurrentClip"]
+                     ["transform" (AffineTransform. 1.0 0.0 0.0 1.0 3.0 2.0)]
+                     ["clipRect" 0 0 5.0 5.0]
+                     ["transform" (AffineTransform. 1.0 0.0 0.0 1.0 0.0 0.0)]
+                     [["fillRect" 0 0 1 1]]
+                     ["transform" (AffineTransform. 1.0 0.0 0.0 1.0 0.0 0.0)]
+                     ["transform" (.createInverse (AffineTransform. 1.0 0.0 0.0 1.0 3.0 2.0))]
+                     ["popCurrentClip"]
+                 ["transform" (AffineTransform. 1.0 0.0 0.0 1.0 0.0 0.0)]
+                 ["transform" (.createInverse (AffineTransform. 1.0 0.0 0.0 1.0 2.0 1.0))]
+                 ["popCurrentClip"]] paint-all-vec))))

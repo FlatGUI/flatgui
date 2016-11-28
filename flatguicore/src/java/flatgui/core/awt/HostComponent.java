@@ -84,12 +84,22 @@ public class HostComponent extends AbstractHostComponent
         }
     }
 
+//    @Override
+//    protected Iterable<Object> getPaintList(double clipX, double clipY, double clipW, double clipH) throws Exception
+//    {
+//        Future<List<Object>> paintListFuture =
+//                fgContainer_.submitTask(() -> fgContainer_.getFGModule().getPaintAllSequence(clipX, clipY, clipW, clipH));
+//        return paintListFuture.get();
+//    }
+
+
     @Override
-    protected Iterable<Object> getPaintList(double clipX, double clipY, double clipW, double clipH) throws Exception
+    protected void paintAll(Graphics bg, double clipX, double clipY, double clipW, double clipH) throws Exception
     {
         Future<List<Object>> paintListFuture =
                 fgContainer_.submitTask(() -> fgContainer_.getFGModule().getPaintAllSequence(clipX, clipY, clipW, clipH));
-        return paintListFuture.get();
+        List<Object> paintList = paintListFuture.get();
+        paintSequence(bg, paintList);
     }
 
     public static Keyword resolveCursor(Map<java.util.List<Keyword>, Map<Keyword, Object>> idPathToComponent,
@@ -128,5 +138,44 @@ public class HostComponent extends AbstractHostComponent
     protected void acceptEvolveReason(Object evolveReason)
     {
         changedPathsFuture_ = feedFn_.apply(new FGEvolveInputData(evolveReason, false));
+    }
+
+    private int paintSequence(Graphics g, Iterable<Object> paintingSequence)
+    {
+        // System.out.println("paintSequence starts at " + System.currentTimeMillis());
+
+        int painted = 0;
+
+        for (Object obj : paintingSequence)
+        {
+            // Null is possible here. It is allowed for look functions to
+            // be able to use condtionals easy
+
+            if (obj instanceof List)
+            {
+                getPrimitivePainter().paintPrimitive(g, (List<Object>)obj);
+                painted++;
+
+//                if (((List<Object>)obj).size() > 0 && ((List<Object>)obj).get(0) instanceof List)
+//                {
+//                    painted += paintSequence(g, ((List<Object>)obj));
+//                }
+//                else
+//                {
+//                    primitivePainter_.paintPrimitive(g, (List<Object>)obj);
+//                    painted++;
+//                }
+
+
+            }
+            else if (obj != null)
+            {
+                System.out.println("Error: not a list: " + paintingSequence);
+            }
+        }
+
+        //  System.out.println("paintSequence ends at " + System.currentTimeMillis());
+
+        return painted;
     }
 }

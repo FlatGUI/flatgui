@@ -3,12 +3,18 @@
  */
 package flatgui.core.engine.ui;
 
+import clojure.lang.Var;
 import flatgui.core.awt.AbstractHostComponent;
+import flatgui.core.engine.*;
+import flatgui.core.engine.Container;
 import flatgui.core.websocket.FGWebInteropUtil;
 
 import java.awt.*;
-import java.util.Iterator;
-import java.util.Map;
+import java.awt.geom.NoninvertibleTransformException;
+import java.util.*;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 /**
  * @author Denis Lebedev
@@ -16,7 +22,7 @@ import java.util.Map;
 public class FGAWTAppContainer extends FGAppContainer<FGWebInteropUtil>
 {
     private final HostComponent hostComponent_;
-    private final PaintListIterable paintListIterable_;
+//    private final PaintListIterable paintListIterable_;
 
     public FGAWTAppContainer(Map<Object, Object> container)
     {
@@ -25,10 +31,10 @@ public class FGAWTAppContainer extends FGAppContainer<FGWebInteropUtil>
 
     public FGAWTAppContainer(Map<Object, Object> container, int unitSizePx)
     {
-        super(container, new FGWebInteropUtil(unitSizePx));
+        super(container, new FGWebInteropUtil(unitSizePx), unitSizePx);
 
         hostComponent_ = new HostComponent();
-        paintListIterable_ = new PaintListIterable();
+//        paintListIterable_ = new PaintListIterable();
     }
 
     public final Component getComponent()
@@ -38,36 +44,48 @@ public class FGAWTAppContainer extends FGAppContainer<FGWebInteropUtil>
 
     // Inner classes
 
-    private class PaintListIterator implements Iterator<Object>
+//    private class PaintListIterator implements Iterator<Object>
+//    {
+//        private final Iterator<Integer> naturalOrderIterator_;
+//
+//        public PaintListIterator()
+//        {
+//            naturalOrderIterator_ = getContainer().getComponentNaturalOrder().iterator();
+//        }
+//
+//        @Override
+//        public boolean hasNext()
+//        {
+//            return naturalOrderIterator_.hasNext();
+//        }
+//
+//        @Override
+//        public Object next()
+//        {
+//            Integer nextIndex = naturalOrderIterator_.next();
+//            return getResultCollector().getLookVector(nextIndex);
+//        }
+//    }
+//
+//    private class PaintListIterable implements Iterable<Object>
+//    {
+//        @Override
+//        public Iterator<Object> iterator()
+//        {
+//            return new PaintListIterator();
+//        }
+//    }
+//
+
+    public final void paintAllFromRoot(Consumer<List<Object>> primitivePainter) throws NoninvertibleTransformException
     {
-        private final Iterator<Integer> naturalOrderIterator_;
-
-        public PaintListIterator()
-        {
-            naturalOrderIterator_ = getContainer().getComponentNaturalOrder().iterator();
-        }
-
-        @Override
-        public boolean hasNext()
-        {
-            return naturalOrderIterator_.hasNext();
-        }
-
-        @Override
-        public Object next()
-        {
-            Integer nextIndex = naturalOrderIterator_.next();
-            return getResultCollector().getLookVector(nextIndex);
-        }
-    }
-
-    private class PaintListIterable implements Iterable<Object>
-    {
-        @Override
-        public Iterator<Object> iterator()
-        {
-            return new PaintListIterator();
-        }
+        Container.IContainerAccessor containerAccessor = getContainer().getContainerAccessor();
+        Container.IPropertyValueAccessor propertyValueAccessor = getContainer().getPropertyValueAccessor();
+        getResultCollector().paintComponentWithChildren(
+                primitivePainter,
+                containerAccessor,
+                propertyValueAccessor,
+                Integer.valueOf(0));
     }
 
     private class HostComponent extends AbstractHostComponent
@@ -79,15 +97,39 @@ public class FGAWTAppContainer extends FGAppContainer<FGWebInteropUtil>
         }
 
         @Override
-        protected Iterable<Object> getPaintList(double clipX, double clipY, double clipW, double clipH) throws Exception
+        protected void paintAll(Graphics bg, double clipX, double clipY, double clipW, double clipH) throws Exception
         {
-            return paintListIterable_;
+            paintAllFromRoot(primitive ->
+            {
+                if (primitive.size() > 0)
+                {
+                    if (primitive.get(0) instanceof String)
+                    {
+                        getPrimitivePainter().paintPrimitive(bg, primitive);
+                    }
+                    else
+                    {
+                        for (Object p : primitive)
+                        {
+                            getPrimitivePainter().paintPrimitive(bg, (List<Object>) p);
+                        }
+                    }
+                }
+            });
         }
 
         @Override
         protected void acceptEvolveReason(Object evolveReason)
         {
-            evolve(evolveReason);
+            try
+            {
+                evolve(evolveReason).get();
+                repaint();
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
         }
     }
 }

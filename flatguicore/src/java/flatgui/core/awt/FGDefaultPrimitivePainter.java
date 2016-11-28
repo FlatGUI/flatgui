@@ -95,6 +95,11 @@ public class FGDefaultPrimitivePainter implements IFGPrimitivePainter
 //        System.out.println("-DLTEMP- FGDefaultPrimitivePainter.paintPrimitive invoking for " +
 //                primitive);
 
+        if (primitive.size() == 0)
+        {
+            return;
+        }
+
         String methodName = (String)primitive.get(0);
 
         Object[] argValues = primitive.stream().skip(1).map(e -> e instanceof Double

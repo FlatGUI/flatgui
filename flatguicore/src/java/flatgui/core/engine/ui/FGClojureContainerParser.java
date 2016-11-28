@@ -17,6 +17,9 @@ public class FGClojureContainerParser extends ClojureContainerParser
     private static final Keyword LOOK_VEC_KW = Keyword.intern("look-vec");
     private static final Keyword POSITION_MATRIX_KW = Keyword.intern("position-matrix");
     private static final Keyword CLIP_SIZE_KW = Keyword.intern("clip-size");
+    private static final Keyword POPUP_KW = Keyword.intern("popup");
+    private static final Keyword VIEWPORT_MATRIX_KW = Keyword.intern("viewport-matrix");
+    private static final Keyword CHILDREN_KW = Keyword.intern("children");
 
     @Override
     public void processComponentAfterIndexing(Container.IComponent component)
@@ -26,6 +29,9 @@ public class FGClojureContainerParser extends ClojureContainerParser
         componentDataCache.setLookVecIndex(getPropertyIndex(component, LOOK_VEC_KW));
         componentDataCache.setPositionMatrixIndex(getPropertyIndex(component, POSITION_MATRIX_KW));
         componentDataCache.setClipSizeIndex(getPropertyIndex(component, CLIP_SIZE_KW));
+        componentDataCache.setPopupIndex(getPropertyIndex(component, POPUP_KW));
+        componentDataCache.setViewportMatrixIndex(getPropertyIndex(component, VIEWPORT_MATRIX_KW));
+        componentDataCache.setChildrenIndex(component.getPropertyIndex(CHILDREN_KW));
 
         component.setCustomData(componentDataCache);
     }
@@ -43,38 +49,72 @@ public class FGClojureContainerParser extends ClojureContainerParser
 
     public static class FGComponentDataCache
     {
-        private int lookVecIndex_;
-        private int positionMatrixIndex_;
-        private int clipSizeIndex_;
+        private Integer lookVecIndex_;
+        private Integer positionMatrixIndex_;
+        private Integer clipSizeIndex_;
+        private Integer popupIndex_;
+        private Integer viewportMatrixIndex_;
+        private Integer childrenIndex_;
 
-        public int getLookVecIndex()
+
+        public Integer getLookVecIndex()
         {
             return lookVecIndex_;
         }
 
-        public void setLookVecIndex(int lookVecIndex)
+        public void setLookVecIndex(Integer lookVecIndex)
         {
             lookVecIndex_ = lookVecIndex;
         }
 
-        public int getPositionMatrixIndex()
+        public Integer getPositionMatrixIndex()
         {
             return positionMatrixIndex_;
         }
 
-        public void setPositionMatrixIndex(int positionMatrixIndex)
+        public void setPositionMatrixIndex(Integer positionMatrixIndex)
         {
             positionMatrixIndex_ = positionMatrixIndex;
         }
 
-        public int getClipSizeIndex()
+        public Integer getClipSizeIndex()
         {
             return clipSizeIndex_;
         }
 
-        public void setClipSizeIndex(int clipSizeIndex)
+        public void setClipSizeIndex(Integer clipSizeIndex)
         {
             clipSizeIndex_ = clipSizeIndex;
+        }
+
+        public Integer getPopupIndex()
+        {
+            return popupIndex_;
+        }
+
+        public void setPopupIndex(Integer popupIndex)
+        {
+            popupIndex_ = popupIndex;
+        }
+
+        public Integer getViewportMatrixIndex()
+        {
+            return viewportMatrixIndex_;
+        }
+
+        public void setViewportMatrixIndex(Integer viewportMatrixIndex)
+        {
+            viewportMatrixIndex_ = viewportMatrixIndex;
+        }
+
+        public Integer getChildrenIndex()
+        {
+            return childrenIndex_;
+        }
+
+        public void setChildrenIndex(Integer childrenIndex)
+        {
+            childrenIndex_ = childrenIndex;
         }
     }
 }

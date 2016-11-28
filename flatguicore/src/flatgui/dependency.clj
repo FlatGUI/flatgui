@@ -37,8 +37,13 @@
     ;(if (and (symbol? c) (= "get-model-row" (name c)) ) (println "--->>" (meta (resolve c)) " -->>> " (.getClass (resolve c)) ))
 
     (distinct
-      (if (and (symbol? c) (:relative-dependencies (meta (resolve c))))
-        (:relative-dependencies (meta (resolve c)))
+      (if ; TODO(IND) (and (symbol? c) (:relative-dependencies (meta (resolve c))))
+        (and (symbol? c) (var? (resolve c)) (var-get (resolve c))  (:relative-dependencies (meta (var-get (resolve c)))))
+
+        ;; TODO core test did not catch this!
+        ;(:relative-dependencies (meta (resolve c)))
+        (:relative-dependencies (meta (var-get (resolve c))))
+
         (let [ this-dep (get-dependency c)]
           (if this-dep
             (do
@@ -72,8 +77,13 @@
 
 (defn get-input-dependencies [c]
   (distinct
-    (if (and (symbol? c) (:input-channel-dependencies (meta (resolve c))))
-      (:input-channel-dependencies (meta (resolve c)))
+    (if ; TODO(IND) (and (symbol? c) (:input-channel-dependencies (meta (resolve c))))
+      (and (symbol? c) (var? (resolve c)) (var-get (resolve c))  (:input-channel-dependencies (meta (var-get (resolve c)))))
+
+      ;; TODO core test did not catch this!
+      ;(:input-channel-dependencies (meta (resolve c)))
+      (:input-channel-dependencies (meta (var-get (resolve c))))
+
       (if-let [this-dep (get-expr-dependencies c)]
         this-dep
         (if (coll? c)

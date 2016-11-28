@@ -54,7 +54,7 @@ public abstract class AbstractHostComponent extends Canvas
         addMouseMotionListener(new ContainerMouseMotionListener(eventConsumer));
         addMouseWheelListener(new ContainerMouseWheelListener(eventConsumer));
         addKeyListener(new ContainerKeyListener(eventConsumer));
-        addComponentListener(new ContainerComponentListener(eventConsumer));
+        //addComponentListener(new ContainerComponentListener(eventConsumer));
         setupBlinkHelperTimer(eventConsumer);
     }
 
@@ -71,7 +71,7 @@ public abstract class AbstractHostComponent extends Canvas
             @Override
             public void run()
             {
-                timerEventConsumer.accept(new FGTimerEvent(System.currentTimeMillis()));
+                //timerEventConsumer.accept(new FGTimerEvent(System.currentTimeMillis()));
             }
         }, 530, 530);
         return blinkTimer;
@@ -116,8 +116,7 @@ public abstract class AbstractHostComponent extends Canvas
             }
             interopUtil_.setReferenceGraphics(bg);
 
-            Iterable<Object> pList = getPaintList(clipX, clipY, clipW, clipH);
-            paintSequence(bg, pList);
+            paintAll(bg, clipX, clipY, clipW, clipH);
 
             appTriggered_ = true;
             paint(g);
@@ -132,7 +131,8 @@ public abstract class AbstractHostComponent extends Canvas
 
     protected abstract void changeCursorIfNeeded() throws Exception;
 
-    protected abstract Iterable<Object> getPaintList(double clipX, double clipY, double clipW, double clipH) throws Exception;
+    //protected abstract Iterable<Object> getPaintList(double clipX, double clipY, double clipW, double clipH) throws Exception;
+    protected abstract void paintAll(Graphics bg, double clipX, double clipY, double clipW, double clipH) throws Exception;
 
     Image getPendingImage()
     {
@@ -148,34 +148,12 @@ public abstract class AbstractHostComponent extends Canvas
         return bufferImage_.getGraphics();
     }
 
-    private int paintSequence(Graphics g, Iterable<Object> paintingSequence)
-    {
-       // System.out.println("paintSequence starts at " + System.currentTimeMillis());
-
-        int painted = 0;
-
-        for (Object obj : paintingSequence)
-        {
-            // Null is possible here. It is allowed for look functions to
-            // be able to use condtionals easy
-
-            if (obj instanceof List)
-            {
-                primitivePainter_.paintPrimitive(g, (List<Object>)obj);
-                painted++;
-            }
-            else if (obj != null)
-            {
-                System.out.println("Error: not a list: " + paintingSequence);
-            }
-        }
-
-      //  System.out.println("paintSequence ends at " + System.currentTimeMillis());
-
-        return painted;
-    }
-
     protected abstract void acceptEvolveReason(Object evolveReason);
+
+    protected final IFGPrimitivePainter getPrimitivePainter()
+    {
+        return primitivePainter_;
+    }
 
     // Inner classes
 
