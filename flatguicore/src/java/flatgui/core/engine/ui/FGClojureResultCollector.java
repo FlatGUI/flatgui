@@ -123,13 +123,12 @@ public class FGClojureResultCollector implements IResultCollector
             Arrays.asList("pushCurrentClip"));
     private final List<Object> POP_CURRENT_CLIP = Collections.unmodifiableList(
             Arrays.asList("popCurrentClip"));
-//    private final List<Object> SET_CLIP = Arrays.asList("setClip", 0, 0, null, null);
-//    private final List<Object> CLIP_RECT = Arrays.asList("clipRect", 0, 0, null, null);
-//    private final List<Object> TRANSFORM = Arrays.asList("transform", null);
+    private final List<Object> SET_CLIP = Arrays.asList("setClip", 0, 0, null, null);
+    private final List<Object> CLIP_RECT = Arrays.asList("clipRect", 0, 0, null, null);
+    private final List<Object> TRANSFORM = Arrays.asList("transform", null);
 
     private final List<Object> setClip(Double clipW, Double clipH)
     {
-        List<Object> SET_CLIP = Arrays.asList("setClip", 0, 0, null, null);
         SET_CLIP.set(3, clipW);
         SET_CLIP.set(4, clipH);
         return SET_CLIP;
@@ -137,7 +136,6 @@ public class FGClojureResultCollector implements IResultCollector
 
     private final List<Object> clipRect(Double clipW, Double clipH)
     {
-        List<Object> CLIP_RECT = Arrays.asList("clipRect", 0, 0, null, null);
         CLIP_RECT.set(3, clipW);
         CLIP_RECT.set(4, clipH);
         return CLIP_RECT;
@@ -145,7 +143,6 @@ public class FGClojureResultCollector implements IResultCollector
 
     private final List<Object> transform(AffineTransform matrix)
     {
-        List<Object> TRANSFORM = Arrays.asList("transform", null);
         TRANSFORM.set(1, matrix);
         return TRANSFORM;
     }
@@ -157,6 +154,9 @@ public class FGClojureResultCollector implements IResultCollector
                 (FGClojureContainerParser.FGComponentDataCache) componentAccessor.getCustomData();
 
         Object positionMatrixObj = propertyValueAccessor.getPropertyValue(componentDataCache.getPositionMatrixIndex());
+
+        // TODO Cache both AWT format matrix object and and its inverse in the original matrix (in meta)?
+
         AffineTransform positionMatrix = affineTransform((List<List<Number>>) positionMatrixObj);
         AffineTransform positionMatrixInv = positionMatrix.createInverse();
 
@@ -168,9 +168,11 @@ public class FGClojureResultCollector implements IResultCollector
         Double clipW = mxX(clipSizeObj);
         Double clipH = mxY(clipSizeObj);
 
+        Boolean popup = (Boolean)propertyValueAccessor.getPropertyValue(componentDataCache.getPopupIndex());
+
         primitivePainter.accept(PUSH_CURRENT_CLIP);
         primitivePainter.accept(transform(positionMatrix));
-        primitivePainter.accept(clipRect(clipW, clipH)); // TODO analyze if it is a popup
+        primitivePainter.accept(popup.booleanValue() ? setClip(clipW, clipH) : clipRect(clipW, clipH));
         primitivePainter.accept(transform(viewportMatrix));
         primitivePainter.accept(lookVectors_.get(componentUid));
         Integer childrenIndex = componentDataCache.getChildrenIndex();

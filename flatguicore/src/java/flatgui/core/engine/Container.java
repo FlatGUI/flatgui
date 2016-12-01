@@ -9,15 +9,14 @@
  */
 package flatgui.core.engine;
 
-import clojure.lang.Keyword;
 import clojure.lang.PersistentVector;
 import flatgui.core.util.Tuple;
 
 import java.lang.reflect.Array;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * @author Denis Lebedev
@@ -142,6 +141,7 @@ public class Container
             log(" Initial component: " + reusableNodeBuffer_[i].getNodePath());
         }
 
+        Set<Integer> addedComponentIds = new HashSet<>();
         int currentIndex = 0;
         while (currentIndex < indexBufferSize_)
         {
@@ -187,6 +187,24 @@ public class Container
                     resultCollector_.appendResult(component.getComponentPath(), node.getComponentUid(), node.getPropertyId(), newValue);
 
                     addNodeDependentsToEvolvebuffer(node);
+
+                    if (triggeringReason != null && node.getPropertyId().equals(containerParser_.getChildrenPropertyName()))
+                    {
+                        log(" Detected children change");
+                        Map<Object, Map<Object, Object>> children = (Map<Object, Map<Object, Object>>) oldValue;
+                        Map<Object, Map<Object, Object>> oldChildren = children != null ? children : Collections.emptyMap();
+                        Map<Object, Map<Object, Object>> newChildren = (Map<Object, Map<Object, Object>>) newValue;
+                        if (newChildren.size() > oldChildren.size())
+                        {
+                            log(" Adding " + (newChildren.size() - oldChildren.size()) + " new children...");
+                            newChildren.keySet().stream()
+                                    .filter(childId -> !oldChildren.containsKey(childId))
+                                    .forEach(childId -> {
+                                        Map<Object, Object> child = newChildren.get(childId);
+                                        addedComponentIds.add(addContainer(component.getComponentPath(), child));
+                            });
+                        }
+                    }
                 }
                 else
                 {
@@ -206,6 +224,18 @@ public class Container
         resultCollector_.postProcessAfterEvolveCycle(containerAccessor_, containerMutator_);
 
         log("---Ended evolve cycle");
+
+        processAllNodesOfComponents(addedComponentIds, this::setupEvolversForNode);
+        processAllNodesOfComponents(addedComponentIds, this::resolveDependencyIndicesForNode);
+
+        // TODO
+        // resolve all nodes' dependencies given that there are new nodes added and therefore
+        // some ..:*.. dependencies of existing node may resolve to this new. Again, this is
+        // expensive so need to have to child cloning mode supported here
+
+        processAllNodesOfComponents(addedComponentIds, this::markDependentsOfNode);
+
+        addedComponentIds.forEach(this::initializeAddedComponent);
     }
 
     public IContainerAccessor getContainerAccessor()
@@ -299,7 +329,7 @@ public class Container
 
         containerParser_.processComponentAfterIndexing(component);
 
-        Map<Object, Map<Object, Object>> children = containerParser_.getChildren(container);
+        Map<Object, Map<Object, Object>> children = (Map<Object, Map<Object, Object>>) container.get(containerParser_.getChildrenPropertyName());
         if (children != null)
         {
             Collection<Integer> childIndices = new HashSet<>(children.size());
@@ -314,6 +344,35 @@ public class Container
         return componentUid;
     }
 
+    private void processAllNodesOfComponents(Collection<Integer> addedComponentIds, Consumer<Node> nodeProcessor)
+    {
+        for (Integer uid : addedComponentIds)
+        {
+            ComponentAccessor addedComponentAccessor = components_.get(uid);
+            Map<Object, Integer> addedComponentPropertyIdToNodeIndex = addedComponentAccessor.getPropertyIdToIndex();
+            for (Object propertyId : addedComponentPropertyIdToNodeIndex.keySet())
+            {
+                Integer nodeIndex = addedComponentPropertyIdToNodeIndex.get(propertyId);
+                Node node = nodes_.get(nodeIndex);
+                nodeProcessor.accept(node);
+            }
+        }
+    }
+
+    private void initializeAddedComponent(Integer componentUid)
+    {
+        evolve(componentUid, null);
+        ComponentAccessor component = components_.get(componentUid);
+        Iterable<Integer> childIndices = component.getChildIndices();
+        if (childIndices != null)
+        {
+            for (Integer childIndex : childIndices)
+            {
+                initializeAddedComponent(childIndex);
+            }
+        }
+    }
+
     private static List<Object> dropLast(List<Object> path)
     {
         List<Object> list = new ArrayList<>(path);
@@ -321,22 +380,34 @@ public class Container
         return list;
     }
 
+    private void setupEvolversForNode(Container.Node n)
+    {
+        n.setEvolver(n.getEvolverCode() != null ? containerParser_.compileEvolverCode(
+                n.getPropertyId(), n.getEvolverCode(), this::indexOfPath, dropLast(n.getNodePath()), propertyValueAccessor_) : null);
+    }
+
+    private void resolveDependencyIndicesForNode(Container.Node n)
+    {
+        n.resolveDependencyIndices(this::allMatchingIndicesOfPath);
+    }
+
+    private void markDependentsOfNode(Container.Node n)
+    {
+        n.getDependencyIndices()
+            .forEach(dependencyTuple -> nodes_.get(dependencyTuple.getFirst()).addDependent(n.getNodeIndex(), dependencyTuple.getSecond()));
+    }
+
     private void finishContainerIndexing()
     {
-        // Now that all components/properties are indexed, compile evolvers
-
-        nodes_.forEach(n -> n.setEvolver(n.getEvolverCode() != null ? containerParser_.compileEvolverCode(
-                n.getPropertyId(), n.getEvolverCode(), this::indexOfPath, dropLast(n.getNodePath()), propertyValueAccessor_) : null));
+        nodes_.forEach(this::setupEvolversForNode);
 
         // and resolve dependency indices for each property
 
-        //nodes_.forEach(n -> n.resolveDependencyIndices(this::indexOfPath));
-        nodes_.forEach(n -> n.resolveDependencyIndices(this::allMatchingIndicesOfPath));
+        nodes_.forEach(this::resolveDependencyIndicesForNode);
 
         // For each component N, take its dependencies and mark that components that they have N as a dependent
 
-        nodes_.forEach(n -> n.getDependencyIndices()
-                .forEach(dependencyTuple -> nodes_.get(dependencyTuple.getFirst()).addDependent(n.getNodeIndex(), dependencyTuple.getSecond())));
+        nodes_.forEach(this::markDependentsOfNode);
 
         // TODO Optimize:
         // remove dependents covered by longer chains. Maybe not remove but just hide since longer chains may be provided
@@ -582,7 +653,7 @@ public class Container
     {
         Object getComponentId(Map<Object, Object> container);
 
-        Map<Object, Map<Object, Object>> getChildren(Map<Object, Object> container);
+        Object getChildrenPropertyName();
 
         Collection<SourceNode> processComponent(
                 List<Object> componentPath,

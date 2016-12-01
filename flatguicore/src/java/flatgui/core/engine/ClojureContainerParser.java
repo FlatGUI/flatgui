@@ -60,9 +60,9 @@ public class ClojureContainerParser implements Container.IContainerParser
     }
 
     @Override
-    public Map<Object, Map<Object, Object>> getChildren(Map<Object, Object> container)
+    public Object getChildrenPropertyName()
     {
-        return (Map<Object, Map<Object, Object>>) container.get(CHILDREN_KEY);
+        return CHILDREN_KEY;
     }
 
     @Override
@@ -275,6 +275,10 @@ public class ClojureContainerParser implements Container.IContainerParser
 
         void link(List<Object> accessedPropertyRelPath, Object accessedProperty)
         {
+            // TODO
+            // what if path is statically determined but index is not resolved because referred component is not added yet
+            // and is going be added by pending :children evolver
+
             List<Object> accessedPropertyAbsPath = buildAbsPath(evolvedComponentPath_, accessedPropertyRelPath);
             accessedPropertyAbsPath.add(accessedProperty);
             accessedPropertyIndex_ = indexProvider_.apply(accessedPropertyAbsPath);
