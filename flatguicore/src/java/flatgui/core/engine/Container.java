@@ -248,8 +248,11 @@ public class Container
 
             for (Node n : nodes_)
             {
-                Collection<Tuple> newDependencies = n.reevaluateAmbiguousDependencies(this::allMatchingIndicesOfPath);
-                markNodeAsDependent(n.getNodeIndex(), newDependencies);
+                if (n.isHasAmbiguousDependencies())
+                {
+                    Collection<Tuple> newDependencies = n.reevaluateAmbiguousDependencies(this::allMatchingIndicesOfPath);
+                    markNodeAsDependent(n.getNodeIndex(), newDependencies);
+                }
             }
 
             addedComponentIds.forEach(this::initializeAddedComponent);
@@ -960,8 +963,9 @@ public class Container
         private final List<Object> nodePath_;
         private final Integer nodeUid_;
         private final Collection<DependencyInfo> relAndAbsDependencyPaths_;
+        private final boolean hasAmbiguousDependencies_;
         private final Collection<Object> inputDependencies_;
-        private Collection<Tuple> dependencyIndices_;
+        private Map<Integer, Tuple> dependencyIndices_;
         private Object evolverCode_;
         private Function<Map<Object, Object>, Object> evolver_;
 
@@ -984,6 +988,16 @@ public class Container
             nodePath_ = nodePath;
             nodeUid_ = nodeUid;
             relAndAbsDependencyPaths_ = relAndAbsDependencyPaths;
+            boolean hasAmbiguousDependencies = false;
+            for (DependencyInfo dependencyInfo : relAndAbsDependencyPaths_)
+            {
+                if (dependencyInfo.isAmbiguous())
+                {
+                    hasAmbiguousDependencies = true;
+                    break;
+                }
+            }
+            hasAmbiguousDependencies_ = hasAmbiguousDependencies;
             inputDependencies_ = inputDependencies;
             dependentIndexToRelPath_ = new HashMap<>();
             evolverCode_ = evolverCode;
@@ -1014,14 +1028,15 @@ public class Container
             return inputDependencies_;
         }
 
-//        public void resolveDependencyIndices(Function<List<Object>, Integer> pathIndexProvider)
-//        {
-//            dependencyIndices_ = Collections.unmodifiableSet(dependencyPaths_.stream().map(pathIndexProvider).collect(Collectors.toSet()));
-//        }
+        public boolean isHasAmbiguousDependencies()
+        {
+            return hasAmbiguousDependencies_;
+        }
+
         public void resolveDependencyIndices(Function<List<Object>, Collection<Integer>> pathIndexProvider)
         {
-            //dependencyIndices_ = dependencyPaths_.stream().flatMap(pathIndexProvider).collect(Collectors.toSet());
-            dependencyIndices_ = new ArrayList<>(relAndAbsDependencyPaths_.size());
+            dependencyIndices_ = new HashMap<>();
+
             for (DependencyInfo d : relAndAbsDependencyPaths_)
             {
                 List<Object> relPath = d.getRelPath();
@@ -1030,30 +1045,28 @@ public class Container
                 Collection<Integer> allMatchingIndices = pathIndexProvider.apply(absPath);
                 for (Integer i : allMatchingIndices)
                 {
-                    dependencyIndices_.add(Tuple.triple(i, relPath, isAmbiguous));
+                    dependencyIndices_.put(i, Tuple.triple(i, relPath, isAmbiguous));
                 }
             }
         }
 
         public Collection<Tuple> reevaluateAmbiguousDependencies(Function<List<Object>, Collection<Integer>> pathIndexProvider)
         {
-            // Remove all dependency indices produced by ambiguous dependencies: they will be re-evaluated now
-            dependencyIndices_ = dependencyIndices_.stream()
-                    .filter(t -> !((Boolean)t.getThird()).booleanValue())
-                    .collect(Collectors.toList());
-
             Collection<Tuple> newlyAddedDependencies = new ArrayList<>();
             for (DependencyInfo d : relAndAbsDependencyPaths_)
             {
                 List<Object> relPath = d.getRelPath();
                 List<Object> absPath = d.getAbsPath();
                 Boolean isAmbiguous = d.isAmbiguous();
-                Collection<Integer> allMatchingIndices = pathIndexProvider.apply(absPath);
-                for (Integer i : allMatchingIndices)
+                if (isAmbiguous)
                 {
-                    Tuple dependency = Tuple.triple(i, relPath, isAmbiguous);
-                    dependencyIndices_.add(dependency);
-                    newlyAddedDependencies.add(dependency);
+                    Collection<Integer> allMatchingIndices = pathIndexProvider.apply(absPath);
+                    for (Integer i : allMatchingIndices)
+                    {
+                        Tuple dependency = Tuple.triple(i, relPath, isAmbiguous);
+                        dependencyIndices_.put(i, dependency);
+                        newlyAddedDependencies.add(dependency);
+                    }
                 }
             }
             return newlyAddedDependencies;
@@ -1061,7 +1074,7 @@ public class Container
 
         public Collection<Tuple> getDependencyIndices()
         {
-            return dependencyIndices_;
+            return dependencyIndices_.values();
         }
 
         public Map<Integer, List<Object>> getDependentIndices()
