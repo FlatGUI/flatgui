@@ -20,6 +20,7 @@ public class FGClojureContainerParser extends ClojureContainerParser
     private static final Keyword POPUP_KW = Keyword.intern("popup");
     private static final Keyword VIEWPORT_MATRIX_KW = Keyword.intern("viewport-matrix");
     private static final Keyword CHILDREN_KW = Keyword.intern("children");
+    private static final Keyword VISIBLE_KW = Keyword.intern("visible");
 
     @Override
     public void processComponentAfterIndexing(Container.IComponent component)
@@ -32,6 +33,7 @@ public class FGClojureContainerParser extends ClojureContainerParser
         componentDataCache.setPopupIndex(getPropertyIndex(component, POPUP_KW));
         componentDataCache.setViewportMatrixIndex(getPropertyIndex(component, VIEWPORT_MATRIX_KW));
         componentDataCache.setChildrenIndex(component.getPropertyIndex(CHILDREN_KW));
+        componentDataCache.setVisibleIndex(component.getPropertyIndex(VISIBLE_KW));
 
         component.setCustomData(componentDataCache);
     }
@@ -55,6 +57,7 @@ public class FGClojureContainerParser extends ClojureContainerParser
         private Integer popupIndex_;
         private Integer viewportMatrixIndex_;
         private Integer childrenIndex_;
+        private Integer visibleIndex_;
 
 
         public Integer getLookVecIndex()
@@ -115,6 +118,16 @@ public class FGClojureContainerParser extends ClojureContainerParser
         public void setChildrenIndex(Integer childrenIndex)
         {
             childrenIndex_ = childrenIndex;
+        }
+
+        public Integer getVisibleIndex()
+        {
+            return visibleIndex_;
+        }
+
+        public void setVisibleIndex(Integer visibleIndex)
+        {
+            visibleIndex_ = visibleIndex;
         }
     }
 }

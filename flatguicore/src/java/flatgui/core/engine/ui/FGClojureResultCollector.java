@@ -160,6 +160,12 @@ public class FGClojureResultCollector implements IResultCollector
         FGClojureContainerParser.FGComponentDataCache componentDataCache =
                 (FGClojureContainerParser.FGComponentDataCache) componentAccessor.getCustomData();
 
+        Object visible = propertyValueAccessor.getPropertyValue(componentDataCache.getVisibleIndex());
+        if (visible == null || visible instanceof Boolean && !(((Boolean) visible).booleanValue()))
+        {
+            return;
+        }
+
         Object positionMatrixObj = propertyValueAccessor.getPropertyValue(componentDataCache.getPositionMatrixIndex());
 
         // TODO Cache both AWT format matrix object and and its inverse in the original matrix (in meta)?

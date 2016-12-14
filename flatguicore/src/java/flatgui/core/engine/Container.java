@@ -48,7 +48,7 @@ public class Container
 
     private Set<Integer> initializedNodes_;
 
-    private static boolean debug_ = true;
+    private static boolean debug_ = false;
 
     public Container(IContainerParser containerParser, IResultCollector resultCollector, Map<Object, Object> container)
     {
