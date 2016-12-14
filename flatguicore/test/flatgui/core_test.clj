@@ -271,7 +271,7 @@
     (test/is (= 3 (get-cmpnd-key result-map [[:main :c1] :a])))
     (test/is (= 5 (get-cmpnd-key result-map [[:main :c2] :a])))
     (test/is (= 2 (count dep-test-results)))
-    (test/is (= true (contains? dep-test-results "[:this, :*]")))
+    (test/is (= true (contains? dep-test-results "[:this :*]")))
     (test/is (= true (contains? dep-test-results "{:x :c2}")))))
 
 (test/deftest init-&-evolve-test-non-const-path2
@@ -342,8 +342,7 @@
                                       (get (get-reason) :y)
                                       2
                                       (:a {:a (first [(get (get-reason) :y) 1 2])})
-                                      (get-property [:this] :t)
-                                      ))
+                                      (get-property [:this] :t)))
         _ (core/defevolverfn :a (if (not (nil? (get-reason)))
                                   (+ (:x (get-reason)) (tfn component))
                                   old-a))
@@ -415,7 +414,7 @@
         ;container-accessor (.getContainerAccessor ui-app)
         paint-all-vec (ArrayList.)
         primitive-painter (proxy [Consumer] []
-                            (accept [look-vec] (.add paint-all-vec look-vec)))
+                            (accept [look-vec] (.add paint-all-vec (vec look-vec))))
         _ (.paintAllFromRoot ui-app primitive-painter)]
     (test/is (= [["pushCurrentClip"]
                  ["transform" (AffineTransform. 1.0 0.0 0.0 1.0 2.0 1.0)]
@@ -433,3 +432,133 @@
                  ["transform" (AffineTransform. 1.0 0.0 0.0 1.0 0.0 0.0)]
                  ["transform" (.createInverse (AffineTransform. 1.0 0.0 0.0 1.0 2.0 1.0))]
                  ["popCurrentClip"]] paint-all-vec))))
+
+(test/deftest add-children-test
+  (let [_ (core/defevolverfn evolver-res :res (if (= (get-reason) {:do :res})
+                                                (let [child-list (list :c1 :c2 :c3)]
+                                                  (apply + (map
+                                                             (fn [e] (nil? e) 0 e)
+                                                             (map #(get-property [:this %] :a) child-list))))
+                                                old-res))
+        _ (core/defevolverfn :children (if (= (get-reason) {:do :children})
+                                         (let [c1 (:c1 old-children)]
+                                           (assoc
+                                             old-children
+                                             :c2 (assoc c1 :id :c2 :a 6)
+                                             :c3 (assoc c1 :id :c3 :a 7)))
+                                         old-children))
+        container (core/defroot
+                    {:id :main
+                     :src 1
+                     :res nil
+                     :x 11
+                     :y 22
+                     :evolvers {:res evolver-res
+                                :children children-evolver}
+                     :children {:c1 {:id :c1
+                                     :a 5}}})
+        results (atom {})
+        result-collector (proxy [IResultCollector] []
+                           (appendResult [_path, _componentUid, property, newValue]
+                             (swap! results (fn [r]
+                                              (if (not (or (= :children property) (= :evolvers property)))
+                                                (assoc r property newValue)
+                                                r)))
+                             )
+                           (componentAdded [_componentUid])
+                           (postProcessAfterEvolveCycle [_a _m]))
+        container-engine (Container.
+                           (ClojureContainerParser.)
+                           result-collector
+                           container)
+        _ (.evolve container-engine [:main] {:do :children})
+        _ (.evolve container-engine [:main] {:do :res})]
+    (test/is (= (+ 5 6 7) (get @results :res)))))
+
+(test/deftest add-children-test
+  (let [_ (core/defevolverfn evolver-res :res (if (= (get-reason) {:do :res})
+                                                (let [child-list (list :c1 :c2 :c3)]
+                                                  (apply + (map
+                                                             (fn [e] (nil? e) 0 e)
+                                                             (map #(get-property [:this %] :a) child-list))))
+                                                old-res))
+        _ (core/defevolverfn :children (if (= (get-reason) {:do :children})
+                                         (let [c1 (:c1 old-children)]
+                                           (assoc
+                                             old-children
+                                             :c2 (assoc c1 :id :c2 :a 6)
+                                             :c3 (assoc c1 :id :c3 :a 7)))
+                                         old-children))
+        container (core/defroot
+                    {:id :main
+                     :src 1
+                     :res nil
+                     :x 11
+                     :y 22
+                     :evolvers {:res evolver-res
+                                :children children-evolver}
+                     :children {:c1 {:id :c1
+                                     :a 5}}})
+        results (atom {})
+        result-collector (proxy [IResultCollector] []
+                           (appendResult [_path, _componentUid, property, newValue]
+                             (swap! results (fn [r]
+                                              (if (not (or (= :children property) (= :evolvers property)))
+                                                (assoc r property newValue)
+                                                r)))
+                             )
+                           (componentAdded [_componentUid])
+                           (postProcessAfterEvolveCycle [_a _m]))
+        container-engine (Container.
+                           (ClojureContainerParser.)
+                           result-collector
+                           container)
+        _ (.evolve container-engine [:main] {:do :children})
+        _ (.evolve container-engine [:main] {:do :res})]
+    (test/is (= (+ 5 6 7) (get @results :res)))))
+
+(test/deftest add-children-dependency-test
+  (let [_ (core/defevolverfn evolver-res :res (if (= (count (get-property [:this] :children)) 3)          ;(and (vector? (get-reason)) (= (count (get-reason)) 2))
+                                                (let [child-list (list :c1 :c2 :c3)]
+                                                  (apply + (map
+                                                             (fn [e] (nil? e) 0 e)
+                                                             (map #(get-property [:this %] :a) child-list))))
+                                                old-res))
+        _ (core/defevolverfn :children (if (= (get-reason) {:do :children})
+                                         (let [c1 (:c1 old-children)]
+                                           (assoc
+                                             old-children
+                                             :c2 (assoc c1 :id :c2 :a 6)
+                                             :c3 (assoc c1 :id :c3 :a 7)))
+                                         old-children))
+        _ (core/defevolverfn :a (if (= (get-reason) {:do :a})
+                                  (inc old-a)
+                                  old-a))
+        container (core/defroot
+                    {:id :main
+                     :src 1
+                     :res nil
+                     :x 11
+                     :y 22
+                     :evolvers {:res evolver-res
+                                :children children-evolver}
+                     :children {:c1 {:id :c1
+                                     :a 5
+                                     :evolvers {:a a-evolver}}}})
+        results (atom {})
+        result-collector (proxy [IResultCollector] []
+                           (appendResult [_path, _componentUid, property, newValue]
+                             (swap! results (fn [r]
+                                              (if (not (or (= :children property) (= :evolvers property)))
+                                                (assoc r property newValue)
+                                                r)))
+                             )
+                           (componentAdded [_componentUid])
+                           (postProcessAfterEvolveCycle [_a _m]))
+        container-engine (Container.
+                           (ClojureContainerParser.)
+                           result-collector
+                           container)
+        _ (.evolve container-engine [:main] {:do :children})
+        _ (.evolve container-engine [:main :c3] {:do :a})]
+    (test/is (= (+ 5 6 7 1) (get @results :res)))))

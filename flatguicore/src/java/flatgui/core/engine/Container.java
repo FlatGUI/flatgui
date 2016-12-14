@@ -200,8 +200,15 @@ public class Container
                             newChildren.keySet().stream()
                                     .filter(childId -> !oldChildren.containsKey(childId))
                                     .forEach(childId -> {
-                                        Map<Object, Object> child = newChildren.get(childId);
-                                        addedComponentIds.add(addContainer(component.getComponentPath(), child));
+
+                                        // TODO backward compatibility. Non-children maps are there by keys:
+                                        // :_flexible-childset-added
+                                        // :_flex-target-id-paths-added
+                                        if (!childId.toString().contains("_flex"))
+                                        {
+                                            Map<Object, Object> child = newChildren.get(childId);
+                                            addedComponentIds.add(addContainer(component.getComponentPath(), child));
+                                        }
                             });
                         }
                     }
@@ -225,17 +232,21 @@ public class Container
 
         log("---Ended evolve cycle");
 
-        processAllNodesOfComponents(addedComponentIds, this::setupEvolversForNode);
-        processAllNodesOfComponents(addedComponentIds, this::resolveDependencyIndicesForNode);
+        if (!addedComponentIds.isEmpty())
+        {
+            processAllNodesOfComponents(addedComponentIds, this::setupEvolversForNode);
+            processAllNodesOfComponents(addedComponentIds, this::resolveDependencyIndicesForNode);
 
-        // TODO
-        // resolve all nodes' dependencies given that there are new nodes added and therefore
-        // some ..:*.. dependencies of existing node may resolve to this new. Again, this is
-        // expensive so need to have to child cloning mode supported here
+            processAllNodesOfComponents(addedComponentIds, this::markNodeAsDependent);
 
-        processAllNodesOfComponents(addedComponentIds, this::markDependentsOfNode);
+            for (Node n : nodes_)
+            {
+                Collection<Tuple> newDependencies = n.reevaluateAmbiguousDependencies(this::allMatchingIndicesOfPath);
+                markNodeAsDependent(n.getNodeIndex(), newDependencies);
+            }
 
-        addedComponentIds.forEach(this::initializeAddedComponent);
+            addedComponentIds.forEach(this::initializeAddedComponent);
+        }
     }
 
     public IContainerAccessor getContainerAccessor()
@@ -391,10 +402,15 @@ public class Container
         n.resolveDependencyIndices(this::allMatchingIndicesOfPath);
     }
 
-    private void markDependentsOfNode(Container.Node n)
+    private void markNodeAsDependent(Container.Node n)
     {
-        n.getDependencyIndices()
-            .forEach(dependencyTuple -> nodes_.get(dependencyTuple.getFirst()).addDependent(n.getNodeIndex(), dependencyTuple.getSecond()));
+        markNodeAsDependent(n.getNodeIndex(), n.getDependencyIndices());
+    }
+
+    private void markNodeAsDependent(Integer nodeIndex, Collection<Tuple> dependencies)
+    {
+        dependencies
+            .forEach(dependencyTuple -> nodes_.get(dependencyTuple.getFirst()).addDependent(nodeIndex, dependencyTuple.getSecond()));
     }
 
     private void finishContainerIndexing()
@@ -407,7 +423,7 @@ public class Container
 
         // For each component N, take its dependencies and mark that components that they have N as a dependent
 
-        nodes_.forEach(this::markDependentsOfNode);
+        nodes_.forEach(this::markNodeAsDependent);
 
         // TODO Optimize:
         // remove dependents covered by longer chains. Maybe not remove but just hide since longer chains may be provided
@@ -591,6 +607,40 @@ public class Container
 
     // // //
 
+    public static class DependencyInfo
+    {
+        private final List<Object> relPath_;
+
+        private final List<Object> absPath_;
+
+        /**
+         * true if contains one or more wildcards (:*)
+         */
+        private boolean isAmbiguous_;
+
+        public DependencyInfo(List<Object> relPath, List<Object> absPath, boolean isAmbiguous)
+        {
+            relPath_ = relPath;
+            absPath_ = absPath;
+            isAmbiguous_ = isAmbiguous;
+        }
+
+        public List<Object> getRelPath()
+        {
+            return relPath_;
+        }
+
+        public List<Object> getAbsPath()
+        {
+            return absPath_;
+        }
+
+        public boolean isAmbiguous()
+        {
+            return isAmbiguous_;
+        }
+    }
+
 
     /**
      * Represents a property of a component (internal indexed)
@@ -603,7 +653,7 @@ public class Container
 
         private final List<Object> nodePath_;
 
-        private final Collection<Tuple> relAndAbsDependencyPaths_;
+        private final Collection<DependencyInfo> relAndAbsDependencyPaths_;
 
         private final Object evolverCode_;
 
@@ -612,7 +662,7 @@ public class Container
         public SourceNode(
                 Object propertyId,
                 List<Object> nodePath,
-                Collection<Tuple> relAndAbsDependencyPaths,
+                Collection<DependencyInfo> relAndAbsDependencyPaths,
                 Object evolverCode,
                 List<Object> inputDependencies)
         {
@@ -633,7 +683,7 @@ public class Container
             return nodePath_;
         }
 
-        public Collection<Tuple> getRelAndAbsDependencyPaths()
+        public Collection<DependencyInfo> getRelAndAbsDependencyPaths()
         {
             return relAndAbsDependencyPaths_;
         }
@@ -897,7 +947,7 @@ public class Container
         private final Object propertyId_;
         private final List<Object> nodePath_;
         private final Integer nodeUid_;
-        private final Collection<Tuple> relAndAbsDependencyPaths_;
+        private final Collection<DependencyInfo> relAndAbsDependencyPaths_;
         private final Collection<Object> inputDependencies_;
         private Collection<Tuple> dependencyIndices_;
         private Object evolverCode_;
@@ -913,7 +963,7 @@ public class Container
                 Object propertyId,
                 List<Object> nodePath,
                 Integer nodeUid,
-                Collection<Tuple> relAndAbsDependencyPaths,
+                Collection<DependencyInfo> relAndAbsDependencyPaths,
                 Collection<Object> inputDependencies,
                 Object evolverCode)
         {
@@ -960,16 +1010,41 @@ public class Container
         {
             //dependencyIndices_ = dependencyPaths_.stream().flatMap(pathIndexProvider).collect(Collectors.toSet());
             dependencyIndices_ = new ArrayList<>(relAndAbsDependencyPaths_.size());
-            for (Tuple d : relAndAbsDependencyPaths_)
+            for (DependencyInfo d : relAndAbsDependencyPaths_)
             {
-                List<Object> relPath = d.getFirst();
-                List<Object> absPath = d.getSecond();
+                List<Object> relPath = d.getRelPath();
+                List<Object> absPath = d.getAbsPath();
+                Boolean isAmbiguous = d.isAmbiguous();
                 Collection<Integer> allMatchingIndices = pathIndexProvider.apply(absPath);
                 for (Integer i : allMatchingIndices)
                 {
-                    dependencyIndices_.add(Tuple.pair(i, relPath));
+                    dependencyIndices_.add(Tuple.triple(i, relPath, isAmbiguous));
                 }
             }
+        }
+
+        public Collection<Tuple> reevaluateAmbiguousDependencies(Function<List<Object>, Collection<Integer>> pathIndexProvider)
+        {
+            // Remove all dependency indices produced by ambiguous dependencies: they will be re-evaluated now
+            dependencyIndices_ = dependencyIndices_.stream()
+                    .filter(t -> !((Boolean)t.getThird()).booleanValue())
+                    .collect(Collectors.toList());
+
+            Collection<Tuple> newlyAddedDependencies = new ArrayList<>();
+            for (DependencyInfo d : relAndAbsDependencyPaths_)
+            {
+                List<Object> relPath = d.getRelPath();
+                List<Object> absPath = d.getAbsPath();
+                Boolean isAmbiguous = d.isAmbiguous();
+                Collection<Integer> allMatchingIndices = pathIndexProvider.apply(absPath);
+                for (Integer i : allMatchingIndices)
+                {
+                    Tuple dependency = Tuple.triple(i, relPath, isAmbiguous);
+                    dependencyIndices_.add(dependency);
+                    newlyAddedDependencies.add(dependency);
+                }
+            }
+            return newlyAddedDependencies;
         }
 
         public Collection<Tuple> getDependencyIndices()
@@ -984,7 +1059,7 @@ public class Container
 
         public void addDependent(Integer nodeIndex, List<Object> relPath)
         {
-            log(nodeUid_ + " added dependednt: " + nodeIndex + " referenced as " + relPath);
+            log(nodeUid_ + " added dependent: " + nodeIndex + " referenced as " + relPath);
             dependentIndexToRelPath_.put(nodeIndex, relPath);
         }
 

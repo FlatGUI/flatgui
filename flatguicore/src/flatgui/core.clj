@@ -67,10 +67,14 @@
 ;(defn- gen-evolver [body property] (flatgui.core/replace-gp (gp-replacer body property) property))
 (defn- gen-evolver [body property] (gp-replacer body property))
 
+(defn with-all-meta [obj m]
+  (let [orig-meta (meta obj)]
+    (with-meta obj (merge orig-meta m))))
+
 (defn- gen-evolver-decl
   ([fnname property body]
     (let [result (list 'def fnname
-                       (list 'with-meta
+                       (list 'flatgui.core/with-all-meta
                              (list 'fn ['component] (gen-evolver body property))
                              (list 'hash-map
                                     :input-channel-dependencies (conj (flatgui.dependency/get-input-dependencies body) 'list)
@@ -86,14 +90,14 @@
 (defmacro defevolverfn [& args] (apply gen-evolver-decl args))
 
 (defmacro accessorfn [body]
-  (list 'with-meta
+  (list 'flatgui.core/with-all-meta
         (list 'fn ['component] (gen-evolver body nil))
         (list 'hash-map
               :input-channel-dependencies (conj (flatgui.dependency/get-input-dependencies body) 'list)
               :relative-dependencies (conj (flatgui.dependency/get-all-dependencies body) 'list))))
 
 (defmacro defaccessorfn [fnname params body]
-  (list 'def fnname (list 'with-meta
+  (list 'def fnname (list 'flatgui.core/with-all-meta
                           (list 'fn params (gen-evolver body nil))
                           (list 'hash-map
                                 :input-channel-dependencies (conj (flatgui.dependency/get-input-dependencies body) 'list)

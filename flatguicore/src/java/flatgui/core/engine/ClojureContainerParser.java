@@ -95,7 +95,7 @@ public class ClojureContainerParser implements Container.IContainerParser
             //List<Object> evolverInputDependencies = evolvers != null ? (List<Object>) getInputDependencies_.invoke(evolverCode) : null;
             List<Object> evolverInputDependencies = null;
             Collection<List<Object>> dependencyPaths = Collections.emptySet(); // TODO(IND) evolver's meta should have relative dependencies
-            Collection<Tuple> relAndAbsDependencyPaths = Collections.emptySet();
+            Collection<Container.DependencyInfo> relAndAbsDependencyPaths = Collections.emptySet();
             // TODO(IND)
             if (hasEvolver)
             {
@@ -109,7 +109,10 @@ public class ClojureContainerParser implements Container.IContainerParser
                 evolverInputDependencies = (List<Object>) evolverFnMeta.get(INPUT_DEPENDENCIES_META_KEY);
                 dependencyPaths = (Collection<List<Object>>) evolverFnMeta.get(RELATIVE_DEPENDENCIES_META_KEY);
                 relAndAbsDependencyPaths = dependencyPaths.stream()
-                        .map(relDep -> Tuple.pair(relDep, buildAbsPath(componentPath, relDep)))
+                        .map(relDep -> new Container.DependencyInfo(
+                                relDep,
+                                buildAbsPath(componentPath, relDep),
+                                relDep.stream().anyMatch(e -> WILDCARD_KEY.equals(e))))
                         .collect(Collectors.toList());
                 //dependencyPaths = GetPropertyClojureFnRegistry.attachToInstance(symbol, componentPath, propertyValueAccessor);
             }
