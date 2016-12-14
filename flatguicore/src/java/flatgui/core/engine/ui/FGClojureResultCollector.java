@@ -149,6 +149,13 @@ public class FGClojureResultCollector implements IResultCollector
 
     void paintComponentWithChildren(Consumer<List<Object>> primitivePainter, Container.IContainerAccessor containerAccessor, Container.IPropertyValueAccessor propertyValueAccessor, Integer componentUid) throws NoninvertibleTransformException
     {
+        List<Object> lookVector = lookVectors_.get(componentUid);
+        if (lookVector == null)
+        {
+            // TODO lookVector seems to be null for newly added table cells, but not always??
+            return;
+        }
+
         Container.IComponent componentAccessor = containerAccessor.getComponent(componentUid.intValue());
         FGClojureContainerParser.FGComponentDataCache componentDataCache =
                 (FGClojureContainerParser.FGComponentDataCache) componentAccessor.getCustomData();
@@ -174,7 +181,7 @@ public class FGClojureResultCollector implements IResultCollector
         primitivePainter.accept(transform(positionMatrix));
         primitivePainter.accept(popup.booleanValue() ? setClip(clipW, clipH) : clipRect(clipW, clipH));
         primitivePainter.accept(transform(viewportMatrix));
-        primitivePainter.accept(lookVectors_.get(componentUid));
+        primitivePainter.accept(lookVector);
         Integer childrenIndex = componentDataCache.getChildrenIndex();
         if (childrenIndex != null)
         {

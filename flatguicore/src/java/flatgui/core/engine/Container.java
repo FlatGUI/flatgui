@@ -197,8 +197,11 @@ public class Container
                         if (newChildren.size() > oldChildren.size())
                         {
                             log(" Adding " + (newChildren.size() - oldChildren.size()) + " new children...");
-                            newChildren.keySet().stream()
-                                    .filter(childId -> !oldChildren.containsKey(childId))
+                            Set<Object> newChildIds  = newChildren.keySet().stream()
+                                    .filter(childId -> !oldChildren.containsKey(childId)).collect(Collectors.toSet());
+                            Set<Integer> newChildIndices = new HashSet<>(newChildIds.size());
+
+                            newChildIds
                                     .forEach(childId -> {
 
                                         // TODO backward compatibility. Non-children maps are there by keys:
@@ -207,9 +210,13 @@ public class Container
                                         if (!childId.toString().contains("_flex"))
                                         {
                                             Map<Object, Object> child = newChildren.get(childId);
-                                            addedComponentIds.add(addContainer(component.getComponentPath(), child));
+                                            Integer index = addContainer(component.getComponentPath(), child);
+                                            addedComponentIds.add(index);
+                                            newChildIndices.add(index);
                                         }
                             });
+
+                            component.addChildIndices(newChildIndices);
                         }
                     }
                 }
@@ -915,6 +922,11 @@ public class Container
             childIndices_ = childIndices;
         }
 
+        void addChildIndices(Collection<Integer> childIndices)
+        {
+            childIndices_.addAll(childIndices);
+        }
+
         void setEvolveReason(Object reason)
         {
             currentEvolveReason_ = reason;
@@ -1059,7 +1071,7 @@ public class Container
 
         public void addDependent(Integer nodeIndex, List<Object> relPath)
         {
-            log(nodeUid_ + " added dependent: " + nodeIndex + " referenced as " + relPath);
+            log(nodeUid_ + " " + nodePath_ + " added dependent: " + nodeIndex + " referenced as " + relPath);
             dependentIndexToRelPath_.put(nodeIndex, relPath);
         }
 
