@@ -401,6 +401,7 @@
                      :position-matrix (m/translation 2 1)
                      :viewport-matrix m/IDENTITY-MATRIX
                      :clip-size (m/defpoint 10 10)
+                     :visible true
                      :evolvers {:a a-evolver}
                      :children {:c1 {:id :c1
                                      :popup false
@@ -408,7 +409,8 @@
                                      :look-vec []
                                      :clip-size (m/defpoint 5 5)
                                      :position-matrix (m/translation 3 2)
-                                     :viewport-matrix m/IDENTITY-MATRIX}}})
+                                     :viewport-matrix m/IDENTITY-MATRIX
+                                     :visible 1}}})
         ui-app (FGAWTAppContainer. container 1)
         _ (.initialize ui-app)
         ;container-accessor (.getContainerAccessor ui-app)
