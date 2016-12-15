@@ -3,9 +3,7 @@
  */
 package flatgui.core.engine.ui;
 
-import clojure.lang.Keyword;
 import flatgui.core.awt.FGMouseEvent;
-import flatgui.core.awt.FGMouseWheelEvent;
 import flatgui.core.engine.Container;
 import flatgui.core.engine.IInputEventParser;
 
@@ -20,11 +18,18 @@ import java.util.List;
  */
 public class FGMouseEventParser implements IInputEventParser<MouseEvent, FGMouseEvent>
 {
+    // TODO
+    // It looks like with touch screen it is possible to click component without entering it with mouse-move first. So
+    // we probably need to generate MOUSE_ENTER in this case
+
     private final int unitSizePx_;
 
     private boolean targetReached_ = false;
     private double mouseXRel_;
     private double mouseYRel_;
+
+    private boolean leftButtonDown_;
+    private Integer pressedComponentId_;
 
     private MouseEvent lastMouseEvent_;
     private Integer lastComponentId_;
@@ -44,6 +49,25 @@ public class FGMouseEventParser implements IInputEventParser<MouseEvent, FGMouse
 
         targetReached_ = false;
         Integer targetComponentUid = getTargetComponentUid(0, container, mouseX, mouseY);
+
+        if (newLeftButtonDown)
+        {
+            if (!leftButtonDown_)
+            {
+                pressedComponentId_ = targetComponentUid;
+            }
+            else
+            {
+                boolean captureNeeded = true; // TODO false for textfield?
+                if (captureNeeded)
+                {
+                    targetComponentUid = pressedComponentId_;
+                }
+            }
+        }
+        leftButtonDown_ = newLeftButtonDown;
+
+
         if (targetComponentUid != null)
         {
             Map<FGMouseEvent, Integer> m = new HashMap<>();
