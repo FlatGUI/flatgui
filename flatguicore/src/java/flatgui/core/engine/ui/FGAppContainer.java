@@ -8,6 +8,7 @@ import clojure.lang.Keyword;
 import flatgui.core.IFGInteropUtil;
 import flatgui.core.engine.AppContainer;
 
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.util.Map;
 
@@ -37,6 +38,7 @@ public class FGAppContainer<Interop extends IFGInteropUtil> extends AppContainer
 
         mouseEventParser_ = new FGMouseEventParser(unitSizePx);
         getInputEventParser().registerReasonClassParser(MouseEvent.class, mouseEventParser_);
+        getInputEventParser().registerReasonClassParser(KeyEvent.class, new FGKeyEventParser());
     }
 
     protected final Interop getInteropUtil()

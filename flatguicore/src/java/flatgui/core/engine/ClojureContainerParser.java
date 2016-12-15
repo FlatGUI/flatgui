@@ -119,6 +119,7 @@ public class ClojureContainerParser implements Container.IContainerParser
 
             result.add(new Container.SourceNode(
                     propertyId,
+                    getChildrenPropertyName().equals(propertyId),
                     nodePath,
                     hasEvolver
                             ? /*propertyIdToDependencies.get(propertyId)*/relAndAbsDependencyPaths

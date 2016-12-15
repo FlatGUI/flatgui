@@ -22,6 +22,12 @@ public class FGClojureContainerParser extends ClojureContainerParser
     private static final Keyword CHILDREN_KW = Keyword.intern("children");
     private static final Keyword VISIBLE_KW = Keyword.intern("visible");
 
+    private static final Keyword FOCUS_STATE_KW = Keyword.intern("focus-state");
+    private static final Keyword MODE_KW = Keyword.intern("mode");
+    private static final Keyword HAS_FOCUS_KW = Keyword.intern("has-focus");
+    private static final Keyword PARENT_OF_FOCUSED_KW = Keyword.intern("parent-of-focused");
+    private static final Keyword FOCUSED_CHILD_KW = Keyword.intern("focused-child");
+
     @Override
     public void processComponentAfterIndexing(Container.IComponent component)
     {
@@ -35,7 +41,29 @@ public class FGClojureContainerParser extends ClojureContainerParser
         componentDataCache.setChildrenIndex(component.getPropertyIndex(CHILDREN_KW));
         componentDataCache.setVisibleIndex(component.getPropertyIndex(VISIBLE_KW));
 
+        componentDataCache.setFocusStateIndex(component.getPropertyIndex(FOCUS_STATE_KW));
+
         component.setCustomData(componentDataCache);
+    }
+
+    public static Object getFocusMode(Map<Object, Object> focusState)
+    {
+        return focusState.get(MODE_KW);
+    }
+
+    public static boolean hasFocus(Object focusMode)
+    {
+        return HAS_FOCUS_KW.equals(focusMode);
+    }
+
+    public static boolean parentOfFocused(Object focusMode)
+    {
+        return PARENT_OF_FOCUSED_KW.equals(focusMode);
+    }
+
+    public static Object getFocusedChildId(Map<Object, Object> focusState)
+    {
+        return focusState.get(FOCUSED_CHILD_KW);
     }
 
     private static Integer getPropertyIndex(Container.IComponent component, Object property)
@@ -58,6 +86,8 @@ public class FGClojureContainerParser extends ClojureContainerParser
         private Integer viewportMatrixIndex_;
         private Integer childrenIndex_;
         private Integer visibleIndex_;
+
+        private Integer focusStateIndex_;
 
 
         public Integer getLookVecIndex()
@@ -128,6 +158,16 @@ public class FGClojureContainerParser extends ClojureContainerParser
         public void setVisibleIndex(Integer visibleIndex)
         {
             visibleIndex_ = visibleIndex;
+        }
+
+        public Integer getFocusStateIndex()
+        {
+            return focusStateIndex_;
+        }
+
+        public void setFocusStateIndex(Integer focusStateIndex)
+        {
+            focusStateIndex_ = focusStateIndex;
         }
     }
 }
