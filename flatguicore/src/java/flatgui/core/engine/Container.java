@@ -253,7 +253,7 @@ public class Container
                 if (n.isHasAmbiguousDependencies())
                 {
                     Collection<Tuple> newDependencies = n.reevaluateAmbiguousDependencies(this::allMatchingIndicesOfPath);
-                    markNodeAsDependent(n.getNodeIndex(), newDependencies);
+                    markNodeAsDependent(n, newDependencies);
                 }
             }
 
@@ -419,13 +419,13 @@ public class Container
 
     private void markNodeAsDependent(Container.Node n)
     {
-        markNodeAsDependent(n.getNodeIndex(), n.getDependencyIndices());
+        markNodeAsDependent(n, n.getDependencyIndices());
     }
 
-    private void markNodeAsDependent(Integer nodeIndex, Collection<Tuple> dependencies)
+    private void markNodeAsDependent(Container.Node n, Collection<Tuple> dependencies)
     {
         dependencies
-            .forEach(dependencyTuple -> nodes_.get(dependencyTuple.getFirst()).addDependent(nodeIndex, dependencyTuple.getSecond()));
+            .forEach(dependencyTuple -> nodes_.get(dependencyTuple.getFirst()).addDependent(n.getNodeIndex(), n.getNodePath(), dependencyTuple.getSecond()));
     }
 
     private void finishContainerIndexing()
@@ -1119,10 +1119,21 @@ public class Container
             return dependentIndexToRelPath_;
         }
 
-        public void addDependent(Integer nodeIndex, List<Object> relPath)
+        public void addDependent(Integer nodeIndex, List<Object> nodeAbsPath, List<Object> relPath)
         {
-            log(nodeUid_ + " " + nodePath_ + " added dependent: " + nodeIndex + " referenced as " + relPath);
-            dependentIndexToRelPath_.put(nodeIndex, relPath);
+            List<Object> actualRef = new ArrayList<>(relPath);
+            if (nodeAbsPath.size() < nodePath_.size())
+            {
+                // Replace wildcards (:*) with actual child ids. Start from 1 not to replace *this
+                for (int i=1; i<relPath.size(); i++)
+                {
+                    actualRef.set(i, nodePath_.get(nodePath_.size() - relPath.size() + i));
+                }
+            }
+
+            log(nodeUid_ + " " + nodePath_ + " added dependent: " + nodeIndex + " " + nodeAbsPath
+                    + " referenced as " + relPath + " actual ref " + actualRef);
+            dependentIndexToRelPath_.put(nodeIndex, actualRef);
         }
 
         public Object getEvolverCode()
