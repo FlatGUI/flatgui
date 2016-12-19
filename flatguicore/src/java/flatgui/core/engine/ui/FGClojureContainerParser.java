@@ -7,6 +7,7 @@ import clojure.lang.Keyword;
 import flatgui.core.engine.ClojureContainerParser;
 import flatgui.core.engine.Container;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,6 +29,8 @@ public class FGClojureContainerParser extends ClojureContainerParser
     private static final Keyword PARENT_OF_FOCUSED_KW = Keyword.intern("parent-of-focused");
     private static final Keyword FOCUSED_CHILD_KW = Keyword.intern("focused-child");
 
+    private static final Keyword CHILDREN_Z_ORDER_KW = Keyword.intern("children-z-order");
+
     @Override
     public void processComponentAfterIndexing(Container.IComponent component)
     {
@@ -44,6 +47,19 @@ public class FGClojureContainerParser extends ClojureContainerParser
         componentDataCache.setFocusStateIndex(component.getPropertyIndex(FOCUS_STATE_KW));
 
         component.setCustomData(componentDataCache);
+    }
+
+    @Override
+    public Object getChildOrderPropertyName()
+    {
+        return CHILDREN_Z_ORDER_KW;
+    }
+
+    @Override
+    public List<Object> getChildOrder(Map<Object, Object> container)
+    {
+        List<Object> zOrder = (List<Object>) container.get(CHILDREN_Z_ORDER_KW);
+        return zOrder != null ? zOrder : super.getChildOrder(container);
     }
 
     public static Object getFocusMode(Map<Object, Object> focusState)

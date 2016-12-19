@@ -184,7 +184,8 @@ public class Container
 
                     containerMutator_.setValue(nodeIndex, newValue);
 
-                    resultCollector_.appendResult(component.getComponentPath(), node.getComponentUid(), node.getPropertyId(), newValue);
+                    List<Object> componentPath = component.getComponentPath();
+                    resultCollector_.appendResult(componentPath, node.getComponentUid(), node.getPropertyId(), newValue);
 
                     addNodeDependentsToEvolvebuffer(node);
 
@@ -205,7 +206,7 @@ public class Container
                             newChildIds
                                     .forEach(childId -> {
 
-                                        // TODO backward compatibility. Non-children maps are there by keys:
+                                        // TODO(f) backward compatibility. Non-children maps are there by keys:
                                         // :_flexible-childset-added
                                         // :_flex-target-id-paths-added
                                         if (!childId.toString().contains("_flex"))
@@ -220,6 +221,26 @@ public class Container
 
                             component.addChildIndices(newChildIndices, newChildIdToIndex);
                         }
+                    }
+                    if (node.isChildOrderProperty() && newValue != null)
+                    {
+                        List<Object> newChildIdOrder = (List<Object>) newValue;
+
+                        // TODO(f) backward compatibility. Non-children maps are there by keys:
+                        // :_flexible-childset-added
+                        // :_flex-target-id-paths-added
+                        newChildIdOrder = newChildIdOrder.stream()
+                                .filter(childId -> childId != null && !childId.toString().contains("_flex")).collect(Collectors.toList());
+
+                        List<Integer> newChildIndices = new ArrayList<>(newChildIdOrder.size());
+                        for (int i=0; i<newChildIdOrder.size(); i++)
+                        {
+                            List<Object> childPath = new ArrayList<>(componentPath.size()+1);
+                            childPath.addAll(componentPath);
+                            childPath.add(newChildIdOrder.get(i));
+                            newChildIndices.add(getComponentUid(childPath));
+                        }
+                        component.changeChildIndicesOrder(newChildIndices);
                     }
                 }
                 else
@@ -461,6 +482,7 @@ public class Container
                 componentUid,
                 sourceNode.getPropertyId(),
                 sourceNode.isChildrenProperty(),
+                sourceNode.isChildOrderProperty(),
                 sourceNode.getNodePath(),
                 index,
                 sourceNode.getRelAndAbsDependencyPaths(),
@@ -669,6 +691,8 @@ public class Container
 
         private final boolean childrenProperty_;
 
+        private final boolean childOrderProperty_;
+
         private final List<Object> nodePath_;
 
         private final Collection<DependencyInfo> relAndAbsDependencyPaths_;
@@ -680,6 +704,7 @@ public class Container
         public SourceNode(
                 Object propertyId,
                 boolean childrenProperty,
+                boolean childOrderProperty,
                 List<Object> nodePath,
                 Collection<DependencyInfo> relAndAbsDependencyPaths,
                 Object evolverCode,
@@ -687,6 +712,7 @@ public class Container
         {
             propertyId_ = propertyId;
             childrenProperty_ = childrenProperty;
+            childOrderProperty_ = childOrderProperty;
             nodePath_ = nodePath;
             relAndAbsDependencyPaths_ = relAndAbsDependencyPaths;
             evolverCode_ = evolverCode;
@@ -701,6 +727,11 @@ public class Container
         public boolean isChildrenProperty()
         {
             return childrenProperty_;
+        }
+
+        public boolean isChildOrderProperty()
+        {
+            return childOrderProperty_;
         }
 
         public List<Object> getNodePath()
@@ -729,6 +760,10 @@ public class Container
         Object getComponentId(Map<Object, Object> container);
 
         Object getChildrenPropertyName();
+
+        Object getChildOrderPropertyName();
+
+        List<Object> getChildOrder(Map<Object, Object> container);
 
         Collection<SourceNode> processComponent(
                 List<Object> componentPath,
@@ -945,6 +980,20 @@ public class Container
             childIdToIndex_ = childIdToIndex;
         }
 
+        void changeChildIndicesOrder(Collection<Integer> childIndices)
+        {
+            if (debug_)
+            {
+                Set<Integer> oldSet = new HashSet<>(childIndices_);
+                Set<Integer> newSet = new HashSet<>(childIndices);
+                if (!oldSet.equals(newSet))
+                {
+                    throw new IllegalStateException("Old child indices: " + oldSet + " new: " + newSet);
+                }
+            }
+            childIndices_ = new ArrayList<>(childIndices);
+        }
+
         void addChildIndices(Collection<Integer> childIndices, Map<Object, Integer> childIdToIndex)
         {
             childIndices_.addAll(childIndices);
@@ -982,7 +1031,7 @@ public class Container
         private final Integer componentUid_;
         private final Object propertyId_;
         private final boolean childrenProperty_;
-        private final boolean focusStateProperty_;
+        private final boolean childOrderProperty_;
         private final List<Object> nodePath_;
         private final Integer nodeUid_;
         private final Collection<DependencyInfo> relAndAbsDependencyPaths_;
@@ -1001,7 +1050,7 @@ public class Container
                 Integer componentUid,
                 Object propertyId,
                 boolean childrenProperty,
-                /*boolean focusStateProperty,*/
+                boolean childOrderProperty,
                 List<Object> nodePath,
                 Integer nodeUid,
                 Collection<DependencyInfo> relAndAbsDependencyPaths,
@@ -1011,7 +1060,7 @@ public class Container
             componentUid_ = componentUid;
             propertyId_ = propertyId;
             childrenProperty_ = childrenProperty;
-            focusStateProperty_ = false;/*focusStateProperty;*/
+            childOrderProperty_ = childOrderProperty;
             nodePath_ = nodePath;
             nodeUid_ = nodeUid;
             relAndAbsDependencyPaths_ = relAndAbsDependencyPaths;
@@ -1045,9 +1094,9 @@ public class Container
             return childrenProperty_;
         }
 
-        public boolean isFocusStateProperty()
+        public boolean isChildOrderProperty()
         {
-            return focusStateProperty_;
+            return childOrderProperty_;
         }
 
         public Integer getNodeIndex()

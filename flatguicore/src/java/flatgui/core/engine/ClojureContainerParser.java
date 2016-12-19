@@ -60,6 +60,21 @@ public class ClojureContainerParser implements Container.IContainerParser
     }
 
     @Override
+    public Object getChildOrderPropertyName()
+    {
+        // This impl does not support particular child order
+        return null;
+    }
+
+    @Override
+    public List<Object> getChildOrder(Map<Object, Object> container)
+    {
+        // No determined order in this impl
+        Map<Object, Object> children = (Map<Object, Object>) container.get(getChildrenPropertyName());
+        return children != null ? new ArrayList<>(children.keySet()) : null;
+    }
+
+    @Override
     public Object getChildrenPropertyName()
     {
         return CHILDREN_KEY;
@@ -120,6 +135,7 @@ public class ClojureContainerParser implements Container.IContainerParser
             result.add(new Container.SourceNode(
                     propertyId,
                     getChildrenPropertyName().equals(propertyId),
+                    getChildOrderPropertyName() != null && getChildOrderPropertyName().equals(propertyId),
                     nodePath,
                     hasEvolver
                             ? /*propertyIdToDependencies.get(propertyId)*/relAndAbsDependencyPaths
