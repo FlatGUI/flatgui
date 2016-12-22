@@ -111,25 +111,40 @@ public class FGMouseEventParser implements IInputEventParser<MouseEvent, FGMouse
         double w = clipSize.get(0).get(0).doubleValue();
         double h = clipSize.get(1).get(0).doubleValue();
 
-        if (in(mouseX, x, x+w) && in(mouseY, y, y+h))
+        if (((FGClojureResultCollector)rootContainer.getResultCollector()).hasVisiblePopupChildren(componentUid) ||
+                in(mouseX, x, x+w) && in(mouseY, y, y+h))
         {
-            Iterable<Integer> childIndices = component.getChildIndices();
+            List<Integer> childIndices = component.getChildIndices();
             if (childIndices != null)
             {
-                for (Integer childIndex : childIndices)
+                for (int i=childIndices.size()-1; i >= 0; i--)
                 {
-                    double mouseXRel = mouseX - x;
-                    double mouseYRel = mouseY - y;
-                    Integer target = getTargetComponentUid(childIndex, rootContainer, mouseXRel, mouseYRel);
-                    if (target != null)
+                    Integer childIndex = childIndices.get(i);
+                    Container.IComponent childComponent = rootContainer.getComponent(childIndex);
+                    FGClojureContainerParser.FGComponentDataCache childComponentDataCache =
+                            (FGClojureContainerParser.FGComponentDataCache) childComponent.getCustomData();
+                    Integer childVisibleIndex = childComponentDataCache.getVisibleIndex();
+                    Object childVisible = rootContainer.getPropertyValue(childVisibleIndex);
+                    boolean childVisibleBool = childVisible != null && !(childVisible instanceof Boolean && !((Boolean) childVisible).booleanValue());
+
+                    if (childVisibleBool)
                     {
-                        if (!targetReached_)
+                        double mouseXRel = mouseX - x;
+                        double mouseYRel = mouseY - y;
+                        Integer target = getTargetComponentUid(childIndex, rootContainer, mouseXRel, mouseYRel);
+                        if (target != null)
                         {
-                            mouseXRel_ = mouseXRel;
-                            mouseYRel_ = mouseYRel;
-                            targetReached_ = true;
+                            if (!targetReached_)
+                            {
+                                mouseXRel_ = mouseXRel;
+                                mouseYRel_ = mouseYRel;
+//
+//                                System.out.println("-DLTEMP- FGMouseEventParser.getTargetComponentUid TGT(1) " + ((Container.ComponentAccessor) component).getComponentPath());
+//
+                                targetReached_ = true;
+                            }
+                            return target;
                         }
-                        return target;
                     }
                 }
             }
@@ -137,6 +152,9 @@ public class FGMouseEventParser implements IInputEventParser<MouseEvent, FGMouse
             {
                 mouseXRel_ = mouseX-x;
                 mouseYRel_ = mouseY-y;
+//
+//                System.out.println("-DLTEMP- FGMouseEventParser.getTargetComponentUid TGT(2) " + ((Container.ComponentAccessor)component).getComponentPath());
+//
                 targetReached_ = true;
             }
             return componentUid;

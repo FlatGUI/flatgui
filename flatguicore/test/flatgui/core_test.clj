@@ -270,8 +270,9 @@
     (test/is (= 5 (get-cmpnd-key result-map [[:main] :res])))
     (test/is (= 3 (get-cmpnd-key result-map [[:main :c1] :a])))
     (test/is (= 5 (get-cmpnd-key result-map [[:main :c2] :a])))
-    (test/is (= 2 (count dep-test-results)))
-    (test/is (= true (contains? dep-test-results "[:this :*]")))
+    (test/is (= 3 (count dep-test-results)))
+    (test/is (= true (contains? dep-test-results "[:this :c1]")))
+    (test/is (= true (contains? dep-test-results "[:this :c2]")))
     (test/is (= true (contains? dep-test-results "{:x :c2}")))))
 
 (test/deftest init-&-evolve-test-non-const-path2

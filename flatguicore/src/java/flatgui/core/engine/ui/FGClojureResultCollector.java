@@ -11,31 +11,31 @@ import flatgui.core.engine.IResultCollector;
 
 import java.awt.geom.AffineTransform;
 import java.awt.geom.NoninvertibleTransformException;
-import java.lang.reflect.Array;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * @author Denis Lebedev
  */
 public class FGClojureResultCollector implements IResultCollector
 {
-    // TODO
-    // paint all vector; look vectors; string pools; and all that GUI specific stuff
+    private static final Keyword VISIBLE_POPUP_KW = Keyword.intern("_visible-popup");
 
     //private static final String FG_NS = "flatgui.core";
     private static final Var rebuildLook_ = clojure.lang.RT.var("flatgui.paint", "rebuild-look");
+
+    private final int unitSizePx_;
+
+    private final Map<Integer, Set<Integer>> parentToVisiblePopupChildCount_;
 
     private final Set<Integer> changedComponents_;
 
     private final List<List<Object>> lookVectors_;
 
-    private final int unitSizePx_;
-
     public FGClojureResultCollector(int unitSizePx)
     {
         changedComponents_ = new HashSet<>();
+        parentToVisiblePopupChildCount_ = new HashMap<>();
         lookVectors_ = new ArrayList<>();
         unitSizePx_ = unitSizePx;
     }
@@ -60,9 +60,35 @@ public class FGClojureResultCollector implements IResultCollector
     }
 
     @Override
-    public void appendResult(List<Object> path, Integer componentUid, Object property, Object newValue)
+    public void appendResult(Integer parentComponentUid, List<Object> path, Integer componentUid, Object property, Object newValue)
     {
         changedComponents_.add(componentUid);
+
+        // TODO
+        // Evolved property node can already contain boolean flags so that there is no need to compare.
+        // But it has to be a UI subclass
+        if (property.equals(VISIBLE_POPUP_KW))
+        {
+            Set<Integer> visiblePopupChildIndices = parentToVisiblePopupChildCount_.get(parentComponentUid);
+            if (visiblePopupChildIndices == null)
+            {
+                visiblePopupChildIndices = new HashSet<>();
+                parentToVisiblePopupChildCount_.put(parentComponentUid, visiblePopupChildIndices);
+            }
+            if (newValue != null && !(newValue instanceof Boolean && !((Boolean) newValue).booleanValue()))
+            {
+                visiblePopupChildIndices.add(componentUid);
+            }
+            else
+            {
+                visiblePopupChildIndices.remove(componentUid);
+            }
+        }
+    }
+
+    @Override
+    public void onEvolveCycleStarted()
+    {
     }
 
     @Override
@@ -89,6 +115,12 @@ public class FGClojureResultCollector implements IResultCollector
         }
 
         changedComponents_.clear();
+    }
+
+    boolean hasVisiblePopupChildren(Integer componentUid)
+    {
+        Set<Integer> visiblePopupChildCount = parentToVisiblePopupChildCount_.get(componentUid);
+        return visiblePopupChildCount != null && !visiblePopupChildCount.isEmpty();
     }
 
     // Paint in Java
