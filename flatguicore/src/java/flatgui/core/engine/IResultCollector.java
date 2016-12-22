@@ -14,7 +14,7 @@ public interface IResultCollector
 
     void componentRemoved(Integer componentUid);
 
-    void appendResult(List<Object> path, Integer componentUid, Object property, Object newValue);
+    void appendResult(Integer parentComponentUid, List<Object> path, Integer componentUid, Object property, Object newValue);
 
     void postProcessAfterEvolveCycle(Container.IContainerAccessor containerAccessor, Container.IContainerMutator containerMutator);
 }

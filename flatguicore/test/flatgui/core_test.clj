@@ -137,7 +137,7 @@
                                                 :d evolver-c2-d}}}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, path, _componentUid, property, newValue]
                              (swap! results (fn [r]
                                               (if (not (or (= :children property) (= :evolvers property)))
                                                 (assoc r [path property] newValue)
@@ -174,7 +174,7 @@
                                      :evolvers {:z-position z-position-evolver}}}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, path, _componentUid, property, newValue]
                              (swap! results (fn [r]
                                               (if (not (or (= :children property) (= :evolvers property)))
                                                 (assoc r [path property] newValue)
@@ -205,7 +205,7 @@
                                      :evolvers {:b evolver-c2-b}}}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [_path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, _path, _componentUid, property, newValue]
                              (swap! results (fn [r]
                                               (if (not (or (= :children property) (= :evolvers property)))
                                                 (assoc r property newValue)
@@ -250,7 +250,7 @@
                                      :evolvers {:a evolver-a}}}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, path, _componentUid, property, newValue]
                              (swap! results (fn [r]
                                               (if (not (or (= :children property) (= :evolvers property)))
                                                 (assoc r [path property] newValue)
@@ -297,7 +297,7 @@
                                      :c2 200}}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [_path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, _path, _componentUid, property, newValue]
                              (swap! results (fn [r]
                                               (if (not (or (= :children property) (= :evolvers property)))
                                                 (assoc r property newValue)
@@ -323,7 +323,7 @@
                      :evolvers {:a a-evolver}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, path, _componentUid, property, newValue]
                              (swap! results (fn [r]
                                               (if (not (or (= :children property) (= :evolvers property)))
                                                 (assoc r [path property] newValue)
@@ -354,7 +354,7 @@
                      :evolvers {:a a-evolver}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, path, _componentUid, property, newValue]
                              (swap! results (fn [r]
                                               (if (not (or (= :children property) (= :evolvers property)))
                                                 (assoc r [path property] newValue)
@@ -462,7 +462,7 @@
                                      :a 5}}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [_path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, _path, _componentUid, property, newValue]
                              (swap! results (fn [r]
                                               (if (not (or (= :children property) (= :evolvers property)))
                                                 (assoc r property newValue)
@@ -504,7 +504,7 @@
                                      :a 5}}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [_path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, _path, _componentUid, property, newValue]
                              (swap! results (fn [r]
                                               (if (not (or (= :children property) (= :evolvers property)))
                                                 (assoc r property newValue)
@@ -550,7 +550,7 @@
                                      :evolvers {:a a-evolver}}}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [_path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, _path, _componentUid, property, newValue]
                              (swap! results (fn [r]
                                               (if (not (or (= :children property) (= :evolvers property)))
                                                 (assoc r property newValue)
