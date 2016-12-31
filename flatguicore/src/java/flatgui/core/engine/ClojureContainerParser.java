@@ -56,7 +56,12 @@ public class ClojureContainerParser implements Container.IContainerParser
     @Override
     public Object getComponentId(Map<Object, Object> container)
     {
-        return container.get(ID_KEY);
+        return container.get(getIdKey());
+    }
+
+    public static Object getIdKey()
+    {
+        return ID_KEY;
     }
 
     @Override

@@ -48,7 +48,7 @@ public class Container
 
     private Set<Integer> initializedNodes_;
 
-    private static boolean debug_ = false;
+    private static boolean debug_ = true;
 
     public Container(IContainerParser containerParser, IResultCollector resultCollector, Map<Object, Object> container)
     {
@@ -74,12 +74,7 @@ public class Container
         addContainer(null, new ArrayList<>(), container);
         finishContainerIndexing();
 
-        initializedNodes_ = new HashSet<>();
-        log("========================Started initialization cycle================================");
         initializeContainer();
-        log("=====Ended initialization cycle");
-        initializedNodes_.clear();
-        initializedNodes_ = null;
     }
 
     public Integer addComponent(List<Object> componentPath, ComponentAccessor component)
@@ -122,7 +117,6 @@ public class Container
         indexBufferSize_ = 0;
 
         log("----------------Started evolve cycle ---- for reason: " + valueToString(evolveReason));
-        resultCollector_.onEvolveCycleStarted();
 
         ComponentAccessor initialComponentAccessor = components_.get(componentUid);
         Map<Object, Integer> propertyIdToNodeIndex = initialComponentAccessor.getPropertyIdToIndex();
@@ -279,7 +273,17 @@ public class Container
                 }
             }
 
+            boolean newNodeSet = initializedNodes_ == null;
+            if (newNodeSet)
+            {
+                initializedNodes_ = new HashSet<>();
+            }
             addedComponentIds.forEach(this::initializeAddedComponent);
+            if (newNodeSet)
+            {
+                initializedNodes_.clear();
+                initializedNodes_ = null;
+            }
         }
     }
 
@@ -322,6 +326,11 @@ public class Container
     public IResultCollector getResultCollector()
     {
         return resultCollector_;
+    }
+
+    public Collection<List<Object>> getAllIdPaths()
+    {
+        return Collections.unmodifiableSet(pathToIndex_.keySet());
     }
 
     // Private
@@ -587,10 +596,15 @@ public class Container
 
     private void initializeContainer()
     {
+        initializedNodes_ = new HashSet<>();
+        log("========================Started initialization cycle================================");
         for (int i=0; i<components_.size(); i++)
         {
             evolve(Integer.valueOf(i), null);
         }
+        log("=====Ended initialization cycle");
+        initializedNodes_.clear();
+        initializedNodes_ = null;
     }
 
     static void log(String message)
