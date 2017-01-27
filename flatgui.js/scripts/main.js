@@ -488,6 +488,9 @@ function decodeLookVector(componentIndex, stream, byteLength)
                     ctx.stroke();
                     c+= codeObj.len;
                     break;
+                // TODO
+                // Actually transfrom and clip are never used in a particular look vector (they are used between
+                // painting components) so these commands may free places in the set of 1-byte commands
                 case CODE_TRANSFORM:
                     codeObj = decodeRect(stream, c);
                     decodeLog( "transform " + JSON.stringify(codeObj));
@@ -597,20 +600,20 @@ function readShort(stream, c)
     return n;
 }
 
-// 3 bytes
-function readRect(stream, c)
+// 6 bytes
+function readBigRect(stream, c)
 {
-    var w = stream[c] + ((stream[c+2] & 0x0F) << 8);
-    var h = stream[c+1] + ((stream[c+2] & 0xF0) << 4);
+    var w = stream[c]   + (stream[c+1] << 8) + (stream[c+2] << 16);
+    var h = stream[c+3] + (stream[c+4] << 8) + (stream[c+5] << 16);
 
     return {w: w, h: h}
 }
 
-// 3 bytes
-function readRectInv(stream, c)
+// 6 bytes
+function readBigRectInv(stream, c)
 {
-    var w = stream[c] + ((stream[c+2] & 0x0F) << 8);
-    var h = stream[c+1] + ((stream[c+2] & 0xF0) << 4);
+    var w = stream[c]   + (stream[c+1] << 8) + (stream[c+2] << 16);
+    var h = stream[c+3] + (stream[c+4] << 8) + (stream[c+5] << 16);
 
     return {w: -w, h: -h}
 }
@@ -629,10 +632,15 @@ function checkFlagForComponent(index, mask)
     return ((booleanStateFlags[index] & mask) === mask);
 }
 
+//var ci = 0;
+
 function paintComponent(stream, c)
 {
     var index = readShort(stream, c);
     c+=2;
+
+    //var ici=ci;
+    //ci++;
 
     try
     {
@@ -652,7 +660,9 @@ function paintComponent(stream, c)
             var positionMatrix = positions[index];
             if (positionMatrix)
             {
-                applyTransform(positionMatrix);
+                //if (ici < 3)
+                 applyTransform(positionMatrix);
+
 
                 absPositions[index] = currentTransform;
             }
@@ -684,7 +694,8 @@ function paintComponent(stream, c)
             var viewportMatrix = viewports[index];
             if (viewportMatrix)
             {
-                applyTransform(viewportMatrix);
+                //if (ici < 3)
+                 applyTransform(viewportMatrix);
             }
             else
             {
@@ -718,13 +729,15 @@ function paintComponent(stream, c)
             // Inverse viewport transformation
             if (viewportMatrix)
             {
-                applyInverseTransform(viewportMatrix);
+                //if (ici < 3)
+                 applyInverseTransform(viewportMatrix);
             }
 
             // Inverse position transformation
             if (positionMatrix)
             {
-                applyInverseTransform(positionMatrix);
+                //if (ici < 3)
+                 applyInverseTransform(positionMatrix);
             }
 
             // Pop current clip
@@ -741,7 +754,11 @@ function paintComponent(stream, c)
 
 function repaintWholeCache()
 {
+    var pTime = Date.now();
+    //ci=0;
     paintComponent(paintAllSequence, 1)
+    var spentTime = Date.now() - pTime;
+    console.log("painting spentTime=" + spentTime);
 }
 
 // Note prefetch is implemented for images only.
@@ -801,8 +818,8 @@ function decodeCommandVector(stream, byteLength)
             {
                 var index = readShort(stream, c);
                 c+=2;
-                var position = readRect(stream, c);
-                c+=3;
+                var position = readBigRect(stream, c);
+                c+=6;
                 positions[index] = position;
             }
             break;
@@ -811,8 +828,8 @@ function decodeCommandVector(stream, byteLength)
             {
                 var index = readShort(stream, c);
                 c+=2;
-                var viewport = readRectInv(stream, c);
-                c+=3;
+                var viewport = readBigRectInv(stream, c);
+                c+=6;
                 viewports[index] = viewport;
             }
             break;
@@ -892,6 +909,7 @@ function decodeCommandVector(stream, byteLength)
             paintAllSequence = stream;
             while (c < byteLength)
             {
+                //ci=0;
                 c = paintComponent(stream, c);
             }
             break;

@@ -128,7 +128,9 @@ public class ClojureContainerParser implements Container.IContainerParser
                 }
                 evolverInputDependencies = (List<Object>) evolverFnMeta.get(INPUT_DEPENDENCIES_META_KEY);
                 dependencyPaths = (Collection<List<Object>>) evolverFnMeta.get(RELATIVE_DEPENDENCIES_META_KEY);
+                boolean processingRoot = componentPath.size() == 1;
                 relAndAbsDependencyPaths = dependencyPaths.stream()
+                        .filter(relDep -> !processingRoot || relDep.size() > 1)
                         .map(relDep -> new Container.DependencyInfo(
                                 relDep,
                                 buildAbsPath(componentPath, relDep),

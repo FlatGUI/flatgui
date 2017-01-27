@@ -7,8 +7,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns fdemo
-  (:require [flatgui.app]
+  (:require [flatgui.base]
             [flatgui.skins.flat]
             [flatgui.samples.forms.fdemowindow :as fd]))
 
-(def fdemopanel (flatgui.app/defroot fd/root-panel))
+(def fdemopanel (flatgui.base/defroot fd/root-panel))

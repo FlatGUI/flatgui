@@ -7,7 +7,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns flatgui.testsuite
-  (:require [flatgui.widgets.componentbase]
+  (:require [flatgui.widgets._old_componentbase]
             [flatgui.comlogic :as fgc]
             [flatgui.util.matrix :as m]
             [flatgui.awt :as awt])
@@ -24,7 +24,7 @@
       (do
         (.feedTargetedEvent fg-contanier target (FGEvolveInputData. reason false))
         container))
-    flatgui.widgets.componentbase/evolve-container))
+    flatgui.widgets._old_componentbase/evolve-container))
 
 (defn access-container [fg-container-accessor] {:_fg-container fg-container-accessor})
 

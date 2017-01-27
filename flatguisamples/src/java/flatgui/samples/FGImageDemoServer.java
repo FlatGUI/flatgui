@@ -10,13 +10,13 @@
 
 package flatgui.samples;
 
-import flatgui.core.FGTemplate;
 import flatgui.core.IFGTemplate;
-import flatgui.core.websocket.FGAppServer;
+import flatgui.core.engine.remote.FGLegacyGlueTemplate;
+        import flatgui.core.websocket.FGAppServer;
 
-import java.io.File;
-import java.net.URL;
-import java.util.Scanner;
+        import java.io.File;
+        import java.net.URL;
+        import java.util.Scanner;
 
 /**
  * @author Denis Lebedev
@@ -32,7 +32,7 @@ public class FGImageDemoServer
         URL formUrl = ClassLoader.getSystemResource("flatgui/samples/forms/image.clj");
         String sourceCode = new Scanner(new File(formUrl.toURI())).useDelimiter("\\Z").next();
 
-        IFGTemplate template = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
+        IFGTemplate template = new FGLegacyGlueTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
 
         FGAppServer server = new FGAppServer(template, PORT);
         server.start();

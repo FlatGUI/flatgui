@@ -6,9 +6,9 @@
 ; the terms of this license.
 ; You must not remove this notice, or any other, from this software.
 
-(ns flatgui.base-test
+(ns flatgui._old_base-test
   (:require [clojure.test :as test]
-            [flatgui.base :as fg]))
+            [flatgui._old_base :as fg]))
 
 ;;; FIXME continue the test blow
 ;(test/deftest get-property-private-test

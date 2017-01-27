@@ -29,11 +29,11 @@
   (let [let-binding (vec
                       (list
                         'all-values (conj (mapcat (fn [e] [[e] (list 'get-property 'component [e] :pressed)]) all-radio-ids) 'hash-map)
-                        'reason (list 'flatgui.base/get-reason)))]
+                        'reason (list 'get-reason)))]
     `(flatgui.base/defevolverfn ~fnname :pressed
-       (let ~let-binding
+                                (let ~let-binding
          (if (contains? ~'all-values ~'reason)
-           (if (~'all-values ~'reason) false ~'old-pressed)
+           (if (and (not= [(:id ~'component)] ~'reason) (~'all-values ~'reason)) false ~'old-pressed)
            (flatgui.widgets.radiobutton/radio-pressed-evolver ~'component))))))
 
 (defmacro radiogroupaccessor [all-radio-ids]
@@ -44,7 +44,7 @@
   (let [let-binding (vec
                       (list
                         'all-values (conj (mapcat (fn [e] [[e] (list 'get-property 'component [e] :pressed)]) all-radio-ids) 'hash-map)
-                        'reason (list 'flatgui.base/get-reason)))]
+                        'reason (list 'get-reason)))]
     `(flatgui.base/accessorfn
                                 (let ~let-binding
                                   (if (contains? ~'all-values ~'reason)

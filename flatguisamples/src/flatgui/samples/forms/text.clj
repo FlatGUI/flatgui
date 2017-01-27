@@ -7,10 +7,9 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns text
-  (:require [flatgui.app]
-            [flatgui.skins.flat]
+  (:require [flatgui.skins.flat]
             [flatgui.samples.forms.textwindow :as tw]))
 
-(def textpanel (flatgui.app/defroot tw/root-panel))
+(def textpanel (flatgui.base/defroot tw/root-panel))
 
 (def textpanelweb textpanel)

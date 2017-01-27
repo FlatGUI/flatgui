@@ -6,8 +6,11 @@
 ; the terms of this license.
 ; You must not remove this notice, or any other, from this software.
 
-(ns sliderdemo
-  (:require [flatgui.skins.flat]
-            [flatgui.samples.forms.sliderdemowindow :as sw]))
+(ns flatgui._old_app
+  ;; Following namespaces are necessary for all applications
+  ;; even though they are not used by client code explicitly
+  (:require [flatgui._old_appcontainer]
+            [flatgui.access]
+            [flatgui.widgets._old_componentbase]))
 
-(def sliderdemopanel (flatgui.base/defroot sw/root-panel))
+(def defroot flatgui.widgets._old_componentbase/initialize)

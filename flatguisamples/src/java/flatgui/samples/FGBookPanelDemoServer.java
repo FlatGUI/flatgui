@@ -10,8 +10,8 @@
 
 package flatgui.samples;
 
-import flatgui.core.FGTemplate;
 import flatgui.core.IFGTemplate;
+import flatgui.core.engine.remote.FGLegacyGlueTemplate;
 import flatgui.core.websocket.FGAppServer;
 
 import java.io.*;
@@ -33,7 +33,7 @@ public class FGBookPanelDemoServer
         URL formUrl = ClassLoader.getSystemResource("flatgui/samples/forms/bookpanelmain.clj");
         String sourceCode = new Scanner(new File(formUrl.toURI())).useDelimiter("\\Z").next();
 
-        IFGTemplate bookPanelTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
+        IFGTemplate bookPanelTemplate = new FGLegacyGlueTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
 
         FGAppServer server = new FGAppServer(bookPanelTemplate, PORT);
         server.start();

@@ -9,7 +9,7 @@
 (ns ^{:doc "Skin utilities"
       :author "Denys Lebediev"}
   flatgui.skins.skinbase
-  (:use flatgui.base))
+  (:require [flatgui.base :as fg]))
 
 
 (defn widgettype->key [widgettype]
@@ -22,16 +22,15 @@
         (get-in skin-map skin-key))
       (throw (IllegalArgumentException. (str "Skin not found:" skin-name))))))
 
-(defevolverfn skin-look-evolver :look
+(fg/defevolverfn skin-look-evolver :look
   (cond
-
     (:skin-key component)
-    (get-look-from-skin (get-property component [:this] :skin) (:skin-key component))
+    (get-look-from-skin (get-property component [:this] :skin) (get-property component [:this] :skin-key))
 
     old-look
     old-look
 
     :else
     (throw (IllegalStateException.
-             (str "Component " (:path-to-target component) " " (:id component)
-                  " has neither " :skin-key " nor " :look " defined.")))))
+      (str "Component " (:path-to-target component) " " (:id component)
+           " has neither " :skin-key " nor " :look " defined.")))))

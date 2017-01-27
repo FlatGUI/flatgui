@@ -8,7 +8,6 @@
 
 (ns bookpanelmain
   (:require [flatgui.skins.flat]
-            [flatgui.app]
             [flatgui.base :as fg]
             [flatgui.awt :as awt]
             [flatgui.util.matrix :as m]
@@ -29,7 +28,7 @@
 ;    "flatgui.skins.smooth"))
 
 (def bookpanel
-  (flatgui.app/defroot
+  (flatgui._old_app/defroot
     (fg/defcomponent panel/panel :main
       {:clip-size (m/defpoint 25 19 0)
        :background (awt/color 0 38 70)

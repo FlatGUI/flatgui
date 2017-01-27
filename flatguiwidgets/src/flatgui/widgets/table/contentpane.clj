@@ -278,7 +278,7 @@
 (fg/defevolverfn :vfc-degree-headers
   ;; This is temporary. Need to know which evolvers to invoke on which input event.
   ;; Then this heavy evolver will not be called on each mouse move/click
-  (if (vector? ((:evolve-reason-provider component) (:id component)))
+  (if (vector? (get-reason))
     ;;
     ;;
     (let [header-ids (get-property component [] :header-ids)
@@ -466,11 +466,11 @@
 (defmacro deftablecontent
   ([row-count params]
   `(flatgui.base/defcomponent flatgui.widgets.table.contentpane/tablecontentpane
-                 :content-pane (flatgui.base/merge-properties
-                                 ~params
-                                 {:row-count ~row-count
+                              :content-pane (merge-with flatgui.base/properties-merger
+                                                        ~params
+                                                        {:row-count ~row-count
                                   :row-order (vec (range 0 ~row-count))})))
   ([row-count]
    `(flatgui.base/defcomponent flatgui.widgets.table.contentpane/tablecontentpane
-                  :content-pane {:row-count ~row-count
+                               :content-pane {:row-count ~row-count
                                  :row-order (vec (range 0 ~row-count))})))

@@ -152,26 +152,35 @@ public class FGContainerWebSocket implements WebSocketListener
                 " session: " + fgSession_ +
                 " remote: " + session_.getRemoteAddress());
 
-        currentPhase_ = Phase.CollectingMetrics;
-
         Set<String> fonts = findAllFonts();
         fontsWaitingForMetrics_ = fonts.size();
+
         initialFontMetrics_ = new ArrayList<>(fontsWaitingForMetrics_);
         pendingEvents_ = new ArrayList<>();
+        if (fontsWaitingForMetrics_ > 0)
+        {
+            currentPhase_ = Phase.CollectingMetrics;
 
-        fonts.stream().forEach(f -> {
-            FGAppServer.getFGLogger().info(session_.getRemoteAddress() + " Requesting metrics for font: " + f);
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            FGWebContainerWrapper.StringTransmitter.writeString(stream, 1, f);
-            byte[] textBytes = stream.toByteArray();
-            byte[] cmd = new byte[textBytes.length+1];
-            cmd[0] = FGWebContainerWrapper.METRICS_REQUEST;
-            for (int i=0; i<textBytes.length; i++)
-            {
-                cmd[i+1] = textBytes[i];
-            }
-            sendBytesToRemote(ByteBuffer.wrap(cmd));
-        });
+            fonts.stream().forEach(f -> {
+                FGAppServer.getFGLogger().info(session_.getRemoteAddress() + " Requesting metrics for font: " + f);
+                ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                FGWebContainerWrapper.StringTransmitter.writeString(stream, 1, f);
+                byte[] textBytes = stream.toByteArray();
+                byte[] cmd = new byte[textBytes.length + 1];
+                cmd[0] = FGWebContainerWrapper.METRICS_REQUEST;
+                for (int i = 0; i < textBytes.length; i++)
+                {
+                    cmd[i + 1] = textBytes[i];
+                }
+                sendBytesToRemote(ByteBuffer.wrap(cmd));
+            });
+        }
+        else
+        {
+            currentPhase_ = Phase.Live;
+            sendBytesToRemote(ByteBuffer.wrap(new byte[]{FGWebContainerWrapper.FINISH_PREDICTION_TRANSMISSION}));
+            startContainer();
+        }
     }
 
     @Override

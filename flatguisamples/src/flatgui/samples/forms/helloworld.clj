@@ -7,8 +7,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns helloworld
-  (:require [flatgui.app]
-            [flatgui.skins.flat]
+  (:require [flatgui.skins.flat]
             [flatgui.samples.forms.hellowindow :as hw]))
 
-(def hellopanel (flatgui.app/defroot hw/root-panel))
+(def hellopanel (flatgui.base/defroot hw/root-panel))

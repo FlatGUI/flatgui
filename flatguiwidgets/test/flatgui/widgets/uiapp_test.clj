@@ -8,7 +8,7 @@
 
 (ns flatgui.widgets.uiapp-test
   (:require [clojure.test :as test]
-            [flatgui.core :as core]
+            [flatgui.base :as core]
             [flatgui.util.matrix :as m]
             [flatgui.widgets.panel :as panel]
             [flatgui.widgets.window :as window]

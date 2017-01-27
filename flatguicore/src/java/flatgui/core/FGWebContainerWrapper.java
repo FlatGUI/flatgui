@@ -562,10 +562,21 @@ public class FGWebContainerWrapper
         {
             int tx = getTranslateX(matrix);
             int ty = getTranslateY(matrix);
-            stream.write((byte)(tx & 0xFF));
-            stream.write((byte)(ty & 0xFF));
-            stream.write((byte)((tx >> 8) & 0x0F | (ty >> 4) & 0xF0));
+            writeDimImpl(stream, tx, ty);
             return 3;
+        }
+
+        protected int writeDimImpl(ByteArrayOutputStream stream, int tx, int ty)
+        {
+            // Viewport matrix requires more for example when huge table is scrolled.
+            // Here it uses 3 bytes per each coord
+            stream.write((byte)(tx & 0xFF));
+            stream.write((byte)((tx >> 8) & 0xFF));
+            stream.write((byte)((tx >> 16) & 0xFF));
+            stream.write((byte)(ty & 0xFF));
+            stream.write((byte)((ty >> 8) & 0xFF));
+            stream.write((byte)((ty >> 16) & 0xFF));
+            return 6;
         }
 
         protected abstract int getTranslateX(AffineTransform matrix);
@@ -935,10 +946,17 @@ public class FGWebContainerWrapper
         @Override
         public int getUniqueId(Object key)
         {
+            if (!(key instanceof Integer))
+            {
+                throw new IllegalArgumentException("non-integer key");
+            }
+
             Integer cache = cache_.get(key);
             if (cache == null)
             {
-                cache = Integer.valueOf(uid_);
+                //cache = Integer.valueOf(uid_);
+                cache = (Integer) key;
+
                 cache_.put(key, cache);
 
                 //System.out.println("-DLTEMP- KeyCahe.getUniqueId CACHE " + key + " -> " + cache.intValue());
@@ -1019,7 +1037,9 @@ public class FGWebContainerWrapper
         private Map<Byte, IDataTransmitter<Object>> cmdToDataTransmitter_;
         private FGPaintVectorBinaryCoder.StringPoolIdSupplier stringPoolIdSupplier_;
 
-        private Map<List<Keyword>, Map<Keyword, Object>> idPathToComponent_;
+        // TODO(new core) 1) replace path with index; 2) repalce Clojure extractors with Java ones
+        //
+        private Map<Object, Map<Keyword, Object>> idPathToComponent_;
 
         private final LookVectorTransmitter lookVectorTransmitter_;
 
@@ -1179,6 +1199,12 @@ public class FGWebContainerWrapper
                         Object newData = e.getValue();
                         Object diff = transmitter.getDiffToTransmit(prevData, newData);
                         ByteBuffer bin = diff != null ? transmitter.convertToBinary(e.getKey().byteValue(), diff) : null;
+
+//                        if (bin != null)
+//                        {
+//                            System.out.println(transmitter.getClass().getSimpleName() + " produced " + bin.capacity());
+//                        }
+
 //                        if (bin != null)
 //                        {
 //                            if (diff instanceof Map)
@@ -1211,47 +1237,59 @@ public class FGWebContainerWrapper
 
             if (evolveResultData != null)
             {
-                Collection<List<Keyword>> targetComponentPaths = evolveResultData.getEvolveReasonToTargetPath().values();
-                Set<Object> reasons = evolveResultData.getEvolveReasonToTargetPath().keySet();
-                if (!reasons.isEmpty() && reasons.stream().anyMatch(r -> r instanceof MouseEvent))
-                {
-                    Map<List<Keyword>, Map<Keyword, Object>> targetIdPathToComponent = fgModule_.getComponentIdPathToComponent(targetComponentPaths);
-                    Keyword cursor = HostComponent.resolveCursor(targetIdPathToComponent, fgContainer_);
-                    Integer cursorCode = cursor != null ? CURSOR_NAME_TO_CODE.get(cursor.getName()) : null;
-                    byte cursorCodeByte = cursorCode != null ? cursorCode.byteValue() : DEFAULT_CURSOR_CODE;
-                    Byte lastCursor = (Byte) cmdToLastData_.get(SET_CURSOR_COMMAND_CODE);
-                    if (lastCursor == null || cursorCodeByte != lastCursor.byteValue())
-                    {
-                        result.add(ByteBuffer.wrap(new byte[]{SET_CURSOR_COMMAND_CODE, cursorCodeByte}));
-                        cmdToLastData_.put(SET_CURSOR_COMMAND_CODE, Byte.valueOf(cursorCodeByte));
-                    }
-                }
+                //TODO(new core)
+
+//                Collection<List<Keyword>> targetComponentPaths = evolveResultData.getEvolveReasonToTargetPath().values();
+//                Set<Object> reasons = evolveResultData.getEvolveReasonToTargetPath().keySet();
+//                if (!reasons.isEmpty() && reasons.stream().anyMatch(r -> r instanceof MouseEvent))
+//                {
+//                    //TODO(new core) getComponentIdPathToComponent is an expensive operation bu here it is called once again
+//                    //
+//                    Map<List<Keyword>, Map<Keyword, Object>> targetIdPathToComponent = fgModule_.getComponentIdPathToComponent(targetComponentPaths);
+//                    Keyword cursor = HostComponent.resolveCursor(targetIdPathToComponent, fgContainer_);
+//                    Integer cursorCode = cursor != null ? CURSOR_NAME_TO_CODE.get(cursor.getName()) : null;
+//                    byte cursorCodeByte = cursorCode != null ? cursorCode.byteValue() : DEFAULT_CURSOR_CODE;
+//                    Byte lastCursor = (Byte) cmdToLastData_.get(SET_CURSOR_COMMAND_CODE);
+//                    if (lastCursor == null || cursorCodeByte != lastCursor.byteValue())
+//                    {
+//                        result.add(ByteBuffer.wrap(new byte[]{SET_CURSOR_COMMAND_CODE, cursorCodeByte}));
+//                        cmdToLastData_.put(SET_CURSOR_COMMAND_CODE, Byte.valueOf(cursorCodeByte));
+//                    }
+//                }
             }
 
             // Clipboard
 
-            String textForClipboard = HostComponent.getTextForClipboard(fgContainer_);
-            if (textForClipboard != null && !textForClipboard.equals(cmdToLastData_.get(PUSH_TEXT_TO_CLIPBOARD)))
-            {
-                ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                StringTransmitter.writeString(stream, 1, textForClipboard);
-                byte[] textBytes = stream.toByteArray();
-                byte[] cmd = new byte[textBytes.length+1];
-                cmd[0] = PUSH_TEXT_TO_CLIPBOARD;
-                for (int i=0; i<textBytes.length; i++)
-                {
-                    cmd[i+1] = textBytes[i];
-                }
-
-                result.add(ByteBuffer.wrap(cmd));
-
-                newDatas.put(PUSH_TEXT_TO_CLIPBOARD, textForClipboard);
-            }
+            //TODO(new core)
+//            String textForClipboard = HostComponent.getTextForClipboard(fgContainer_);
+//            if (textForClipboard != null && !textForClipboard.equals(cmdToLastData_.get(PUSH_TEXT_TO_CLIPBOARD)))
+//            {
+//                ByteArrayOutputStream stream = new ByteArrayOutputStream();
+//                StringTransmitter.writeString(stream, 1, textForClipboard);
+//                byte[] textBytes = stream.toByteArray();
+//                byte[] cmd = new byte[textBytes.length+1];
+//                cmd[0] = PUSH_TEXT_TO_CLIPBOARD;
+//                for (int i=0; i<textBytes.length; i++)
+//                {
+//                    cmd[i+1] = textBytes[i];
+//                }
+//
+//                result.add(ByteBuffer.wrap(cmd));
+//
+//                newDatas.put(PUSH_TEXT_TO_CLIPBOARD, textForClipboard);
+//            }
 
             mergeNewDatasToLast(newDatas);
 
             long spentTime = System.nanoTime() - debugStartTime_;
-            System.out.println("spentTime = " + (spentTime/1000));
+
+            int size = 0;
+            for (ByteBuffer b : result)
+            {
+                size += b.capacity();
+            }
+
+            //System.out.println("spentTime = " + (spentTime/1000) + " sending " + size);
 
             return result;
         }
@@ -1267,7 +1305,7 @@ public class FGWebContainerWrapper
             lookVectorTransmitter_.addFontStrListener(listener);
         }
 
-        private static Map.Entry<List<Keyword>, Map<Keyword, Object>> checkMapEntry(Map.Entry<List<Keyword>, Map<Keyword, Object>> entry, String entityName)
+        private static <K> Map.Entry<K, Map<Keyword, Object>> checkMapEntry(Map.Entry<K, Map<Keyword, Object>> entry, String entityName)
         {
             if (entry.getValue() == null)
             {
@@ -1279,7 +1317,7 @@ public class FGWebContainerWrapper
         private Supplier<Map<Object, Object>> createStringPoolSupplier(Var extractorFn)
         {
             return () -> {
-                Map<List<Keyword>, List<String>> idPathToString = new HashMap<>();
+                Map<Object, List<String>> idPathToString = new HashMap<>();
                 idPathToComponent_.forEach((k, v) -> idPathToString.put(k, (List<String>) extractorFn.invoke(v)));
                 return fgModule_.getStringPoolDiffs(idPathToString);
             };

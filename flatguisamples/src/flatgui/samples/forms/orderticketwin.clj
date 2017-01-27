@@ -213,8 +213,8 @@
       {:selection-mode :single
        :row-height 0.25
        :wheel-rotation-step-y 0.25
-       :default-cell-component (flatgui.base/merge-properties tcell/tablecell
-                                 {:foreground (awt/color 0 0 0)
+       :default-cell-component (merge-with flatgui.base/properties-merger tcell/tablecell
+                                           {:foreground (awt/color 0 0 0)
                                   :evolvers {:background quote-background-evolver}})})))
 
 (def asks-table
@@ -233,8 +233,8 @@
       {:selection-mode :single
        :row-height 0.25
        :wheel-rotation-step-y 0.25
-       :default-cell-component (flatgui.base/merge-properties tcell/tablecell
-                                 {:foreground (awt/color 0 0 0)
+       :default-cell-component (merge-with flatgui.base/properties-merger tcell/tablecell
+                                           {:foreground (awt/color 0 0 0)
                                   :evolvers {:background quote-background-evolver}})})))
 
 (def orderticket-window

@@ -6,9 +6,9 @@
 ; the terms of this license.
 ; You must not remove this notice, or any other, from this software.
 
-(ns flatgui.widgets.componentbase-test
+(ns flatgui.widgets._old_componentbase-test
   ;;; TODO get rid of :use
-  (:use flatgui.dependency flatgui.base flatgui.ids flatgui.comlogic flatgui.access flatgui.util.matrix clojure.test clojure.stacktrace))
+  (:use flatgui.dependency flatgui._old_base flatgui.ids flatgui.comlogic flatgui.access flatgui.util.matrix clojure.test clojure.stacktrace))
 
 
 (defn- remove-service-info [component]

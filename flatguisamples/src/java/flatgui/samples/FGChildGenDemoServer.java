@@ -10,31 +10,30 @@
 
 package flatgui.samples;
 
-import java.io.File;
-import java.net.URL;
-import java.util.Scanner;
-
 import flatgui.core.IFGTemplate;
 import flatgui.core.engine.remote.FGLegacyGlueTemplate;
 import flatgui.core.websocket.FGAppServer;
 
+import java.io.InputStream;
+import java.util.Scanner;
+
 /**
  * @author Denis Lebedev
  */
-public class FGLayoutDemo2Server
+public class FGChildGenDemoServer
 {
-    public static final String CONTAINER_NS = "layoutdemo2";
-    public static final String CONTAINER_VAR_NAME = "layoutpanel";
+    public static final String CONTAINER_NS = "childgen";
+    public static final String CONTAINER_VAR_NAME = "cgpanel";
     private static final int PORT = 13100;
 
     public static void main(String[] args) throws Exception
     {
-        URL formUrl = ClassLoader.getSystemResource("flatgui/samples/forms/layoutdemo2.clj");
-        String sourceCode = new Scanner(new File(formUrl.toURI())).useDelimiter("\\Z").next();
+        InputStream compoundSampleIs = FGChildGenDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/childgen.clj");
+        String compoundSampleSourceCode = new Scanner(compoundSampleIs).useDelimiter("\\Z").next();
+        IFGTemplate compondSampleTemplate = new FGLegacyGlueTemplate(compoundSampleSourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
 
-        IFGTemplate template = new FGLegacyGlueTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
+        FGAppServer server = new FGAppServer(compondSampleTemplate, PORT);
 
-        FGAppServer server = new FGAppServer(template, PORT);
         server.start();
         server.join();
     }

@@ -7,11 +7,11 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns image
-  (:require [flatgui.app]
+  (:require [flatgui.base]
             [flatgui.skins.flat]
             [flatgui.samples.forms.imagewindow :as iw]))
 
-(def imagepanel (flatgui.app/defroot iw/root-panel))
+(def imagepanel (flatgui.base/defroot iw/root-panel))
 
 (def icon "http://flatgui.org/resources/icon.png")
 (def smile "http://flatgui.org/resources/smile_32x32.png")

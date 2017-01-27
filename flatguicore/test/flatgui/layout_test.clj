@@ -8,7 +8,6 @@
 
 (ns flatgui.layout-test
   (:require [clojure.test :as test]
-            [flatgui.base :as fg]
             [flatgui.layout :as layout]
             [flatgui.util.matrix :as m]
             [flatgui.util.decimal :as d]))
@@ -311,7 +310,7 @@
                      {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.5 :w 0.3 :y 0.0 :h 0.1 :flags nil}
                      {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.8 :w 0.2 :y 0.0 :h 0.1 :flags "--"}))
         actual (layout/coord-map-evolver main)]
-    (test/is (= (m/defpoint 2 1) (fg/get-property-private main [:this :a] :preferred-size)))
+    (test/is (= (m/defpoint 2 1) (get-in main [:this :a :preferred-size])))
     (test/is (= (normalize-nums expected) (normalize-nums actual)))))
 
 (test/deftest coord-map-evolver-test2
@@ -325,7 +324,7 @@
                      {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.0   :w 0.5   :y 0.1 :h 0.1 :flags "----"}
                      {:element :d :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.875 :w 0.125 :y 0.1 :h 0.1 :flags "->"}))
         actual (layout/coord-map-evolver main)]
-    (test/is (= (m/defpoint 2 1) (fg/get-property-private main [:this :a] :preferred-size)))
+    (test/is (= (m/defpoint 2 1) (get-in main [:this :a :preferred-size])))
     (test/is (= (normalize-nums expected) (normalize-nums actual)))))
 
 (test/deftest coord-map-evolver-test3
@@ -445,7 +444,7 @@
                      {:element :b :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.2 0.1) :x 0.25 :w 0.2 :y 0.0 :h 0.1 :flags nil}
                      {:element :c :min (m/defpoint 0.1 0.1) :pref (m/defpoint 0.3 0.1) :x 0.2  :w 0.3 :y 0.1 :h 0.1 :flags nil}))
         actual (layout/coord-map-evolver main)]
-    (test/is (= (m/defpoint 2 1) (fg/get-property-private main [:this :a] :preferred-size)))
+    (test/is (= (m/defpoint 2 1) (get-in main [:this :a :preferred-size])))
     (test/is (= (normalize-nums expected) (normalize-nums actual)))))
 
 (test/deftest coord-map-evolver-testA

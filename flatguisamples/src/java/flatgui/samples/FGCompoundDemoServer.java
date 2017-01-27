@@ -12,6 +12,7 @@ package flatgui.samples;
 
 import flatgui.core.FGTemplate;
 import flatgui.core.IFGTemplate;
+import flatgui.core.engine.remote.FGLegacyGlueTemplate;
 import flatgui.core.websocket.FGAppServer;
 
 import java.io.InputStream;
@@ -38,20 +39,21 @@ public class FGCompoundDemoServer
     {
         InputStream compoundSampleIs = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/compound.clj");
         String compoundSampleSourceCode = new Scanner(compoundSampleIs).useDelimiter("\\Z").next();
-        IFGTemplate compondSampleTemplate = new FGTemplate(compoundSampleSourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
+        //IFGTemplate compondSampleTemplate = new FGTemplate(compoundSampleSourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
+        IFGTemplate compondSampleTemplate = new FGLegacyGlueTemplate(compoundSampleSourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
 
         FGAppServer server = new FGAppServer(compondSampleTemplate, PORT);
 
 
-        InputStream focusSampleIs = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/fdemo.clj");
-        String focusSampleSourceCode = new Scanner(focusSampleIs).useDelimiter("\\Z").next();
-        IFGTemplate focusSampleTemplate = new FGTemplate(focusSampleSourceCode, FOCUS_CONTAINER_NS, FOCUS_CONTAINER_VAR_NAME);
-        server.addApplication(FOCUS_MAPPING, focusSampleTemplate);
-
-        InputStream layoutSampleIs = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/layoutdemo2.clj");
-        String layoutSampleSourceCode = new Scanner(layoutSampleIs).useDelimiter("\\Z").next();
-        IFGTemplate layoutSampleTemplate = new FGTemplate(layoutSampleSourceCode, LAYOUT_CONTAINER_NS, LAYOUT_CONTAINER_VAR_NAME);
-        server.addApplication(LAYOUT_MAPPING, layoutSampleTemplate);
+//        InputStream focusSampleIs = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/fdemo.clj");
+//        String focusSampleSourceCode = new Scanner(focusSampleIs).useDelimiter("\\Z").next();
+//        IFGTemplate focusSampleTemplate = new FGTemplate(focusSampleSourceCode, FOCUS_CONTAINER_NS, FOCUS_CONTAINER_VAR_NAME);
+//        server.addApplication(FOCUS_MAPPING, focusSampleTemplate);
+//
+//        InputStream layoutSampleIs = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/layoutdemo2.clj");
+//        String layoutSampleSourceCode = new Scanner(layoutSampleIs).useDelimiter("\\Z").next();
+//        IFGTemplate layoutSampleTemplate = new FGTemplate(layoutSampleSourceCode, LAYOUT_CONTAINER_NS, LAYOUT_CONTAINER_VAR_NAME);
+//        server.addApplication(LAYOUT_MAPPING, layoutSampleTemplate);
 
         server.start();
         server.join();

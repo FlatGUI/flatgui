@@ -1,4 +1,4 @@
-; Copyright (c) 2015 Denys Lebediev and contributors. All rights reserved.
+; Copyright (c) 2016 Denys Lebediev and contributors. All rights reserved.
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0.php)
 ; which can be found in the file LICENSE at the root of this distribution.
@@ -6,21 +6,145 @@
 ; the terms of this license.
 ; You must not remove this notice, or any other, from this software.
 
-(ns ^{:doc "Basic means for defining and implementing FlatGUI widget types"
-      :author "Denys Lebediev"}
-  flatgui.base
-  (:require flatgui.comlogic
-            flatgui.responsefeed
-            flatgui.util.matrix)
-  (:import [clojure.lang Keyword])
-  ;;; TODO Get rid of :use
-  (:use
-    flatgui.dependency
-    clojure.test))
+(ns flatgui.base
+  (:require [clojure.algo.generic.functor :as functor]
+            [flatgui.dependency]
+            [flatgui.responsefeed])
+  (:import (flatgui.core.engine GetPropertyStaticClojureFn GetDynPropertyDynPathClojureFn GetDynPropertyClojureFn GetPropertyDynPathClojureFn)))
 
-;;;
-;;; Default implementation of logging. To be overriden by client application
-;;;
+(defn get-property-call? [form]
+  (and
+    (= 'get-property (first form))
+    (or
+      (vector? (second form))
+      (and (= 'component (second form)) (vector? (first (next (next form))))))))
+
+(defn get-reason-call? [form]
+  (or
+    (= 'get-reason (first form))
+    ;; 'fg/get-reason is here for backward compatibility
+    (= 'fg/get-reason (first form))))
+
+;;; TODO add get-full-reason: include property also; maybe also actual node instead of wildcard
+
+(def old-val-prefix "old-")
+
+(defn old-value-ref? [e property]
+  (and (not (nil? property)) (symbol? e) (.startsWith (name e) old-val-prefix) (.endsWith (name e) (name property))))
+
+(declare replace-gp)
+(declare replace-gpv)
+(declare replace-gpmap)
+
+(defn- gp-replacer [% property]
+  (cond
+    (and (seq? %) (get-property-call? %))
+    (let [% (if (symbol? (second %)) (conj (drop 2 %) (first %)) %) ;backward compatibility
+          % (replace-gp % property)
+          path-&-prop (next %)
+          path (first path-&-prop)
+          dyn-path (some #(not (keyword? %)) path)
+          property (last path-&-prop)
+          dyn-property (not (keyword? property))
+          get-property-fn (cond
+                            (and dyn-path dyn-property) (GetDynPropertyDynPathClojureFn.)
+                            dyn-path (GetPropertyDynPathClojureFn.)
+                            dyn-property (GetDynPropertyClojureFn.)
+                            :else (GetPropertyStaticClojureFn.))]
+      (conj path-&-prop get-property-fn))
+    (and (seq? %) (get-reason-call? %))
+    (list '.getEvolveReason 'component)
+    (old-value-ref? % property)
+    (list (keyword (.substring (name %) (.length old-val-prefix))) 'component)
+    (seq? %) (replace-gp % property)
+    (vector? %) (replace-gpv % property)
+    (map? %) (replace-gpmap % property)
+    :else %))
+
+(defn replace-gp [form property] (map #(gp-replacer % property) form))
+(defn replace-gpv [v property] (mapv #(gp-replacer % property) v))
+(defn replace-gpmap [form property] (functor/fmap #(gp-replacer % property) form))
+
+;(defn- gen-evolver [body property] (flatgui.core/replace-gp (gp-replacer body property) property))
+(defn- gen-evolver [body property] (gp-replacer body property))
+
+(defn with-all-meta [obj m]
+  (let [orig-meta (meta obj)]
+    (with-meta obj (merge orig-meta m))))
+
+(defn- gen-evolver-decl
+  ([fnname property body]
+    (let [result (list 'def fnname
+                       (list 'flatgui.base/with-all-meta
+                             (list 'fn ['component] (gen-evolver body property))
+                             (list 'hash-map
+                                    :input-channel-dependencies (conj (flatgui.dependency/get-input-dependencies body) 'list)
+                                    :relative-dependencies (conj (flatgui.dependency/get-all-dependencies body) 'list))))
+          ;_ (println "Generated evolver:\n" result)
+          _ (if (= fnname 'r-spinner-evolver)
+              (println "Evolver dependencies:\n" (flatgui.dependency/get-all-dependencies body)))
+          ]
+      result))
+  ([property body]
+   (gen-evolver-decl (symbol (str (name property) "-evolver")) property body)))
+
+(defmacro defevolverfn [& args] (apply gen-evolver-decl args))
+
+(defmacro accessorfn [body]
+  (list 'flatgui.base/with-all-meta
+        (list 'fn ['component] (gen-evolver body nil))
+        (list 'hash-map
+              :input-channel-dependencies (conj (flatgui.dependency/get-input-dependencies body) 'list)
+              :relative-dependencies (conj (flatgui.dependency/get-all-dependencies body) 'list))))
+
+(defmacro defaccessorfn [fnname params body]
+  (list 'def fnname (list 'flatgui.base/with-all-meta
+                          (list 'fn params (gen-evolver body nil))
+                          (list 'hash-map
+                                :input-channel-dependencies (conj (flatgui.dependency/get-input-dependencies body) 'list)
+                                :relative-dependencies (conj (flatgui.dependency/get-all-dependencies body) 'list)))))
+
+(defn defroot [container] container)
+
+;;; TODO move below to dedicated namespace(s)
+
+(defn properties-merger [a b]
+  (if (and (map? a) (map? b))
+    (merge-with properties-merger a b)
+    (if (not (nil? b)) b a)))
+
+(defmacro defwidget [widget-type dflt-properties & base-widget-types]
+  "Creates widget property map and associates it with a symbol."
+  `(def
+     ~(symbol widget-type)
+     (merge-with properties-merger
+                 ~@base-widget-types
+                 ~dflt-properties
+                 {:widget-type ~widget-type})))
+
+;;
+;; TODO   For component inheritance, merge-properties should throw exception in case same property found in more than one parent,
+;; TODO   and inheriting component does not declare its own value
+;;
+(defn defcomponent [type id properties & children]
+  "Defines component of speficied type, with
+   specified id and optionally with child components"
+  (let [c (merge-with
+            properties-merger
+            ;; Do not inherit :skin-key from parent type if :look is defined explicitly
+            (if (:look properties) (dissoc type :skin-key) type)
+            properties)]
+    (merge-with
+      properties-merger
+      c
+      {:children (into {} (for [c children] [(:id c) c]))
+       :id id
+       :look-vec nil})))
+
+
+;;;;;
+;;;;; borrowed from v0.1.0 flatgui.base
+;;;;;
 
 (def date-formatter (java.text.SimpleDateFormat. "MMM d HH:mm:ss.SSS Z"))
 (defn- ts [] (.format date-formatter (java.util.Date. (java.lang.System/currentTimeMillis))))
@@ -39,304 +163,5 @@
 
 (defn log-timestamp [& msg] (log-debug msg " at " (str (java.lang.System/currentTimeMillis))))
 
-;
-; Logging utilities
-;
-
-(defn- get-indent [str] (clojure.string/join (map (fn [e] " ") str)))
-
-(defn- key-to-str [k] (str k " "))
-
-(defn- join-with-break [coll]
-  (clojure.string/join (System/getProperty "line.separator") coll))
-
-(defn container-to-str
-  ([indent container]
-    (join-with-break
-      (sort (for [[k v] container] (if (map? v)
-                                     (join-with-break [(str indent (key-to-str k)) (container-to-str (str indent (get-indent (key-to-str k))) v)])
-                                     (str indent (key-to-str k) v))))))
-  ([container] (container-to-str "" container)))
-
-;
-; Utilities for defining component type
-;
-
-(defn get-path-components [container path]
-  (if (seq path)
-    (let [ first-component ((first path) (:children container))
-           next-path (next path)]
-      (if next-path
-        (concat [first-component] (get-path-components first-component next-path))
-        [first-component]))))
-
-(defn- count-levels-up [path]
-  (let [ path-len (count path)]
-    (loop [ i 0]
-      (if (and (< i path-len) (= :_ (nth path i)))
-        (recur (inc i))
-        i))))
-
-(def self-dependency-path [:this])
-
-;;; TODO should be private, but need to fix utest then
-(defn get-property-private [component path property]
-  "Returns property from component or any of its children
-   looking up for it by path. Path is a vector which is
-   used to navigate component hierachy. Special path element
-   :_ means go 1 level up; any other element is treated as
-   child component id to look in."
-  (if (= path self-dependency-path)
-    (property component)
-    (try (let [ ;_ (println " ---------- path = " path)
-           path-to-component (:path-to-target component)]
-      (if (not (and (= 0 (count path)) (and (= 0 (count path-to-component)))))
-        (let [  levels-up (count-levels-up path)
-                path-to-cnt (- (count path-to-component) 1 levels-up)
-                path-down-cnt (- (count path) levels-up)
-                total-cnt (+ path-to-cnt path-down-cnt)
-                k (loop [ i 0
-                          key (transient (vec (make-array Keyword total-cnt)))]
-                    (if (< i total-cnt)
-                      (recur
-                        (inc i)
-                        (let [ p (* 2 i)
-                               pn (inc p)]
-                            (assoc! (assoc! key p :children) pn (if (< i path-to-cnt)
-                                                                  (nth path-to-component (inc i))
-                                                                  (let [ pde (nth path (+ (- i path-to-cnt) levels-up))]
-                                                                    (if (= :this pde) (:id component) pde))))
-                            ))
-                      (persistent! key)))
-                root-container (:root-container component)
-                component-to-take-from (get-in root-container k)]
-          (do
-
-;            (println "GP " property " from " path
-;              " component: " (:id component)
-;              " path-to-component = " path-to-component
-;              " component-to-take-from: " (:id component-to-take-from))
-
-              (property component-to-take-from)
-        ))))
-      (catch Exception e (log-error "get-property exception" (.getMessage e)
-                           "comp:" (:path-to-target component) (:id component)
-                           "path" path
-                           "property" property)))
-
-    ))
-
-
-;; @todo 1. get-property macro should be written in a way user does not need to specify component argument
-;;          get-property-private should be called with component agrument from macro generated code
-;;
-;;       2. when get-property-private has to evolve property because is not evolved yet - it has to update
-;;          it in container somehow
-;;
-;(defn- get-property-private [component path property]
-;  "Returns property from component or any of its children
-;   looking up for it by path. Path is a vector which is
-;   used to navigate component hierachy. Special path element
-;   :_ means go 1 level up; any other element is treated as
-;   child component id to look in."
-;  (let [ parents (:parents component)]
-;    (if (not (empty? parents))
-;      (let [ parent-index-to-start (count (take-while (fn [e] (= :_ e)) path))
-;             parent-to-start (nth parents parent-index-to-start)
-;             parents-of-paernt-to-start (take-last (dec (- (count parents) parent-index-to-start)) parents)
-;             path-down (replace {:this (:id component)} (take-last (- (count path) parent-index-to-start) path))
-;             path-down-components (get-path-components parent-to-start path-down)
-;             target-with-parents (concat (reverse path-down-components) [parent-to-start] parents-of-paernt-to-start)
-;             target-component (first target-with-parents)
-;             parents-of-target (vec (next target-with-parents))]
-;        (do
-;
-;;          ;(if (= :screen-row property)
-;;            (println "GP " property " from " (:id component)
-;;            " path = " path
-;;            " path-down = " path-down
-;;            " path-down-components = " (map #(:id %1) path-down-components)
-;;            " parent-to-start = " (:id parent-to-start)
-;;            " its parents = " (map #(:id %1) parents-of-paernt-to-start)
-;;            " target = " (:id target-component)
-;;            " parents-of-target = " (map #(:id %1) parents-of-target)
-;;            " actual value = " (property target-component)
-;;            " evolved value = " (let [ evolver (property (:evolvers target-component))]
-;;                                 (if evolver (evolver (assoc target-component
-;;                                                        :parents parents-of-target
-;;                                                        :evolve-reason-provider (:evolve-reason-provider component)))
-;;                                   (property target-component)))
-;;            " evolved properties = "  (:evolved-properties target-component)
-;;            )
-;;          ;)
-;
-;          (if target-component
-;            (if (some #(= property %1) (:evolved-properties target-component))
-;              ;(get-in parent-to-start (concat (mapcat (fn [v] [:children v]) path-down) [property]))
-;              (property target-component)
-;              (let [ evolver (property (:evolvers target-component))]
-;                (if evolver (evolver (assoc target-component
-;                                       :parents parents-of-target
-;                                       :evolve-reason-provider (fn [id] nil);(:evolve-reason-provider component)
-;                                       ))
-;                  (property target-component)))
-;              ))
-;
-;;          (let [ evolver (property (:evolvers target-component))]
-;;            (if evolver (evolver (assoc target-component
-;;                                   :parents parents-of-target
-;;                                   :evolve-reason-provider (:evolve-reason-provider component)))
-;;              (property target-component)))
-;
-;
-;          ;(property target-component)
-;
-;          )))))
-
-
-; TODO order is not needed
-;
-;
-(defn merge-ordered [a b]
-  (let [ key-order (distinct (concat (for [[k v] a] k) (for [[k v] b] k)))
-         result (apply array-map (mapcat (fn [k] (if (and (map? (a k)) (map? (b k)))
-                                             [k (merge-ordered (a k) (b k))]
-                                             (if (contains? b k) ; b may intentionally override smth with nil
-                                               [k (b k)]
-                                               [k (a k)]))) key-order))]
-    (do
-      ;(log-debug " Merged result of class: " (.getClass result))
-      result)))
-
-(defn merge-properties [& property-maps]
-  "Merges property maps. Latter map has precedence"
-  {:added "1.0"}
-  (let [dependencies (mapcat (fn [p] (:relative-dependencies p)) property-maps)
-        input-channel-dependencies (mapcat (fn [p] (:input-channel-dependencies p)) property-maps)]
-    (do
-
-;      (println " merge-properties ------------------------------ ")
-;      (println "  args: " property-maps)
-;      (println "  result: " (reduce merge-ordered property-maps))
-
-      (assoc
-        (reduce merge-ordered property-maps)
-        :relative-dependencies dependencies
-        :input-channel-dependencies input-channel-dependencies))))
-
-
-;;
-;; TODO   For component inheritance, merge-properties should throw exception in case same property found in more than one parent,
-;; TODO   and inheriting component does not declare its own value
-;;
-(defn defcomponent [type id properties & children]
-  "Defines component of speficied type, with
-   specified id and optionally with child components"
-  (let [c (merge-properties
-             ;; Do not inherit :skin-key from parent type if :look is defined explicitly
-             (if (:look properties) (dissoc type :skin-key) type)
-             properties)
-        evolver-dependencies (into {} (for [[k v] (:evolvers c)] [k (get-relative-dependencies v)]))]
-    (merge-properties c
-      { :children (into (array-map) (for [c children] [(:id c) c]))
-        :evolver-dependencies evolver-dependencies
-        :id id})))
-
-(defmacro defwidget [widget-type dflt-properties & base-widget-types]
-  "Creates widget property map and associates it with a symbol. See defwidgettype for mode imformation"
-  (let []
-
-    `(def
-       ~(symbol widget-type)
-       (flatgui.base/merge-properties
-         ~@base-widget-types
-         ~dflt-properties
-         {:widget-type ~widget-type}))))
-
-(defmacro defevolverfn
-  "Convenient macro to define evolver functions for components.
-  Introduces let binding for old property name."
-  ([property-name body]
-    (let [body-dependencies (conj (flatgui.dependency/get-all-dependencies body) 'list)
-          input-channel-dependencies (conj (flatgui.dependency/get-input-dependencies body) 'list)
-          fnname (symbol (str (name property-name) "-evolver"))
-          get-fn flatgui.base/get-property-private
-          let-binding [(symbol (str "old-" (name property-name))) (list property-name 'component)
-                        'get-property `(fn ([~'c ~'path ~'prop] (~get-fn ~'c ~'path ~'prop))
-                                           ([~'path ~'prop] (~get-fn ~'component ~'path ~'prop)))]]
-      (do (log-debug " defining evolver " fnname
-                     " body-dependencies = " body-dependencies
-                     " input-channel-dependencies = " input-channel-dependencies)
-          ;(log-debug "  |_ body " body)
-        `(do
-           ; with-meta produces evolver fn meta which is analyzed by flatgui.dependency/get-relative-dependencies [evolver]
-           ; alter-meta! alters Var meta that is analyzed by flatgui.dependency/get-all-dependencies
-          (def ~fnname (with-meta (fn [~'component] (let ~let-binding ~body)) {:relative-dependencies ~body-dependencies
-                                                                               :input-channel-dependencies ~input-channel-dependencies}))
-          (alter-meta! (var ~fnname) (fn [~'m] (assoc ~'m
-                                                 :relative-dependencies ~body-dependencies
-                                                 :input-channel-dependencies ~input-channel-dependencies)))
-          ))))
-  ([fnname property-name body]
-    (let [body-dependencies (conj (flatgui.dependency/get-all-dependencies body) 'list)
-          input-channel-dependencies (conj (flatgui.dependency/get-input-dependencies body) 'list)
-          get-fn flatgui.base/get-property-private
-          let-binding [(symbol (str "old-" (name property-name))) (list property-name 'component)
-                        'get-property `(fn ([~'c ~'path ~'prop] (~get-fn ~'c ~'path ~'prop))
-                                           ([~'path ~'prop] (~get-fn ~'component ~'path ~'prop)))]]
-      (do (log-debug " defining evolver " fnname
-                     " body-dependencies = " body-dependencies
-                     " input-channel-dependencies = " input-channel-dependencies)
-        `(do
-           ; with-meta produces evolver fn meta which is analyzed by flatgui.dependency/get-relative-dependencies [evolver]
-           ; alter-meta! alters Var meta that is analyzed by flatgui.dependency/get-all-dependencies
-           (def ~fnname (with-meta (fn [~'component] (let ~let-binding ~body)) {:relative-dependencies ~body-dependencies
-                                                                                :input-channel-dependencies ~input-channel-dependencies}))
-           (alter-meta! (var ~fnname) (fn [~'m] (assoc ~'m
-                                                  :relative-dependencies ~body-dependencies
-                                                  :input-channel-dependencies ~input-channel-dependencies)))
-           )))))
-
-(defmacro accessorfn [body]
-  (let [body-dependencies (conj (flatgui.dependency/get-all-dependencies body) 'list)
-        input-channel-dependencies (conj (flatgui.dependency/get-input-dependencies body) 'list)
-        get-fn flatgui.base/get-property-private
-        let-binding ['get-property get-fn]]
-    `(with-meta (fn [~'component] (let ~let-binding ~body)) {:relative-dependencies ~body-dependencies
-                                                             :input-channel-dependencies ~input-channel-dependencies})))
-
-(defmacro defaccessorfn [fnname params body]
-  (let [body-dependencies (conj (flatgui.dependency/get-all-dependencies body) 'list)
-        input-channel-dependencies (conj (flatgui.dependency/get-input-dependencies body) 'list)
-        get-fn flatgui.base/get-property-private
-        let-binding ['get-property get-fn]]
-    (do
-
-      (log-debug " defining accessor " fnname
-                 " body-dependencies = " body-dependencies
-                 " input-channel-dependencies = " input-channel-dependencies)
-
-      `(do ;(log-debug " defining accessor " ~fnname)
-         ; with-meta produces evolver fn meta which is analyzed by flatgui.dependency/get-relative-dependencies [evolver]
-         ; alter-meta! alters Var meta that is analyzed by flatgui.dependency/get-all-dependencies
-        (def ~fnname (with-meta (fn ~params (let ~let-binding ~body)) {:relative-dependencies ~body-dependencies
-                                                                       :input-channel-dependencies ~input-channel-dependencies}))
-        (alter-meta! (var ~fnname) (fn [~'m] (assoc ~'m
-                                               :relative-dependencies ~body-dependencies
-                                               :input-channel-dependencies ~input-channel-dependencies)))))))
-
-
-
-;;;
-;;; Utils for working with components
-;;;
-
-(defmacro get-reason [] '((:evolve-reason-provider component) (:id component)))
-
-(defn get-children-list [comp-property-map]
-  (for [[id c] (:children comp-property-map)] c))
-
-(defn get-children-id-list [comp-property-map]
-  (for [[id c] (:children comp-property-map)] id))
 
 (defn get-child-count [comp-property-map] (count (:children comp-property-map)))

@@ -7,8 +7,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns compound
-  (:require [flatgui.app]
-            [flatgui.skins.flat]
+  (:require [flatgui.skins.flat]
             [flatgui.base :as fg]
             [flatgui.awt :as awt]
             [flatgui.focus :as ff]
@@ -65,7 +64,7 @@
 
     (fg/defcomponent checkbox/checkbox :hello-world
       {:text "Hello World"
-       :pressed true
+       ;:pressed true
        :clip-size (m/defpoint 1.5 0.25)
        :position-matrix (m/translation 5.5 0.125)})
 
@@ -76,6 +75,7 @@
 
     (fg/defcomponent checkbox/checkbox :book
       {:text "Book"
+       ;:pressed true
        :clip-size (m/defpoint 1.0 0.25)
        :position-matrix (m/translation 9.0 0.125)})))
 
@@ -111,7 +111,7 @@
        :evolvers {:visible colorchooser-visible-evolver}})))
 
 (def raw-compoundpanel
-  (flatgui.app/defroot
+  (flatgui.base/defroot
     (fg/defcomponent panel/panel :main
       {:clip-size (m/defpoint 16 12)
        :background (awt/color 0 38 70)
@@ -129,7 +129,8 @@
 ;;; both check boxes - as if it was for UI testing
 ;;;
 
-;;; raw-compoundpanel container with two simulated mouse clicks passed to it
-(def compoundpanel
-  (-> (flatgui.testsuite/simulate-mouse-click raw-compoundpanel [:main :header-panel :hello-world])
-      (flatgui.testsuite/simulate-mouse-click [:main :header-panel :color-chooser])))
+;;;; raw-compoundpanel container with two simulated mouse clicks passed to it
+;(def compoundpanel
+;  (-> (flatgui.testsuite/simulate-mouse-click raw-compoundpanel [:main :header-panel :hello-world])
+;      (flatgui.testsuite/simulate-mouse-click [:main :header-panel :color-chooser])))
+(def compoundpanel raw-compoundpanel)

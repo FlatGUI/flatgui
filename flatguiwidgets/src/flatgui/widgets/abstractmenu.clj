@@ -25,8 +25,7 @@
 
 (fg/defwidget "menuheader"
   {:visible :false
-   :default-height 0
-   :evolvers { :visible (fn [_] false)}}
+   :default-height 0}
   flatgui.widgets.table.header/tableheader)
 
 (fg/defwidget "abstractmenu"

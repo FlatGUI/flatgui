@@ -77,7 +77,7 @@ public class HostComponent extends AbstractHostComponent
         if (!reasons.isEmpty() && reasons.stream().anyMatch(r -> r instanceof MouseEvent))
         {
             Collection<List<Keyword>> targetComponentPaths = evolveResultData.getEvolveReasonToTargetPath().values();
-            Map<List<Keyword>, Map<Keyword, Object>> targetIdPathToComponent = fgContainer_.getFGModule().getComponentIdPathToComponent(targetComponentPaths);
+            Map<Object, Map<Keyword, Object>> targetIdPathToComponent = fgContainer_.getFGModule().getComponentIdPathToComponent(targetComponentPaths);
             Keyword c = resolveCursor(targetIdPathToComponent, fgContainer_);
             Integer cursor = c != null ? FG_TO_AWT_CUSROR_MAP.get(c) : null;
             setCursor(cursor != null ? Cursor.getPredefinedCursor(cursor.intValue()) : Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
@@ -102,7 +102,7 @@ public class HostComponent extends AbstractHostComponent
         paintSequence(bg, paintList);
     }
 
-    public static Keyword resolveCursor(Map<java.util.List<Keyword>, Map<Keyword, Object>> idPathToComponent,
+    public static Keyword resolveCursor(Map<Object, Map<Keyword, Object>> idPathToComponent,
                                         IFGContainer fgContainer)
     {
         Map<java.util.List<Keyword>, Keyword> componentToCursor =

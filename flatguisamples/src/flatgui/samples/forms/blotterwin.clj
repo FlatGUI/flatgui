@@ -104,8 +104,8 @@
     (tcolh/defcolumn :exchange [:sorting]))
   (tcpane/deftablecontent
     row-count
-    {:default-cell-component (flatgui.base/merge-properties tcell/tablecell
-                               {:evolvers {:background blotter-background-evolver}})})))
+    {:default-cell-component (merge-with flatgui.base/properties-merger tcell/tablecell
+                                         {:evolvers {:background blotter-background-evolver}})})))
 
 (def tradeblotter-window
   (fg/defcomponent window/window :blotter

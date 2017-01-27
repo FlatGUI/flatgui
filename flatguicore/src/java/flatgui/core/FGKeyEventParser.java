@@ -26,7 +26,7 @@ import java.util.Map;
  */
 public class FGKeyEventParser extends FGFocusTargetedEventParser<KeyEvent>
 {
-    private static final Var getStats_ = clojure.lang.RT.var("flatgui.widgets.componentbase", "get-stats");
+    private static final Var getStats_ = clojure.lang.RT.var("flatgui.widgets._old_componentbase", "get-stats");
     private Map<Object, Object> lastStats_;
 
     @Override

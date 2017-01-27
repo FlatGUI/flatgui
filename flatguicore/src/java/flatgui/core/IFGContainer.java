@@ -43,6 +43,12 @@ public interface IFGContainer
 
     IFGInteropUtil getInterop();
 
+    // TODO(new core)
+    // ContainerAccessor - no impl
+    // FGContainer
+    //   - hostContext is not used
+    //   - eventFedCallback (callback invoked after event is passed to evolver executor service) - not used for remote impl
+    //   - returns: fn that feeds event to container and returns future to get results
     Function<FGEvolveInputData, Future<FGEvolveResultData>> connect(ActionListener eventFedCallback, Object hostContext);
 
     <T> Future<T> submitTask(Callable<T> callable);

@@ -13,8 +13,8 @@ package flatgui.samples;
 import java.io.InputStream;
 import java.util.Scanner;
 
-import flatgui.core.FGTemplate;
 import flatgui.core.IFGTemplate;
+import flatgui.core.engine.remote.FGLegacyGlueTemplate;
 import flatgui.core.websocket.FGAppServer;
 
 /**
@@ -31,7 +31,7 @@ public class FGMultilineTextDemoServer
         InputStream sampleIs = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/text.clj");
         String sourceCode = new Scanner(sampleIs).useDelimiter("\\Z").next();
 
-        IFGTemplate template = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
+        IFGTemplate template = new FGLegacyGlueTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
 
         FGAppServer server = new FGAppServer(template, PORT);
         server.start();

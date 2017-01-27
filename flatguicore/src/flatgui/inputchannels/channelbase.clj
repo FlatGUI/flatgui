@@ -14,7 +14,7 @@
   "Convenient macro for defining functions that obtain
   specific data from input channel object such as mouse,
   keyboard events, etc."
-  (let [let-bindings '[repaint-reason ((:evolve-reason-provider comp-property-map) (:id comp-property-map))]]
+  (let [let-bindings '[repaint-reason (.getEvolveReason comp-property-map)]]
       `(defn ~fnname [~'comp-property-map] (let ~let-bindings (if (and (instance? ~event-type ~'repaint-reason) (not (nil? ~'repaint-reason)))
                                                               ~body)))))
 

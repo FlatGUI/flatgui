@@ -27,7 +27,7 @@
           (or vfc-clicked column-header-clicked)
           ;; This condition is needed to prevent get-new-mode to be evaluated twice
           ;; (second time because of [:_] :active-headers dependency)
-          (not= [:_] ((:evolve-reason-provider component) (:id component))))
+          (not= [:_] (get-reason)))
       (vfc/get-new-mode component)
       (let [ header-id (get-property component [] :id)
              active-headers (get-property component [:_] :active-headers)]
@@ -57,22 +57,22 @@
 
 (def desc-comparator (Collections/reverseOrder asc-comparator))
 
-(fg/defaccessorfn apply-sorting [contentpane prev-header-ids header-id prev-row-order modes]
+(fg/defaccessorfn apply-sorting [component prev-header-ids header-id prev-row-order modes]
   (let [ mode (header-id modes)
         ;_ (println "apply-sorting called for " header-id " mode = " mode)
         ]
-    (if (= :none mode)
+    (if (or (nil? mode) (= :none mode))
       prev-row-order
       (let [row-count (count prev-row-order)
             key-fn (fn [row-order-item]
-                     (vfc/get-value-from-col contentpane row-order-item header-id))
+                     (vfc/get-value-from-col component row-order-item header-id))
             sub-ranges (if (nil? prev-header-ids)
                          [[0 row-count]]
                            (vfc/find-subranges
                              (for [screen-row (range 0 row-count)]
                                (map
                                  (fn [prev-header-id] (vfc/get-value-from-col
-                                                        contentpane
+                                                        component
                                                         (nth prev-row-order screen-row)
                                                         prev-header-id))
                                prev-header-ids))))]
@@ -94,8 +94,8 @@
                   (if (= :asc mode) asc-comparator desc-comparator)
                   (take (last (nth sub-ranges sr)) prev-row-order-rest))))))))))
 
-(fg/defaccessorfn apply-sorting-feature [contentpane prev-row-order modes]
-  (vfc/apply-vf-by-degree contentpane :sorting apply-sorting prev-row-order modes))
+(fg/defaccessorfn apply-sorting-feature [component prev-row-order modes]
+  (vfc/apply-vf-by-degree component :sorting apply-sorting prev-row-order modes))
 
 ; Params
 

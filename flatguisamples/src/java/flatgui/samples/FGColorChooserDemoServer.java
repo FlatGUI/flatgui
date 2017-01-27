@@ -20,6 +20,7 @@ import clojure.lang.Var;
 import flatgui.core.FGTemplate;
 import flatgui.core.IFGContainer;
 import flatgui.core.IFGTemplate;
+import flatgui.core.engine.remote.FGLegacyGlueTemplate;
 import flatgui.core.websocket.FGAppServer;
 
 /**
@@ -38,12 +39,13 @@ public class FGColorChooserDemoServer
         URL formUrl = ClassLoader.getSystemResource("flatgui/samples/forms/colorchooser.clj");
         String sourceCode = new Scanner(new File(formUrl.toURI())).useDelimiter("\\Z").next();
 
-        IFGTemplate appTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
+        //IFGTemplate appTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
+        IFGTemplate appTemplate = new FGLegacyGlueTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
 
         FGAppServer server = new FGAppServer(appTemplate, PORT);
 
-        Var statsReporter = RT.var(CONTAINER_NS, STATS_REPORTER_VR_NAME);
-        server.setSessionCloseConsumer(FGAppServer.DEFAULT_MAPPING, (BiConsumer<Object, IFGContainer>) statsReporter.get());
+//        Var statsReporter = RT.var(CONTAINER_NS, STATS_REPORTER_VR_NAME);
+//        server.setSessionCloseConsumer(FGAppServer.DEFAULT_MAPPING, (BiConsumer<Object, IFGContainer>) statsReporter.get());
 
         server.start();
         server.join();

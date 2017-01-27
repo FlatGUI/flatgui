@@ -11,9 +11,10 @@ import flatgui.core.websocket.FGWebInteropUtil;
 
 import java.awt.*;
 import java.awt.geom.NoninvertibleTransformException;
+import java.io.InputStream;
+import java.io.StringReader;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 /**
@@ -22,7 +23,6 @@ import java.util.function.Consumer;
 public class FGAWTAppContainer extends FGAppContainer<FGWebInteropUtil>
 {
     private final HostComponent hostComponent_;
-//    private final PaintListIterable paintListIterable_;
 
     public FGAWTAppContainer(Map<Object, Object> container)
     {
@@ -31,51 +31,36 @@ public class FGAWTAppContainer extends FGAppContainer<FGWebInteropUtil>
 
     public FGAWTAppContainer(Map<Object, Object> container, int unitSizePx)
     {
-        super(container, new FGWebInteropUtil(unitSizePx), unitSizePx);
+        super(container.get(ClojureContainerParser.getIdKey()).toString(), container, new FGWebInteropUtil(unitSizePx), unitSizePx);
 
         hostComponent_ = new HostComponent();
-//        paintListIterable_ = new PaintListIterable();
+    }
+
+    public static FGAWTAppContainer loadSourceCreateAndInit(InputStream source, String containerNs, String containerVarName)
+    {
+        String sourceCode = new Scanner(source).useDelimiter("\\Z").next();
+
+        System.out.println(clojure.lang.RT.byteCast(1));
+        clojure.lang.Compiler.load(new StringReader(sourceCode));
+
+        return createAndInit(containerNs, containerVarName);
+    }
+
+    public static FGAWTAppContainer createAndInit(String containerNs, String containerVarName)
+    {
+        Var containerVar = clojure.lang.RT.var(containerNs, containerVarName);
+        Map<Object, Object> container = (Map<Object, Object>) containerVar.get();
+
+        FGAWTAppContainer appContainer = new FGAWTAppContainer(container);
+        appContainer.initialize();
+
+        return appContainer;
     }
 
     public final Component getComponent()
     {
         return hostComponent_;
     }
-
-    // Inner classes
-
-//    private class PaintListIterator implements Iterator<Object>
-//    {
-//        private final Iterator<Integer> naturalOrderIterator_;
-//
-//        public PaintListIterator()
-//        {
-//            naturalOrderIterator_ = getContainer().getComponentNaturalOrder().iterator();
-//        }
-//
-//        @Override
-//        public boolean hasNext()
-//        {
-//            return naturalOrderIterator_.hasNext();
-//        }
-//
-//        @Override
-//        public Object next()
-//        {
-//            Integer nextIndex = naturalOrderIterator_.next();
-//            return getResultCollector().getLookVector(nextIndex);
-//        }
-//    }
-//
-//    private class PaintListIterable implements Iterable<Object>
-//    {
-//        @Override
-//        public Iterator<Object> iterator()
-//        {
-//            return new PaintListIterator();
-//        }
-//    }
-//
 
     public final void paintAllFromRoot(Consumer<List<Object>> primitivePainter) throws NoninvertibleTransformException
     {
@@ -87,6 +72,27 @@ public class FGAWTAppContainer extends FGAppContainer<FGWebInteropUtil>
                 propertyValueAccessor,
                 Integer.valueOf(0));
     }
+
+
+    //
+    // Special methods needed for FGLegacyCoreGlue - will be refactored
+    //
+
+    public List<Object> getPaintAllSequence()
+    {
+        List<Object> sequence = new ArrayList<>(); // TODO can know list size in advance
+        Container.IContainerAccessor containerAccessor = getContainer().getContainerAccessor();
+        getResultCollector().collectPaintAllSequence(
+                sequence,
+                containerAccessor,
+                Integer.valueOf(0));
+        return sequence;
+    }
+
+    //
+    //
+    //
+
 
     private class HostComponent extends AbstractHostComponent
     {

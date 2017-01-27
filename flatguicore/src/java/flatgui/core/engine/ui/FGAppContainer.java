@@ -5,11 +5,13 @@ package flatgui.core.engine.ui;
 
 import clojure.lang.Associative;
 import clojure.lang.Keyword;
+import flatgui.core.FGHostStateEvent;
 import flatgui.core.IFGInteropUtil;
 import flatgui.core.engine.AppContainer;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -24,14 +26,14 @@ public class FGAppContainer<Interop extends IFGInteropUtil> extends AppContainer
     private final FGMouseEventParser mouseEventParser_;
     private final Interop interopUtil_;
 
-    public FGAppContainer(Map<Object, Object> container, Interop interopUtil)
+    public FGAppContainer(String containerId, Map<Object, Object> container, Interop interopUtil)
     {
-        this(container, interopUtil, DFLT_UNIT_SIZE_PX);
+        this(containerId, container, interopUtil, DFLT_UNIT_SIZE_PX);
     }
 
-    public FGAppContainer(Map<Object, Object> container, Interop interopUtil, int unitSizePx)
+    public FGAppContainer(String containerId, Map<Object, Object> container, Interop interopUtil, int unitSizePx)
     {
-        super(new FGClojureContainerParser(),
+        super(containerId, new FGClojureContainerParser(),
                 new FGClojureResultCollector(unitSizePx), assocInterop(container, interopUtil));
 
         interopUtil_ = interopUtil;
@@ -39,9 +41,15 @@ public class FGAppContainer<Interop extends IFGInteropUtil> extends AppContainer
         mouseEventParser_ = new FGMouseEventParser(unitSizePx);
         getInputEventParser().registerReasonClassParser(MouseEvent.class, mouseEventParser_);
         getInputEventParser().registerReasonClassParser(KeyEvent.class, new FGKeyEventParser());
+        getInputEventParser().registerReasonClassParser(FGHostStateEvent.class, (c, inputEvent) ->
+        {
+            Map<Object, Integer> m = new HashMap<>();
+            m.put(inputEvent, Integer.valueOf(0)); // Root is always 0
+            return m;
+        });
     }
 
-    protected final Interop getInteropUtil()
+    public final Interop getInteropUtil()
     {
         return interopUtil_;
     }

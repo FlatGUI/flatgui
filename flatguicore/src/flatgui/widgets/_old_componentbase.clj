@@ -8,9 +8,9 @@
 
 (ns ^{:doc    "FlatGUI widget base routines"
       :author "Denys Lebediev"}
-flatgui.widgets.componentbase
+flatgui.widgets._old_componentbase
   (:require [flatgui.dependency :as dep]
-            [flatgui.base :as fg]
+            [flatgui._old_base :as fg]
             [flatgui.ids :as ids]
             [flatgui.comlogic :as fgc]
             [flatgui.paint :as fgp]

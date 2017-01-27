@@ -21,16 +21,16 @@
 (def default-col-width 1.25)
 (def default-row-height 0.375)
 
-(fg/defaccessorfn get-row-y [contentpane screen-row]
-  (let [row-height (get-property contentpane [:this] :row-height)]
+(fg/defaccessorfn get-row-y [component screen-row]
+  (let [row-height (get-property component [:this] :row-height)]
     (* screen-row row-height)))
 
-(fg/defaccessorfn get-row-h [contentpane screen-row] (get-property contentpane [:this] :row-height))
+(fg/defaccessorfn get-row-h [component screen-row] (get-property component [:this] :row-height))
 
-(fg/defaccessorfn get-screen-row-at [contentpane y-pos]
+(fg/defaccessorfn get-screen-row-at [component y-pos]
   ; only constant height rows are supported for now
-  (let [visible-row (int (/ y-pos (get-row-h contentpane nil)))
-        row-order (get-property contentpane [:this] :row-order)]
+  (let [visible-row (int (/ y-pos (get-row-h component nil)))
+        row-order (get-property component [:this] :row-order)]
     (if (< visible-row (count row-order))
       visible-row
       -1)))
@@ -43,12 +43,12 @@
 (defn screen-col-to-model [screen-col]
   screen-col)
 
-(fg/defaccessorfn get-model-row [cell]
-  (screen-row-to-model (get-property cell [] :row-order) (get-property cell [:this] :screen-row)))
+(fg/defaccessorfn get-model-row [component]
+  (screen-row-to-model (get-property component [] :row-order) (get-property component [:this] :screen-row)))
 
-(fg/defaccessorfn get-screen-col-at [contentpane x-pos]
-  (let [column-x-locations (get-property contentpane [:header] :column-x-locations)
-        header-ids (get-property contentpane [] :header-ids)
+(fg/defaccessorfn get-screen-col-at [component x-pos]
+  (let [column-x-locations (get-property component [:header] :column-x-locations)
+        header-ids (get-property component [] :header-ids)
         cnt (count header-ids)]
     (loop [ i 0
             total-w 0]

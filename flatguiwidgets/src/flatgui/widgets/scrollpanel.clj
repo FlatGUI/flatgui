@@ -35,7 +35,7 @@
           (if (pos? v-scrollbar-w) (get-property [:this] :right-scrollbar-margin) 0)))))
 
 (fg/defevolverfn scrollpanelcontent-viewport-matrix-evolver :viewport-matrix
-  (let [reason ((:evolve-reason-provider component) (:id component))]
+  (let [reason (get-reason)]
     ; In case of other reasons re-evolving is not needed actually. Since it may
     ; introcude precision impediment, let's avoid extra evolving
     (cond
@@ -78,7 +78,7 @@
   (cond
 ;    (mouse/is-mouse-event? component)
 ;      (flatgui.widgets.scrollbar/scroller-position-matrix-evolver component)
-    (= [:_ :content-pane] ((:evolve-reason-provider component) (:id component)))
+    (= [:_ :content-pane] (get-reason))
       (let [ v-scroller-h (m/y (get-property component [:this] :clip-size))
              v-scrollbar-h (m/y (get-property component [] :clip-size))
              content-viewport-matrix (get-property component [:_ :content-pane] :viewport-matrix)
@@ -87,7 +87,7 @@
              new-v-scroller-y (if (> (m/y content-extra-size) 0) (- (* (/ (m/mx-y content-viewport-matrix) (m/y content-extra-size)) (- v-scrollbar-h v-scroller-h))) 0)
              ;new-v-scroller-y (- (* (/ (m/mx-y content-viewport-matrix) (m/y content-extra-size)) (- v-scrollbar-h v-scroller-h)))
 
-             ;repaint-reason ((:evolve-reason-provider component) (:id component))
+             ;repaint-reason (get-reason)
              ;_ (println "--- non-mouse-event --> new-v-scroller-y = " new-v-scroller-y " content viewport y: " (m/mx-y content-viewport-matrix)
              ;    " repaint-reason " repaint-reason " old y " (m/mx-y old-position-matrix) " new y " new-v-scroller-y)
              ]
@@ -100,7 +100,7 @@
   (cond
 ;    (is-mouse-event? component)
 ;    (flatgui.widgets.scrollbar/scroller-position-matrix-evolver component)
-    (= [:_ :content-pane] ((:evolve-reason-provider component) (:id component)))
+    (= [:_ :content-pane] (get-reason))
     (let [ h-scroller-w (m/x (get-property component [:this] :clip-size))
            h-scrollbar-w (m/x (get-property component [] :clip-size))
            content-viewport-matrix (get-property component [:_ :content-pane] :viewport-matrix)
@@ -109,7 +109,7 @@
            new-h-scroller-x (if (> (m/x content-extra-size) 0) (- (* (/ (m/mx-x content-viewport-matrix) (m/x content-extra-size)) (- h-scrollbar-w h-scroller-w))) 0)
            ;new-h-scroller-x (- (* (/ (m/mx-x content-viewport-matrix) (m/x content-extra-size)) (- h-scrollbar-w h-scroller-w)))
 
-           ;repaint-reason ((:evolve-reason-provider component) (:id component))
+           ;repaint-reason (get-reason)
            ;_ (println "--- non-mouse-event --> new-v-scroller-y = " new-v-scroller-y " content viewport y: " (m/mx-y content-viewport-matrix)
            ;    " repaint-reason " repaint-reason " old y " (m/mx-y old-position-matrix) " new y " new-v-scroller-y)
            ]

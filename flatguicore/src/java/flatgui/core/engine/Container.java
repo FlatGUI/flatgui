@@ -9,13 +9,16 @@
  */
 package flatgui.core.engine;
 
+import clojure.lang.PersistentHashMap;
 import clojure.lang.PersistentVector;
 import flatgui.core.util.Tuple;
 
 import java.lang.reflect.Array;
 import java.util.*;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -33,6 +36,7 @@ public class Container
     private final List<Integer> naturalComponentOrder_;
 
     private final List<Node> nodes_;
+    private final List<Node> nodesWithAmbiguousDependencies_;
     private final List<Object> values_;
     private final Map<List<Object>, Integer> pathToIndex_;
 
@@ -48,7 +52,7 @@ public class Container
 
     private Set<Integer> initializedNodes_;
 
-    private static boolean debug_ = true;
+    public static boolean debug_ = false;
 
     public Container(IContainerParser containerParser, IResultCollector resultCollector, Map<Object, Object> container)
     {
@@ -60,11 +64,12 @@ public class Container
         vacantComponentIndices_ = new HashSet<>();
         vacantNodeIndices_ = new HashSet<>();
         nodes_ = new ArrayList<>();
+        nodesWithAmbiguousDependencies_ = new ArrayList<>();
         values_ = new ArrayList<>();
         pathToIndex_ = new HashMap<>();
 
-        reusableNodeBuffer_ = new Node[128];
-        reusableReasonBuffer_ = new Object[128];
+        reusableNodeBuffer_ = new Node[1048576];
+        reusableReasonBuffer_ = new Object[1048576];
         indexBufferSize_ = 0;
 
         containerAccessor_ = components_::get;
@@ -97,11 +102,6 @@ public class Container
         return i;
     }
 
-    public Collection<Integer> allMatchingIndicesOfPath(List<Object> path)
-    {
-        return pathToIndex_.keySet().stream().filter(k -> pathMatches(path, k)).map(pathToIndex_::get).collect(Collectors.toList());
-    }
-
     public void evolve(List<Object> targetPath, Object evolveReason)
     {
         Integer componentUid = getComponentUid(targetPath);
@@ -114,6 +114,7 @@ public class Container
 
     public void evolve(Integer componentUid, Object evolveReason)
     {
+//        long evolveStartTime = System.currentTimeMillis();
         indexBufferSize_ = 0;
 
         log("----------------Started evolve cycle ---- for reason: " + valueToString(evolveReason));
@@ -152,8 +153,26 @@ public class Container
                 ComponentAccessor component = components_.get(node.getComponentUid());
                 if (triggeringReason == null)
                 {
-                    oldValue = null;
-                    newValue = values_.get(nodeIndex);
+                    if (evolver == null)
+                    {
+                        oldValue = null;
+                        newValue = values_.get(nodeIndex);
+                    }
+                    else
+                    {
+                        component.setEvolveReason(null);
+                        oldValue = values_.get(nodeIndex);
+                        try
+                        {
+                            newValue = evolver.apply(component);
+                        }
+                        catch (Exception ex)
+                        {
+                            log(" Error evolving " + node.getNodePath() + " " + node.getPropertyId() + " while initializing ");
+                            ex.printStackTrace();
+                            throw ex;
+                        }
+                    }
                 }
                 else
                 {
@@ -165,8 +184,7 @@ public class Container
                     }
                     catch (Exception ex)
                     {
-                        log(" Error evolving " + node.getNodePath() + " " + node.getPropertyId() +
-                                " for reason: " + triggeringReason);
+                        log(" Error evolving " + node.getNodePath() + " " + node.getPropertyId() + " for reason: " + triggeringReason);
                         ex.printStackTrace();
                         throw ex;
                     }
@@ -174,8 +192,24 @@ public class Container
 
                 if (!Objects.equals(oldValue, newValue) || initializedNodes_ != null && !initializedNodes_.contains(nodeIndex))
                 {
-                    log(" Evolved: " + nodeIndex + " " + node.getNodePath() + " for reason: " + valueToString(triggeringReason) +
-                            ": " + valueToString(oldValue) + " -> " + valueToString(newValue));
+                    log(" Evolved: " + nodeIndex + " " + node.getNodePath() + " for reason: " + valueToString(triggeringReason) + ": " + valueToString(oldValue) + " -> " + valueToString(newValue));
+
+                    if (node.isChildrenProperty())
+                    {
+                        Map<Object, Map<Object, Object>> newValueMap = (Map<Object, Map<Object, Object>>)newValue;
+                        newValue = new HashMap<>();
+                        for (Object cid : newValueMap.keySet())
+                        {
+                            // TODO(f) backward compatibility. Non-children maps are there by keys:
+                            // :_flexible-childset-added
+                            // :_flex-target-id-paths-added
+                            if (!cid.toString().contains("_flex"))
+                            {
+                                ((Map<Object, Map<Object, Object>>) newValue).put(cid, newValueMap.get(cid));
+                            }
+                        }
+                        newValue = PersistentHashMap.create((Map)newValue);
+                    }
 
                     containerMutator_.setValue(nodeIndex, newValue);
 
@@ -200,18 +234,11 @@ public class Container
 
                             newChildIds
                                     .forEach(childId -> {
-
-                                        // TODO(f) backward compatibility. Non-children maps are there by keys:
-                                        // :_flexible-childset-added
-                                        // :_flex-target-id-paths-added
-                                        if (!childId.toString().contains("_flex"))
-                                        {
-                                            Map<Object, Object> child = newChildren.get(childId);
-                                            Integer index = addContainer(node.getComponentUid(), component.getComponentPath(), child);
-                                            addedComponentIds.add(index);
-                                            newChildIndices.add(index);
-                                            newChildIdToIndex.put(childId, index);
-                                        }
+                                        Map<Object, Object> child = newChildren.get(childId);
+                                        Integer index = addContainer(node.getComponentUid(), component.getComponentPath(), child);
+                                        addedComponentIds.add(index);
+                                        newChildIndices.add(index);
+                                        newChildIdToIndex.put(childId, index);
                             });
 
                             component.addChildIndices(newChildIndices, newChildIdToIndex);
@@ -220,12 +247,6 @@ public class Container
                     if (node.isChildOrderProperty() && newValue != null)
                     {
                         List<Object> newChildIdOrder = (List<Object>) newValue;
-
-                        // TODO(f) backward compatibility. Non-children maps are there by keys:
-                        // :_flexible-childset-added
-                        // :_flex-target-id-paths-added
-                        newChildIdOrder = newChildIdOrder.stream()
-                                .filter(childId -> childId != null && !childId.toString().contains("_flex")).collect(Collectors.toList());
 
                         List<Integer> newChildIndices = new ArrayList<>(newChildIdOrder.size());
                         for (int i=0; i<newChildIdOrder.size(); i++)
@@ -240,8 +261,7 @@ public class Container
                 }
                 else
                 {
-                    log(" Evolved: " + nodeIndex + " " + node.getNodePath() + " for reason: " + valueToString(triggeringReason) +
-                            ": no change (" + oldValue + ").");
+                    log(" Evolved: " + nodeIndex + " " + node.getNodePath() + " for reason: " + valueToString(triggeringReason) + ": no change (" + oldValue + ").");
                 }
 
                 if (initializedNodes_ != null)
@@ -264,13 +284,10 @@ public class Container
 
             processAllNodesOfComponents(addedComponentIds, this::markNodeAsDependent);
 
-            for (Node n : nodes_)
+            for (Node n : nodesWithAmbiguousDependencies_)
             {
-                if (n.isHasAmbiguousDependencies())
-                {
-                    Collection<Tuple> newDependencies = n.reevaluateAmbiguousDependencies(this::allMatchingIndicesOfPath);
-                    markNodeAsDependent(n, newDependencies);
-                }
+                Collection<Tuple> newDependencies = n.reevaluateAmbiguousDependencies(components_, containerParser_::isWildcardPathElement);
+                markNodeAsDependent(n, newDependencies);
             }
 
             boolean newNodeSet = initializedNodes_ == null;
@@ -285,6 +302,9 @@ public class Container
                 initializedNodes_ = null;
             }
         }
+
+//        long spentEvolving = System.currentTimeMillis() - evolveStartTime;
+//        System.out.println("-DLTEMP- Container.evolve spent evolving " + spentEvolving);
     }
 
     public IContainerAccessor getContainerAccessor()
@@ -450,7 +470,7 @@ public class Container
 
     private void resolveDependencyIndicesForNode(Container.Node n)
     {
-        n.resolveDependencyIndices(this::allMatchingIndicesOfPath);
+        n.resolveDependencyIndices(components_, containerParser_::isWildcardPathElement);
     }
 
     private void markNodeAsDependent(Container.Node n)
@@ -514,6 +534,10 @@ public class Container
         {
             nodes_.add(node);
             values_.add(initialValue);
+            if (node.isHasAmbiguousDependencies())
+            {
+                nodesWithAmbiguousDependencies_.add(node);
+            }
         }
 
         pathToIndex_.put(sourceNode.getNodePath(), index);
@@ -551,28 +575,6 @@ public class Container
             indexBufferSize_ ++;
         }
     }
-//
-//    private void computeChildIndices(ComponentAccessor container)
-//    {
-//        Collection<Integer> childIndices = new HashSet<>();
-//
-//        List<Object> containerPath = container.getComponentPath();
-//        Map<Object, Map<Object, Object>> children = containerParser_.getChildren(container);
-//        for (Object childId : children.keySet())
-//        {
-//            List<Object> childPath = new ArrayList<>(containerPath.size()+1);
-//            childPath.addAll(containerPath);
-//            childPath.add(childId);
-//
-//            Integer childComponentUid = componentPathToIndex_.get(childPath);
-//            if (childComponentUid == null)
-//            {
-//                throw new IllegalStateException("Child component path does not exist: " + childPath);
-//            }
-//
-//            childIndices.add(childComponentUid);
-//        }
-//    }
 
     private void ensureIndexBufferSize(int requestedSize)
     {
@@ -634,14 +636,6 @@ public class Container
             return null;
         }
     }
-
-//    /**
-//     * @return true if given path consists of keywords only which means it is a constant path
-//     */
-//    private boolean isDeterminedPath(List<Object> path)
-//    {
-//        return path.stream().allMatch(e -> e instanceof Keyword);
-//    }
 
     private boolean pathMatches(List<Object> path, List<Object> mapKey)
     {
@@ -1148,41 +1142,67 @@ public class Container
             return hasAmbiguousDependencies_;
         }
 
-        public void resolveDependencyIndices(Function<List<Object>, Collection<Integer>> pathIndexProvider)
+        private void findNodeIndices(ComponentAccessor c, int pathIndex, DependencyInfo d,
+                                     List<ComponentAccessor> components, Predicate<Object> isWildcard,
+                                     Consumer<Tuple> dependencyPostprocessor)
+        {
+            List<Object> absPath = d.getAbsPath();
+            int absPathSize = absPath.size();
+            if (absPathSize == 1)
+            {
+                return;
+            }
+            Object e = absPath.get(pathIndex);
+            if (pathIndex < absPathSize-1)
+            {
+                if (isWildcard.test(e))
+                {
+                    List<Integer> allChildIndices = c.getChildIndices();
+                    for (Integer childIndex : allChildIndices)
+                    {
+                        findNodeIndices(components.get(childIndex), pathIndex+1, d, components, isWildcard, dependencyPostprocessor);
+                    }
+                }
+                else
+                {
+                    Integer childIndex = c.getChildIndex(e);
+                    if (childIndex != null)
+                    {
+                        findNodeIndices(components.get(childIndex), pathIndex+1, d, components, isWildcard, dependencyPostprocessor);
+                    }
+                }
+            }
+            else
+            {
+                Integer propertyIndex = c.getPropertyIndex(e);
+                if (propertyIndex != null)
+                {
+                    Tuple dependency = Tuple.triple(propertyIndex, d.getRelPath(), d.isAmbiguous());
+                    dependencyIndices_.put(propertyIndex, dependency);
+                    if (dependencyPostprocessor != null)
+                    {
+                        dependencyPostprocessor.accept(dependency);
+                    }
+                }
+            }
+        }
+
+        public void resolveDependencyIndices(List<ComponentAccessor> components, Predicate<Object> isWildCard)
         {
             dependencyIndices_ = new HashMap<>();
 
             for (DependencyInfo d : relAndAbsDependencyPaths_)
             {
-                List<Object> relPath = d.getRelPath();
-                List<Object> absPath = d.getAbsPath();
-                Boolean isAmbiguous = d.isAmbiguous();
-                Collection<Integer> allMatchingIndices = pathIndexProvider.apply(absPath);
-                for (Integer i : allMatchingIndices)
-                {
-                    dependencyIndices_.put(i, Tuple.triple(i, relPath, isAmbiguous));
-                }
+                findNodeIndices(components.get(0), 1, d, components, isWildCard, null);
             }
         }
 
-        public Collection<Tuple> reevaluateAmbiguousDependencies(Function<List<Object>, Collection<Integer>> pathIndexProvider)
+        public Collection<Tuple> reevaluateAmbiguousDependencies(List<ComponentAccessor> components, Predicate<Object> isWildCard)
         {
             Collection<Tuple> newlyAddedDependencies = new ArrayList<>();
             for (DependencyInfo d : relAndAbsDependencyPaths_)
             {
-                List<Object> relPath = d.getRelPath();
-                List<Object> absPath = d.getAbsPath();
-                Boolean isAmbiguous = d.isAmbiguous();
-                if (isAmbiguous)
-                {
-                    Collection<Integer> allMatchingIndices = pathIndexProvider.apply(absPath);
-                    for (Integer i : allMatchingIndices)
-                    {
-                        Tuple dependency = Tuple.triple(i, relPath, isAmbiguous);
-                        dependencyIndices_.put(i, dependency);
-                        newlyAddedDependencies.add(dependency);
-                    }
-                }
+                findNodeIndices(components.get(0), 1, d, components, isWildCard, newlyAddedDependencies::add);
             }
             return newlyAddedDependencies;
         }
@@ -1209,8 +1229,7 @@ public class Container
                 }
             }
 
-            log(nodeUid_ + " " + nodePath_ + " added dependent: " + nodeIndex + " " + nodeAbsPath
-                    + " referenced as " + relPath + " actual ref " + actualRef);
+            log(nodeUid_ + " " + nodePath_ + " added dependent: " + nodeIndex + " " + nodeAbsPath + " referenced as " + relPath + " actual ref " + actualRef);
             dependentIndexToRelPath_.put(nodeIndex, actualRef);
         }
 
@@ -1228,16 +1247,5 @@ public class Container
         {
             evolver_ = evolver;
         }
-
-        //        public Object getValue()
-//        {
-//            return value_;
-//        }
-//
-//        @Override
-//        public String toString()
-//        {
-//            return nodePath_ + "=" + value_;
-//        }
     }
 }

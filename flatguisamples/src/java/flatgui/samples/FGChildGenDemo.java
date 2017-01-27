@@ -10,30 +10,24 @@
 package flatgui.samples;
 
 import clojure.lang.Keyword;
-import clojure.lang.Symbol;
-import clojure.lang.Var;
-import flatgui.core.*;
-import flatgui.core.awt.FGAWTContainerHost;
-import flatgui.core.awt.HostComponent;
+import flatgui.core.IFGEvolveConsumer;
 import flatgui.core.engine.ui.FGAWTAppContainer;
-import flatgui.core.engine.ui.FGAppContainer;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.InputStream;
-import java.io.StringReader;
 import java.util.*;
 import java.util.List;
 
 /**
  * @author Denis Lebedev
  */
-public class FGHelloWorldDemo
+public class FGChildGenDemo
 {
-    public static final String CONTAINER_NS = "helloworld2";
-    public static final String CONTAINER_VAR_NAME = "hellopanel";
+    public static final String CONTAINER_NS = "childgen";
+    public static final String CONTAINER_VAR_NAME = "cgpanel";
 
     public static void main(String[] args)
     {
@@ -42,8 +36,8 @@ public class FGHelloWorldDemo
             {
                 Image logoIcon = ImageIO.read(ClassLoader.getSystemResource("flatgui/samples/images/icon_FlatGUI_32x32.png"));
 
-                Frame frame = new Frame("FlatGUI Demo - Hello world");
-                frame.setSize(600, 400);
+                Frame frame = new Frame("FlatGUI Demo - Dynamic children generation");
+                frame.setSize(1200, 800);
                 frame.setLocation(10, 10);
                 frame.setLayout(new BorderLayout());
                 if (logoIcon != null)
@@ -51,7 +45,7 @@ public class FGHelloWorldDemo
                     frame.setIconImage(logoIcon);
                 }
 
-                InputStream is = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/helloworld2.clj");
+                InputStream is = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/childgen.clj");
                 FGAWTAppContainer appContainer = FGAWTAppContainer.loadSourceCreateAndInit(is, CONTAINER_NS, CONTAINER_VAR_NAME);
                 Component awtComponent = appContainer.getComponent();
 

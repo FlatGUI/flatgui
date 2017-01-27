@@ -9,6 +9,7 @@ import clojure.lang.Var;
 import flatgui.core.engine.Container;
 import flatgui.core.engine.IResultCollector;
 
+import java.awt.event.ActionListener;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.NoninvertibleTransformException;
 import java.util.*;
@@ -63,6 +64,7 @@ public class FGClojureResultCollector implements IResultCollector
     public void appendResult(Integer parentComponentUid, List<Object> path, Integer componentUid, Object property, Object newValue)
     {
         changedComponents_.add(componentUid);
+        changedComponentsForRemote_.add(componentUid);
 
         // TODO
         // Evolved property node can already contain boolean flags so that there is no need to compare.
@@ -84,11 +86,6 @@ public class FGClojureResultCollector implements IResultCollector
                 visiblePopupChildIndices.remove(componentUid);
             }
         }
-    }
-
-    @Override
-    public void onEvolveCycleStarted()
-    {
     }
 
     @Override
@@ -223,7 +220,7 @@ public class FGClojureResultCollector implements IResultCollector
         Integer childrenIndex = componentDataCache.getChildrenIndex();
         if (childrenIndex != null)
         {
-            //Map<Keyword, Map<Keyword, Object>> children = (Map<Keyword, Map<Keyword, Object>>) propertyValueAccessor.getPropertyValue(childrenIndex);
+            // Note that getChildIndices() returns indices properly ordered by z positions
             for (Integer childIndex : componentAccessor.getChildIndices())
             {
                 paintComponentWithChildren(primitivePainter, containerAccessor, propertyValueAccessor, childIndex);
@@ -235,168 +232,47 @@ public class FGClojureResultCollector implements IResultCollector
     }
 
 
-//    public List<Object> getLookVector(Integer componentUid)
-//    {
-//        return lookVectors_.get(componentUid.intValue());
-//    }
 
-//    private static class PaintListIterator implements Iterator<Object>
-//    {
-//        private static Function<FGClojureContainerParser.FGComponentDataCache, List<Object>>[] ComponentDrawSeq_;
-//
-//        //private Integer currentComponentId_;
-//        private int currentComponentInternalIndex_;
-//        //private List<TraversedComponent> traversedComponents_;
-//        private List<Integer> traversedComponentIds_;
-//        private List<Iterator<Integer>> traversedComponentChildIndexIterators_;
-//        private List<FGClojureContainerParser.FGComponentDataCache> traversedComponentCustomDatas_;
-//
-//        private Container.IContainerAccessor containerAccessor_;
-//        private Container.IPropertyValueAccessor propertyValueAccessor_;
-//
-//        public PaintListIterator()
-//        {
-//            //traversedComponents_ = new ArrayList<>();
-//            traversedComponentIds_ = new ArrayList<>();
-//            traversedComponentChildIndexIterators_ = new ArrayList<>();
-//            traversedComponentCustomDatas_ = new ArrayList<>();
-//
-//            //currentComponentId_ = 0;
-//            currentComponentInternalIndex_ = 0;
-//            //updateCurrentComponentData();
-//        }
-//
-//        @Override
-//        public boolean hasNext()
-//        {
-//            ////return currentComponentId_ < lookVectors_.size() && isWalkingThroughComponent();
-//            //return !traversedComponents_.isEmpty();
-//            return !traversedComponentIds_.isEmpty();
-//        }
-//
-//        @Override
-//        public Object next()
-//        {
-//            //TraversedComponent traversedComponent = traversedComponents_.get(traversedComponents_.size()-1);
-//            int currentStackIndex = traversedComponentIds_.size()-1;
-//            //currentComponentId_ = traversedComponentIds_.get(currentStackIndex);
-//            Iterator<Integer> childIndexIterator = traversedComponentChildIndexIterators_.get(currentStackIndex);
-//            FGClojureContainerParser.FGComponentDataCache customData = traversedComponentCustomDatas_.get(currentStackIndex);
-//
-//            List<Object> cmdToReturn;
-//
-//            if (isWalkingThroughComponent())
-//            {
-//                cmdToReturn = ComponentDrawSeq_[currentComponentInternalIndex_].apply(customData);
-//                currentComponentInternalIndex_++;
-//
-//                if (cmdToReturn == null)
-//                {
-//                    // Begin painting children of current component
-//                }
-//            }
-//            else
-//            {
-//                currentComponentInternalIndex_ = 0;
-//
-//                if (childIndexIterator.hasNext())
-//                {
-//                    Integer nextChildId = childIndexIterator.next();
-//
-//                    traversedComponentIds_.add(nextChildId);
-//                    Container.IComponent componentAccessor = containerAccessor_.getComponent(nextChildId);
-//                    traversedComponentCustomDatas_.add((FGClojureContainerParser.FGComponentDataCache) componentAccessor.getCustomData());
-//                    traversedComponentChildIndexIterators_.add(componentAccessor.getChildIndices().iterator());
-//                }
-//                else
-//                {
-//                    traversedComponentIds_.remove(currentStackIndex);
-//                    traversedComponentChildIndexIterators_.remove(currentStackIndex);
-//                    traversedComponentCustomDatas_.remove(currentStackIndex);
-//                }
-//            }
-//
-//
-//
-//            return cmdToReturn;
-//
-//            if (isWalkingThroughComponent())
-//            {
-//                List<Object> cmd = ComponentDrawSeq_[currentComponentInternalIndex_].apply(customData);
-//                if (cmd != null)
-//                {
-//                    return cmd;
-//                }
-//                else
-//                {
-//                    // Paint children
-//                }
-//
-//                currentComponentInternalIndex_++;
-//            }
-//            else
-//            {
-//                currentComponentInternalIndex_ = 0;
-//
-//                if (childIndexIterator.hasNext())
-//                {
-//                    currentComponentId_ = childIndexIterator.next();
-//                    updateCurrentComponentData();
-//                }
-//                else
-//                {
-//                    traversedComponentIds_.remove(currentStackIndex);
-//                    traversedComponentChildIndexIterators_.remove(currentStackIndex);
-//                    traversedComponentCustomDatas_.remove(currentStackIndex);
-//                }
-//            }
-//
-////            if (isWalkingThroughComponent())
-////            {
-////                currentComponentInternalIndex_++;
-////            }
-////            else
-////            {
-////                currentComponentInternalIndex_ = 0;
-////                currentComponentId_++;
-////            }
-////            return null;
-//        }
-//
-//        private boolean isWalkingThroughComponent()
-//        {
-//            return currentComponentInternalIndex_ < ComponentDrawSeq_.length;
-//        }
-//
-////        private final void updateCurrentComponentData()
-////        {
-////            Container.IComponent componentAccessor = containerAccessor_.getComponent(currentComponentId_);
-////            currentComponentData_ = (FGClojureContainerParser.FGComponentDataCache) componentAccessor.getCustomData();
-////            traversedComponents_.add(new TraversedComponent(currentComponentId_, componentAccessor.getChildIndices().iterator()));
-////        }
-//
-////        private class TraversedComponent
-////        {
-////            private int componentId_;
-////            private Iterator<Integer> childIndexIterator_;
-////            private FGClojureContainerParser.FGComponentDataCache currentComponentData_;
-////
-////            public TraversedComponent(int componentId, Iterator<Integer> childIndexIterator, FGClojureContainerParser.FGComponentDataCache currentComponentData)
-////            {
-////                componentId_ = componentId;
-////                childIndexIterator_ = childIndexIterator;
-////                currentComponentData_ = currentComponentData
-////            }
-////
-////            public int getComponentId()
-////            {
-////                return componentId_;
-////            }
-////
-////            public Iterator<Integer> getChildIndexIterator()
-////            {
-////                return childIndexIterator_;
-////            }
-////        }
-//    }
+    //
+    // Special means needed for FGLegacyCoreGlue - will be refactored
+    // Maybe split FGClojureResultCollector into two different classes
+    //
+
+    private final Set<Integer> changedComponentsForRemote_ = new HashSet<>();
+
+    Set<Integer> getChangedComponentsForRemote()
+    {
+        return changedComponentsForRemote_;
+    }
+
+    void clearChangedComponentsForWeb()
+    {
+        changedComponentsForRemote_.clear();
+    }
+
+    void collectPaintAllSequence(List<Object> sequence,
+                                 Container.IContainerAccessor containerAccessor,
+                                 Integer componentUid)
+    {
+        Container.IComponent componentAccessor = containerAccessor.getComponent(componentUid.intValue());
+        FGClojureContainerParser.FGComponentDataCache componentDataCache =
+                (FGClojureContainerParser.FGComponentDataCache) componentAccessor.getCustomData();
+
+        sequence.add(componentUid);
+        Integer childrenIndex = componentDataCache.getChildrenIndex();
+        if (childrenIndex != null)
+        {
+            // Note that getChildIndices() returns indices properly ordered by z positions
+            for (Integer childIndex : componentAccessor.getChildIndices())
+            {
+                collectPaintAllSequence(sequence, containerAccessor, childIndex);
+            }
+        }
+    }
+
+    //
+    //
+    //
+    //
+
 }

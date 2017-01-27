@@ -3,6 +3,7 @@
  */
 package flatgui.core.engine;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -12,6 +13,8 @@ import java.util.concurrent.*;
  */
 public class AppContainer<ContainerParser extends Container.IContainerParser, ResultCollector extends IResultCollector>
 {
+    private final String containerId_;
+
     private ContainerParser containerParser_;
     private ResultCollector resultCollector_;
     private Map<Object, Object> containerMap_;
@@ -22,12 +25,18 @@ public class AppContainer<ContainerParser extends Container.IContainerParser, Re
 
     private boolean active_ = false;
 
-    public AppContainer(ContainerParser containerParser, ResultCollector resultCollector, Map<Object, Object> container)
+    public AppContainer(String containerId, ContainerParser containerParser, ResultCollector resultCollector, Map<Object, Object> container)
     {
+        containerId_ = containerId;
         containerParser_ = containerParser;
         resultCollector_ = resultCollector;
         containerMap_ = container;
         reasonParser_ = new InputEventParser();
+    }
+
+    public final String getContainerId()
+    {
+        return containerId_;
     }
 
     public void initialize()
@@ -54,6 +63,11 @@ public class AppContainer<ContainerParser extends Container.IContainerParser, Re
         evolverExecutorService_.shutdown();
     }
 
+    public boolean isActive()
+    {
+        return active_;
+    }
+
     public final Container.IContainerAccessor getContainerAccessor()
     {
         return container_.getContainerAccessor();
@@ -63,10 +77,6 @@ public class AppContainer<ContainerParser extends Container.IContainerParser, Re
     {
         return container_.getComponentUid(componentPath);
     }
-
-    // TODO
-    // Fisrt two methods hide exception in evolve java code
-    // Third one must not call get() by itself
 
     public void evolve(List<Object> targetPath, Object evolveReason)
     {
@@ -80,13 +90,36 @@ public class AppContainer<ContainerParser extends Container.IContainerParser, Re
 
     public Future<?> evolve(Object evolveReason)
     {
-        return evolverExecutorService_.submit(() -> {
-            Map<Object, Integer> eventsToTargetIndex = reasonParser_.parseInputEvent(getContainer(), evolveReason);
-            for (Object event : eventsToTargetIndex.keySet())
-            {
-                container_.evolve(eventsToTargetIndex.get(event), event);
-            }
-        });
+        return evolverExecutorService_.submit(() -> evolveImpl(evolveReason));
+    }
+
+    protected void evolveImpl(Object evolveReason)
+    {
+        Map<Object, Integer> eventsToTargetIndex;
+        try
+        {
+            eventsToTargetIndex = reasonParser_.parseInputEvent(getContainer(), evolveReason);
+        }
+        catch (Exception ex)
+        {
+            ex.printStackTrace();
+            eventsToTargetIndex = Collections.emptyMap();
+        }
+
+        for (Object event : eventsToTargetIndex.keySet())
+        {
+            container_.evolve(eventsToTargetIndex.get(event), event);
+        }
+    }
+
+    protected void evolveImpl(List<Object> targetPath, Object evolveReason)
+    {
+        container_.evolve(targetPath, evolveReason);
+    }
+
+    protected final ThreadPoolExecutor getEvolverExecutorService()
+    {
+        return evolverExecutorService_;
     }
 
     protected final InputEventParser getInputEventParser()
@@ -99,7 +132,7 @@ public class AppContainer<ContainerParser extends Container.IContainerParser, Re
         return container_;
     }
 
-    protected final ContainerParser getReasonParser()
+    protected final ContainerParser getContainerParser()
     {
         return containerParser_;
     }

@@ -156,14 +156,14 @@ public abstract class FGAbstractModule implements IFGModule
     }
 
     @Override
-    public Map<List<Keyword>, Map<Keyword, Object>> getComponentIdPathToComponent(Collection<List<Keyword>> paths)
+    public Map<Object, Map<Keyword, Object>> getComponentIdPathToComponent(Collection<List<Keyword>> paths)
     {
         Object container = getContainer();
-        return (Map<List<Keyword>, Map<Keyword, Object>>) getComponentIdPathToComponent_.invoke(container, paths);
+        return (Map<Object, Map<Keyword, Object>>) getComponentIdPathToComponent_.invoke(container, paths);
     }
 
     @Override
-    public Map<Object, Object> getStringPoolDiffs(Map<List<Keyword>, List<String>> idPathToStrings)
+    public Map<Object, Object> getStringPoolDiffs(Map<Object, List<String>> idPathToStrings)
     {
         Map<Object, Object> result = new HashMap<>();
 
@@ -183,7 +183,8 @@ public abstract class FGAbstractModule implements IFGModule
         return stringPoolMap_.get(componentId).getIndexOfString(s);
     }
 
-    private Map<Integer, String> putStrings(Object componentId, Collection<String> strings)
+    /*private*/ //TODO(new core) made public for transitioning to new core
+    public Map<Integer, String> putStrings(Object componentId, Collection<String> strings)
     {
         FGStringPool pool = stringPoolMap_.get(componentId);
         if (pool == null)

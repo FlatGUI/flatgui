@@ -10,15 +10,18 @@
 
 package flatgui.samples;
 
+import clojure.lang.Var;
 import flatgui.core.*;
 import flatgui.core.awt.FGAWTContainerHost;
 import flatgui.core.awt.HostComponent;
+import flatgui.core.engine.ui.FGAWTAppContainer;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.InputStream;
+import java.io.StringReader;
 import java.util.*;
 
 /**
@@ -46,22 +49,15 @@ public class FGImageDemo
                 }
 
                 InputStream is = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/image.clj");
-                String sourceCode = new Scanner(is).useDelimiter("\\Z").next();
-
-                IFGTemplate appTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
-
-                HostComponent hc = new HostComponent();
-                IFGContainer appInstance = new FGContainer(appTemplate, hc.getInterop());
-                appInstance.initialize();
-                IFGContainerHost<Component> awtHost = new FGAWTContainerHost(hc);
-                Component awtComponent = awtHost.hostContainer(appInstance);
+                FGAWTAppContainer appContainer = FGAWTAppContainer.loadSourceCreateAndInit(is, CONTAINER_NS, CONTAINER_VAR_NAME);
+                Component awtComponent = appContainer.getComponent();
 
                 frame.add(awtComponent, BorderLayout.CENTER);
                 frame.addWindowListener(new WindowAdapter()
                 {
                     public void windowClosing(WindowEvent we)
                     {
-                        appInstance.unInitialize();
+                        appContainer.unInitialize();
                         System.exit(0);
                     }
                 });

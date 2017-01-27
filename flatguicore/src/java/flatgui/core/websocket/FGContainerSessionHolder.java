@@ -10,10 +10,15 @@
 
 package flatgui.core.websocket;
 
+import clojure.lang.Var;
 import flatgui.core.FGContainer;
 import flatgui.core.IFGContainer;
 import flatgui.core.IFGContainerHost;
 import flatgui.core.IFGTemplate;
+import flatgui.core.engine.remote.FGLegacyCoreGlue;
+import flatgui.core.engine.remote.FGLegacyGlueTemplate;
+import flatgui.core.engine.ui.FGRemoteAppContainer;
+
 import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -68,12 +73,24 @@ class FGContainerSessionHolder
         // TODO always create new since font metrics may change?
 
         FGContainerSession s = sessionMap_.computeIfAbsent(
-                getSessionId(template, remoteAddress),
+                sessionId,
                 k -> {
-                    FGWebInteropUtil interop = new FGWebInteropUtil(IFGContainer.UNIT_SIZE_PX);
-                    initialFontMetricsTransmissions.forEach(t -> fontCollector.add(interop.setMetricsTransmission(t)));
-                    FGContainer container = new FGContainer(template, sessionId.toString(), interop);
-                    return sessionHost_.hostContainer(container);
+                    if (template instanceof FGLegacyGlueTemplate)
+                    {
+                        Var containerVar = clojure.lang.RT.var(template.getContainerNamespace(), template.getContainerVarName());
+                        Map<Object, Object> container = (Map<Object, Object>) containerVar.get();
+                        FGRemoteAppContainer fgContainer = new FGRemoteAppContainer(sessionId.toString(), container);
+                        FGLegacyCoreGlue glueContainer = new FGLegacyCoreGlue(fgContainer);
+                        glueContainer.initialize();
+                        return sessionHost_.hostContainer(glueContainer);
+                    }
+                    else
+                    {
+                        FGWebInteropUtil interop = new FGWebInteropUtil(IFGContainer.UNIT_SIZE_PX);
+                        initialFontMetricsTransmissions.forEach(t -> fontCollector.add(interop.setMetricsTransmission(t)));
+                        FGContainer container = new FGContainer(template, sessionId.toString(), interop);
+                        return sessionHost_.hostContainer(container);
+                    }
                 });
 
         FGAppServer.getFGLogger().debug(toString() + " state:");

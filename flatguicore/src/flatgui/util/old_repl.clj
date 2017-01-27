@@ -7,9 +7,9 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns ^{:doc "Utils for accesing container components from REPL"}
-  flatgui.util.repl
+  flatgui.util.old_repl
   (:require [flatgui.comlogic :as fgc]
-            [flatgui.appcontainer :as appc]))
+            [flatgui._old_appcontainer :as appc]))
 
 
 (defn get-property [container-name path property]

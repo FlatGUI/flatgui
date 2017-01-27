@@ -13,14 +13,11 @@ package flatgui.samples;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import flatgui.core.*;
 import java.io.InputStream;
-import java.util.Scanner;
 
 import javax.imageio.ImageIO;
 
-import flatgui.core.awt.FGAWTContainerHost;
-import flatgui.core.awt.HostComponent;
+import flatgui.core.engine.ui.FGAWTAppContainer;
 
 /**
  * @author Denis Lebedev
@@ -47,22 +44,15 @@ public class FGMultilineTextDemo
                 }
 
                 InputStream is = FGCompoundDemoServer.class.getClassLoader().getResourceAsStream("flatgui/samples/forms/text.clj");
-                String sourceCode = new Scanner(is).useDelimiter("\\Z").next();
-
-                IFGTemplate appTemplate = new FGTemplate(sourceCode, CONTAINER_NS, CONTAINER_VAR_NAME);
-
-                HostComponent hc = new HostComponent();
-                IFGContainer appInstance = new FGContainer(appTemplate, hc.getInterop());
-                appInstance.initialize();
-                IFGContainerHost<Component> awtHost = new FGAWTContainerHost(hc);
-                Component awtComponent = awtHost.hostContainer(appInstance);
+                FGAWTAppContainer appContainer = FGAWTAppContainer.loadSourceCreateAndInit(is, CONTAINER_NS, CONTAINER_VAR_NAME);
+                Component awtComponent = appContainer.getComponent();
 
                 frame.add(awtComponent, BorderLayout.CENTER);
                 frame.addWindowListener(new WindowAdapter()
                 {
                     public void windowClosing(WindowEvent we)
                     {
-                        appInstance.unInitialize();
+                        appContainer.unInitialize();
                         System.exit(0);
                     }
                 });

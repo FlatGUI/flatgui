@@ -6,11 +6,9 @@
 ; the terms of this license.
 ; You must not remove this notice, or any other, from this software.
 
-(ns flatgui.app
-  ;; Following namespaces are necessary for all applications
-  ;; even though they are not used by client code explicitly
-  (:require [flatgui.appcontainer]
-            [flatgui.access]
-            [flatgui.widgets.componentbase]))
+(ns childgen
+  (:require [flatgui.base]
+            [flatgui.skins.flat]
+            [flatgui.samples.forms.cgwindow :as cgw]))
 
-(def defroot flatgui.widgets.componentbase/initialize)
+(def cgpanel (flatgui.base/defroot cgw/root-panel))

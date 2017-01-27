@@ -10,7 +10,8 @@
       :author "Denys Lebediev"}
 flatgui.widgets.component
   (:use flatgui.comlogic
-        flatgui.widgets.componentbase)
+    ;flatgui.widgets.componentbase
+        )
   (:require [flatgui.awt :as awt]
             [flatgui.base :as fg]
             [flatgui.paint :as fgp]
@@ -32,6 +33,12 @@ flatgui.widgets.component
       (if (#{:has-focus :parent-of-focused :throws-focus} (:mode (get-property component [:this] :focus-state)))
         (+ parent-z 1024)
         (+ parent-z 1)))))
+
+(fg/defevolverfn :children-z-order
+  (let [child-ids (map (fn [[k _]] k) (get-property [:this] :children))
+        child-order (map (fn [e]  [e (get-property [:this e] :z-position)]) child-ids)
+        sorted-list (mapv first (sort-by second child-order))]
+    sorted-list))
 
 ;; True there is no parent (get-property returns nil) or parent is visible (true)
 (fg/defevolverfn :visible
@@ -57,12 +64,12 @@ flatgui.widgets.component
   (let [parent (get-property component [] :font)]
     (if parent parent old-font)))
 
-(fg/defevolverfn :abs-position-matrix
-  (let [ parent-pm (get-property component [] :abs-position-matrix)
-         this-pm (get-property component [:this] :position-matrix)]
-    (if parent-pm
-      (m/mx* parent-pm this-pm)
-      this-pm)))
+;(fg/defevolverfn :abs-position-matrix
+;  (let [ parent-pm (get-property component [] :abs-position-matrix)
+;         this-pm (get-property component [:this] :position-matrix)]
+;    (if parent-pm
+;      (m/mx* parent-pm this-pm)
+;      this-pm)))
 
 (fg/defevolverfn :mouse-down (mouse/mouse-left? component))
 
@@ -71,6 +78,11 @@ flatgui.widgets.component
     (mouse/mouse-entered? component) true
     (mouse/mouse-exited? component) false
     :else old-has-mouse))
+
+(fg/defevolverfn :_visible-popup
+  (and
+    (get-property [:this] :visible)
+    (get-property [:this] :popup)))
 
 (defn get-channel-to-propery-map-list [p evolvers]
   (map
@@ -118,10 +130,13 @@ flatgui.widgets.component
     ; Use true value for popup property for such components.
     :popup false
 
+    :_visible-popup false
+
     :focusable false
     :closed-focus-root false
 
     :z-position 0
+    :children-z-order nil
 
     :input-channel-subscribers nil
 
@@ -143,8 +158,11 @@ flatgui.widgets.component
                :look flatgui.skins.skinbase/skin-look-evolver
                ;:abs-position-matrix abs-position-matrix-evolver
 
+               :_visible-popup _visible-popup-evolver
+
                :input-channel-subscribers input-channel-subscribers-evolver
-               :z-position z-position-evolver}))
+               :z-position z-position-evolver
+               :children-z-order children-z-order-evolver}))
 
 ;[:main :tiket :ticket-panel :aggr-slider]
 

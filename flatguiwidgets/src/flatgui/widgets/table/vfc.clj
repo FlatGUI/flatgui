@@ -21,37 +21,37 @@
 ;;; Common functionality
 ;;;
 
-(fg/defaccessorfn get-from-table [contentpane property] (get-property contentpane [] property))
+(fg/defaccessorfn get-from-table [component property] (get-property component [] property))
 
-(fg/defaccessorfn get-from-header-vfc [contentpane header-id vfc-id property] (get-property contentpane [:header header-id vfc-id] property))
+(fg/defaccessorfn get-from-header-vfc [component header-id vfc-id property] (get-property component [:header header-id vfc-id] property))
 
 (defn is-vfc-degree-active [degree]
   (>= (if degree degree -1) 0))
 
-(fg/defaccessorfn get-value [contentpane model-r model-c]
-  (let [value-provider (get-from-table contentpane :value-provider)]
+(fg/defaccessorfn get-value [component model-r model-c]
+  (let [value-provider (get-from-table component :value-provider)]
     (value-provider model-r model-c)))
 
-(fg/defaccessorfn get-column-model-index [contentpane header-id]
-  (let [header-ids (get-from-table contentpane :header-ids)]
+(fg/defaccessorfn get-column-model-index [component header-id]
+  (let [header-ids (get-from-table component :header-ids)]
     (.indexOf header-ids header-id)))
 
-(fg/defaccessorfn get-value-from-col [contentpane model-r header-id]
-  (get-value contentpane model-r (get-column-model-index contentpane header-id)))
+(fg/defaccessorfn get-value-from-col [component model-r header-id]
+  (get-value component model-r (get-column-model-index component header-id)))
 
 ;;;
 ;;; Useful functions for v-features
 ;;;
 
-(fg/defaccessorfn max-degree-value [contentpane] (count (get-from-table contentpane :header-ids)))
+(fg/defaccessorfn max-degree-value [component] (count (get-from-table component :header-ids)))
 
-(fg/defaccessorfn apply-vf-by-degree [contentpane vfc-id apply-fn prev-row-order modes]
-  (let [header-list (get-from-table contentpane :header-ids)
+(fg/defaccessorfn apply-vf-by-degree [component vfc-id apply-fn prev-row-order modes]
+  (let [header-list (get-from-table component :header-ids)
         get-degree (fn [header-id]
-                     (let [degree (get-from-header-vfc contentpane header-id vfc-id :degree)]
+                     (let [degree (get-from-header-vfc component header-id vfc-id :degree)]
                        (if (is-vfc-degree-active degree)
                          degree
-                         (max-degree-value contentpane))))
+                         (max-degree-value component))))
         header-list-sort-key-fn (fn [h-id] (get-degree h-id))
         header-list-sorted (sort-by header-list-sort-key-fn header-list)]
       (loop [cnt 0
@@ -61,7 +61,7 @@
           (vec result)
           (recur
             (inc cnt)
-            (apply-fn contentpane prev-header-ids (nth header-list-sorted cnt) result modes)
+            (apply-fn component prev-header-ids (nth header-list-sorted cnt) result modes)
             (conj prev-header-ids (nth header-list-sorted cnt)))))))
 
 (defn find-subranges [v]

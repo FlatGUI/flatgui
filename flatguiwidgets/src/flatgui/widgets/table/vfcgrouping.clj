@@ -17,16 +17,16 @@
 ;;; V-Feature functionalilty
 ;;;
 
-(fg/defaccessorfn apply-grouping [contentpane prev-header-ids header-id prev-row-order modes]
+(fg/defaccessorfn apply-grouping [component prev-header-ids header-id prev-row-order modes]
   prev-row-order)
 
-(fg/defaccessorfn apply-grouping-feature [contentpane prev-row-order modes]
-  (vfc/apply-vf-by-degree contentpane :grouping apply-grouping prev-row-order modes))
+(fg/defaccessorfn apply-grouping-feature [component prev-row-order modes]
+  (vfc/apply-vf-by-degree component :grouping apply-grouping prev-row-order modes))
 
 (fg/defevolverfn :row-groups
   ;; This is temporary. Need to know which evolvers to invoke on which input event.
   ;; Then this heavy evolver will not be called on each mouse move/click
-  (if (vector? ((:evolve-reason-provider component) (:id component)))
+  (if (vector? (get-reason))
   ;;
   ;;
     (let [mode (get-property component [:this] :mode)

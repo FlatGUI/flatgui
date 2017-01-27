@@ -9,8 +9,8 @@
 (ns
   ^{:doc "Utilities for debugging and troubleshooting through REPL"
     :author "Denys Lebediev"}
-  flatgui.debug
-  (:require [flatgui.appcontainer :as ac]))
+  flatgui._old_debug
+  (:require [flatgui._old_appcontainer :as ac]))
 
 (defn get-simplified-container [container]
   (filter

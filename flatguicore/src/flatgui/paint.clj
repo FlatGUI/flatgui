@@ -11,10 +11,7 @@
             sequnces from components and containers."
       :author "Denys Lebediev"}
   flatgui.paint
-  (:import (clojure.lang Keyword)
-           (java.util Collection))
-  (:require [flatgui.base :as fg]
-            [flatgui.comlogic :as fgc]
+  (:require [flatgui.comlogic :as fgc]
             ;[flatgui.access :as access]
             [flatgui.awt :as awt]
             [flatgui.util.matrix :as m]
@@ -167,7 +164,7 @@
            (awt/transform awt-position-matrix-inverse)
            (if (not= (:widget-type component) "tablecell") (awt/popCurrentClip))]))
     (catch Exception e (do
-                         (fg/log-debug "Exception " (.getMessage e)
+                         (println "Exception " (.getMessage e) ;TODO Log instead of  println
                            " when painting component id = " (:id component)
                            ;" component: " (container-to-str component)
                            )
@@ -423,3 +420,35 @@
 ;    (do
 ;      ;(println " Dirty rect is null, skipped painting")
 ;      [])))
+
+
+;;;
+;; TODO 1. it looks like flatten-vector is needed neither in deflookfn nor here
+;; TODO 2. from debug output (see lv below), it looks like this is called twice for one component per cycle
+;;;
+(defn rebuild-look [component]
+  (let [look-fn (:look component)
+        font (:font component)]
+    (if look-fn
+      (try
+
+        (do
+          (if font
+            (.setReferenceFont (:interop component) font (flatgui.awt/str->font font)))
+          (let [font-look (font-look component)
+                trouble-look (if (:has-trouble component) (trouble-look component nil))
+                lv (if (or (not (nil? font-look)) (not (nil? trouble-look)))
+                     (flatten-vector
+                       [font-look
+                        (look-fn component nil)
+                        trouble-look])
+                     (look-fn component nil))
+                ;_ (println "||| lv " lv)
+                ]
+            lv))
+
+        (catch Exception ex
+          (do
+            ;(fg/log-error "Error painting " target-id-path ":" (.getMessage ex))
+            (.printStackTrace ex))))
+      [])))

@@ -55,9 +55,9 @@ public interface IFGModule
 
     public Set<List<Keyword>> getChangedComponentIdPaths();
 
-    public Map<List<Keyword>, Map<Keyword, Object>> getComponentIdPathToComponent(Collection<List<Keyword>> paths);
+    public Map<Object, Map<Keyword, Object>> getComponentIdPathToComponent(Collection<List<Keyword>> paths);
 
-    public Map<Object, Object> getStringPoolDiffs(Map<List<Keyword>, List<String>> idPathToStrings);
+    public Map<Object, Object> getStringPoolDiffs(Map<Object, List<String>> idPathToStrings);
 
     public Integer getStringPoolId(String s, Object componentId);
 

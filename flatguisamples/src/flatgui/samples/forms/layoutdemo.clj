@@ -7,8 +7,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns layoutdemo
-  (:require [flatgui.app]
+  (:require [flatgui.base]
             [flatgui.skins.flat]
             [flatgui.samples.forms.layoutdemopanel :as lp]))
 
-(def layoutpanel (flatgui.app/defroot lp/root-panel))
+(def layoutpanel (flatgui.base/defroot lp/root-panel))

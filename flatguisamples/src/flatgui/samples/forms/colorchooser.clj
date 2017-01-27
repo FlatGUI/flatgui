@@ -7,13 +7,12 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns colorchooser
-  (:require [flatgui.app]
-            [flatgui.skins.flat]
+  (:require [flatgui.skins.flat]
             [flatgui.usagestats]
             [flatgui.samples.forms.colorchooserwin :as cc])
   (:import (java.util.function BiConsumer)))
 
-(def colorpanel (flatgui.app/defroot
+(def colorpanel (flatgui.base/defroot
                   (assoc cc/root-panel :_usage-stats-collector flatgui.usagestats/default-usagestats-collector)))
 
 (def usage-stats-reporter

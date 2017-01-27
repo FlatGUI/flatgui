@@ -32,7 +32,7 @@
   (cond
     (mouse/is-mouse-event? component)
       (flatgui.widgets.floatingbar/position-matrix-evolver component)
-    (= [:_] ((:evolve-reason-provider component) (:id component)))
+    (= [:_] (get-reason))
       (let [ orientation (get-property component [:_] :orientation)
              position (get-property component [:_] :position)
              bar-width (get-property component [:_] :bar-width)

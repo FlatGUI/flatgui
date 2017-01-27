@@ -15,16 +15,16 @@
 
 ;;; V-Feature functionalilty
 
-(fg/defaccessorfn apply-filtering [contentpane prev-header-ids header-id prev-row-order modes]
-  (let [mode (vfc/get-from-header-vfc contentpane header-id :filtering :mode)]
+(fg/defaccessorfn apply-filtering [component prev-header-ids header-id prev-row-order modes]
+  (let [mode (vfc/get-from-header-vfc component header-id :filtering :mode)]
     (if (= :f mode)
-      (let [value-provider (get-property contentpane [] :value-provider)
-            header-ids (get-property contentpane [] :header-ids)
+      (let [value-provider (get-property component [] :value-provider)
+            header-ids (get-property component [] :header-ids)
             ;;TODO do not duplicate these .indexOf calls
             column-index (.indexOf header-ids header-id)
             key-fn (fn [row-order-item]
                       (value-provider row-order-item column-index))
-            selection-model (get-property contentpane [:this] :selection-model)
+            selection-model (get-property component [:this] :selection-model)
             visible-values (map (fn [row] (key-fn row)) (tcom/get-selected-model-rows selection-model))]
           (filter
             (fn [row-order-item]
@@ -32,8 +32,8 @@
             prev-row-order))
         prev-row-order)))
 
-(fg/defaccessorfn apply-filtering-feature [contentpane prev-row-order modes]
-  (vfc/apply-vf-by-degree contentpane :filtering apply-filtering prev-row-order modes))
+(fg/defaccessorfn apply-filtering-feature [component prev-row-order modes]
+  (vfc/apply-vf-by-degree component :filtering apply-filtering prev-row-order modes))
 
 ;;; Params
 

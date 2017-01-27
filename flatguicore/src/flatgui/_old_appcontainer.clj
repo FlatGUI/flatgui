@@ -6,8 +6,8 @@
 ; the terms of this license.
 ; You must not remove this notice, or any other, from this software.
 
-(ns flatgui.appcontainer
-  (:require flatgui.widgets.componentbase flatgui.base))
+(ns flatgui._old_appcontainer
+  (:require flatgui.widgets._old_componentbase flatgui._old_base))
 
 (def container-ns-symbol (symbol "flatgui.appcontainer"))
 
@@ -34,7 +34,7 @@
 (defn app-evolve-container [container-name target-cell-ids reason]
   (swap!
     (get-container-atom container-name)
-    (fn [c] (let [ec (flatgui.widgets.componentbase/evolve-container c target-cell-ids reason)]
+    (fn [c] (let [ec (flatgui.widgets._old_componentbase/evolve-container c target-cell-ids reason)]
               (if-let [usage-stats-collector (:_usage-stats-collector c)]
                 (usage-stats-collector ec target-cell-ids reason)
                 ec)))))
@@ -43,12 +43,12 @@
 (defn app-init-instance [container-name]
   (swap!
     (get-container-atom container-name)
-    (fn [c] (flatgui.widgets.componentbase/rebuild-look c))))
+    (fn [c] (flatgui.widgets._old_componentbase/rebuild-look c))))
 
 (defn app-fork-container [container-name target-cell-ids reason]
   (swap!
     (get-fork-map-atom container-name)
-    (fn [m] (assoc m reason (flatgui.widgets.componentbase/evolve-container (get-container container-name) target-cell-ids reason)))))
+    (fn [m] (assoc m reason (flatgui.widgets._old_componentbase/evolve-container (get-container container-name) target-cell-ids reason)))))
 
 (defn app-clear-forks [container-name]
   (reset!
@@ -80,13 +80,13 @@
           (get-container-atom-var container-name)
           (get-container-atom container-name)
           (get-container container-name))
-      (flatgui.base/log-debug "Restored existing container name = " container-name " id = " (:id container))
+      (flatgui._old_base/log-debug "Restored existing container name = " container-name " id = " (:id container))
       (do
         (register-container-internal
           container-name
           container)
         (register-fork-map-internal container-name)
-        (flatgui.base/log-debug "Registered container name = " container-name " id = " (:id container) (System/identityHashCode container))))))
+        (flatgui._old_base/log-debug "Registered container name = " container-name " id = " (:id container) (System/identityHashCode container))))))
 
 (defn unregister-container [container-name]
   (do
