@@ -12,8 +12,6 @@
 
 ;;; TODO Find better place; do not duplicate with flatgui.awt
 
-(println "Loading responsefeed")
-
 (defn unitsizepx [] 64.0)
 
 (defn affinetransform [matrix]
