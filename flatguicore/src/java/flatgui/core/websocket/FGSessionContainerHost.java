@@ -13,14 +13,16 @@ package flatgui.core.websocket;
 import flatgui.core.IFGContainer;
 import flatgui.core.IFGContainerHost;
 
+import java.util.Set;
+
 /**
  * @author Denis Lebedev
  */
 public class FGSessionContainerHost implements IFGContainerHost<FGContainerSession>
 {
     @Override
-    public FGContainerSession hostContainer(IFGContainer container)
+    public FGContainerSession hostContainer(IFGContainer container, Set<String> fontsWithMetricsAlreadyReceived)
     {
-        return new FGContainerSession(container);
+        return new FGContainerSession(container, fontsWithMetricsAlreadyReceived);
     }
 }

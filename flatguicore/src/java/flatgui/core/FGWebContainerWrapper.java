@@ -12,11 +12,10 @@ package flatgui.core;
 
 import clojure.lang.Keyword;
 import clojure.lang.Var;
-import flatgui.core.awt.HostComponent;
+import flatgui.core.engine.remote.FGLegacyCoreGlue;
 import flatgui.core.util.IFGChangeListener;
 import flatgui.core.websocket.FGPaintVectorBinaryCoder;
 
-import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -57,6 +56,8 @@ public class FGWebContainerWrapper
     public static final byte PING_RESPONSE = 74;
     public static final byte METRICS_REQUEST = 75;
 
+    public static String DEBUG_OP = "OLD";
+
     public static final byte[] MOUSE_LEFT_CLICK_PREDICTION_SEQUENCE = new byte[]
     {
         MOUSE_LEFT_DOWN_PREDICTION,
@@ -86,12 +87,12 @@ public class FGWebContainerWrapper
 
     private Set<String> fontsWithMetricsAlreadyReceived_;
 
-    public FGWebContainerWrapper(IFGContainer fgContainer)
+    public FGWebContainerWrapper(IFGContainer fgContainer, Set<String> fontsWithMetricsAlreadyReceived)
     {
         fgContainer_ = fgContainer;
         eventConsumer_ = fgContainer_.connect(e -> {}, this);
 
-        fontsWithMetricsAlreadyReceived_ = new HashSet<>();
+        fontsWithMetricsAlreadyReceived_ = fontsWithMetricsAlreadyReceived;
 
         stateTransmitter_ = new FGContainerStateTransmitter(fgContainer_, fontsWithMetricsAlreadyReceived_);
         stateTransmitterForks_ = new HashMap<>();
@@ -177,13 +178,50 @@ public class FGWebContainerWrapper
 
         //if (debug_ == 0 || stateTransmitter.initialCycle_)
         {
-            Future<Collection<ByteBuffer>> responseFuture =
-                    fgContainer_.submitTask(() -> stateTransmitter.computeDataDiffsToTransmit(evolveResultsFuture));
             try
             {
+                // TODO eventually get rid of old version of collecting byte buffer data
+                Future<Collection<ByteBuffer>> responseFuture =
+                        fgContainer_.submitTask(() -> stateTransmitter.computeDataDiffsToTransmit(evolveResultsFuture));
                 Collection<ByteBuffer> r = responseFuture.get();
+
+                Future<Collection<ByteBuffer>> responseFuture2 =
+                        fgContainer_.submitTask(() -> evolveResultsFuture != null
+                                ? ((FGLegacyCoreGlue)fgContainer_).getDiffsToTransmit()
+                                : ((FGLegacyCoreGlue)fgContainer_).getInitialDataToTransmit());
+                Collection<ByteBuffer> r2 = responseFuture2.get();
+
+//                if (evolveResultsFuture != null)
+//                {
+//                    Set<ByteBuffer> rSet = new HashSet<>(r);
+//                    Set<ByteBuffer> r2Set = new HashSet<>(r2);
+//                    boolean hit = rSet.equals(r2Set);
+//                    System.out.println("-DLTEMP- FGWebContainerWrapper.getResponseForClientImpl" + (hit ? " HIT" : " MISS"));
+//                    if (!hit)
+//                    {
+//                        Map<Byte, ByteBuffer> rMap = new HashMap<>();
+//                        for (ByteBuffer b : r)
+//                        {
+//                            rMap.put(b.get(0), b);
+//                        }
+//                        Map<Byte, ByteBuffer> r2Map = new HashMap<>();
+//                        for (ByteBuffer b : r2)
+//                        {
+//                            r2Map.put(b.get(0), b);
+//                        }
+//                        for (Byte cmd : rMap.keySet())
+//                        {
+//                            if (!rMap.get(cmd).equals(r2Map.get(cmd)))
+//                            {
+//                                System.out.println("                           getResponseForClientImpl missed cmd: " + cmd);
+//                            }
+//                        }
+//                    }
+//                }
+
                 debug_ = 4;
-                return r;
+                //return r;
+                return r2;
             }
             catch (InterruptedException | ExecutionException e)
             {
@@ -404,7 +442,7 @@ public class FGWebContainerWrapper
 //        return sb.toString();
 //    }
 
-    interface IDataTransmitter<S>
+    public interface IDataTransmitter<S>
     {
         public byte getCommandCode();
 
@@ -449,7 +487,7 @@ public class FGWebContainerWrapper
         public abstract int writeBinary(ByteArrayOutputStream stream, int n, S data);
     }
 
-    interface IKeyCache
+    public interface IKeyCache
     {
         int getUniqueId(Object key);
     }
@@ -460,7 +498,7 @@ public class FGWebContainerWrapper
         private Supplier<Map<Object, Object>> sourceMapSupplier_;
 
         public AbstractMapTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
-        {
+            {
             keyCache_ = keyCache;
             sourceMapSupplier_ = sourceMapSupplier;
         }
@@ -471,6 +509,9 @@ public class FGWebContainerWrapper
             for (Map.Entry<Object, Object> e : data.entrySet())
             {
                 Object componentId = e.getKey();
+
+                //System.out.println("     -DLTEMP- AbstractMapTransmitter.writeBinary "+DEBUG_OP+" cmd=" + getCommandCode() + " " + componentId + "->" + e.getValue());
+
                 int uid = keyCache_.getUniqueId(componentId);
                 onWritingUid(componentId, uid);
                 stream.write((byte)(uid & 0xFF));
@@ -584,9 +625,9 @@ public class FGWebContainerWrapper
         protected abstract int getTranslateY(AffineTransform matrix);
     }
 
-    static class PositionMatrixMapTrasmitter extends TransformMatrixMapTransmitter
+    public static class PositionMatrixMapTrasmitter extends TransformMatrixMapTransmitter
     {
-        PositionMatrixMapTrasmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
+        public PositionMatrixMapTrasmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
         {
             super(keyCache, sourceMapSupplier);
         }
@@ -610,9 +651,9 @@ public class FGWebContainerWrapper
         }
     }
 
-    static class ViewportMatrixMapTrasmitter extends TransformMatrixMapTransmitter
+    public static class ViewportMatrixMapTrasmitter extends TransformMatrixMapTransmitter
     {
-        ViewportMatrixMapTrasmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
+        public ViewportMatrixMapTrasmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
         {
             super(keyCache, sourceMapSupplier);
         }
@@ -667,7 +708,7 @@ public class FGWebContainerWrapper
         }
     }
 
-    static class ChildCountMapTransmitter extends ShortMapTrasmitter
+    public static class ChildCountMapTransmitter extends ShortMapTrasmitter
     {
         public ChildCountMapTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
         {
@@ -681,7 +722,7 @@ public class FGWebContainerWrapper
         }
     }
 
-    static class BooleanFlagsMapTransmitter extends ByteMapTrasmitter
+    public static class BooleanFlagsMapTransmitter extends ByteMapTrasmitter
     {
         public BooleanFlagsMapTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
         {
@@ -695,7 +736,7 @@ public class FGWebContainerWrapper
         }
     }
 
-    static class ClipRectTransmitter extends MapTransmitter<List<Number>>
+    public static class ClipRectTransmitter extends MapTransmitter<List<Number>>
     {
         public ClipRectTransmitter(IKeyCache keyCache, Supplier<Map<Object, Object>> sourceMapSupplier)
         {
@@ -720,7 +761,7 @@ public class FGWebContainerWrapper
         }
     }
 
-    static class LookVectorTransmitter extends MapTransmitter<List<Object>>
+    public static class LookVectorTransmitter extends MapTransmitter<List<Object>>
     {
         private FGPaintVectorBinaryCoder coder_;
 
@@ -919,7 +960,7 @@ public class FGWebContainerWrapper
         }
     }
 
-    static class PaintAllTransmitter extends KeyListTransmitter
+    public static class PaintAllTransmitter extends KeyListTransmitter
     {
         public PaintAllTransmitter(IKeyCache keyCache, Supplier<List<Object>> sourceListSupplier)
         {
@@ -933,12 +974,12 @@ public class FGWebContainerWrapper
         }
     }
 
-    static class KeyCache implements IKeyCache
+    public static class KeyCache implements IKeyCache
     {
         private int uid_ = 0;
         private Map<Object, Integer> cache_;
 
-        KeyCache()
+        public KeyCache()
         {
             cache_ = new HashMap<>();
         }
@@ -1166,6 +1207,14 @@ public class FGWebContainerWrapper
                 }
             }
 
+            // TODO refactoring response calc code
+            if (true)
+            {
+                long spentTime = System.nanoTime() - debugStartTime_;
+                //System.out.println("spentTime = " + (spentTime/1000));
+                return null;
+            }
+
             idPathToComponent_ = fgModule_.getComponentIdPathToComponent(
                 evolveResultData == null ? null : evolveResultData.getChangedPaths());
 
@@ -1282,14 +1331,12 @@ public class FGWebContainerWrapper
             mergeNewDatasToLast(newDatas);
 
             long spentTime = System.nanoTime() - debugStartTime_;
-
             int size = 0;
             for (ByteBuffer b : result)
             {
                 size += b.capacity();
             }
-
-            //System.out.println("spentTime = " + (spentTime/1000) + " sending " + size);
+            System.out.println("spentTime = " + (spentTime/1000) + " sending " + size);
 
             return result;
         }

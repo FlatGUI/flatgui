@@ -11,13 +11,12 @@
 package flatgui.core.websocket;
 
 import clojure.lang.Var;
-import flatgui.core.FGContainer;
-import flatgui.core.IFGContainer;
-import flatgui.core.IFGContainerHost;
-import flatgui.core.IFGTemplate;
+import flatgui.core.*;
 import flatgui.core.engine.remote.FGLegacyCoreGlue;
 import flatgui.core.engine.remote.FGLegacyGlueTemplate;
+import flatgui.core.engine.ui.FGAppContainer;
 import flatgui.core.engine.ui.FGRemoteAppContainer;
+import flatgui.core.engine.ui.FGRemoteClojureResultCollector;
 
 import java.net.InetAddress;
 import java.util.*;
@@ -79,19 +78,32 @@ class FGContainerSessionHolder
                     {
                         Var containerVar = clojure.lang.RT.var(template.getContainerNamespace(), template.getContainerVarName());
                         Map<Object, Object> container = (Map<Object, Object>) containerVar.get();
-                        FGRemoteAppContainer fgContainer = new FGRemoteAppContainer(sessionId.toString(), container);
-                        FGLegacyCoreGlue glueContainer = new FGLegacyCoreGlue(fgContainer);
+
+                        FGLegacyCoreGlue.GlueModule glueModule = new FGLegacyCoreGlue.GlueModule(sessionId.toString());
+
+                        // TODO it returns identity coerced to int so it does not matter that this is different instance
+                        FGWebContainerWrapper.KeyCache keyCache = new FGWebContainerWrapper.KeyCache();
+                        Set<String> fontsWithMetricsAlreadyReceived = new HashSet<>();
+
+                        FGRemoteClojureResultCollector resultCollector =
+                                new FGRemoteClojureResultCollector(FGAppContainer.DFLT_UNIT_SIZE_PX,
+                                        keyCache, glueModule, fontsWithMetricsAlreadyReceived);
+
+                        FGRemoteAppContainer fgContainer = new FGRemoteAppContainer(sessionId.toString(), container, resultCollector);
+
+                        FGLegacyCoreGlue glueContainer = new FGLegacyCoreGlue(fgContainer, glueModule);
                         glueContainer.initialize();
                         FGWebInteropUtil interop = fgContainer.getInteropUtil();
                         initialFontMetricsTransmissions.forEach(t -> fontCollector.add(interop.setMetricsTransmission(t)));
-                        return sessionHost_.hostContainer(glueContainer);
+                        return sessionHost_.hostContainer(glueContainer, fontsWithMetricsAlreadyReceived);
                     }
                     else
                     {
                         FGWebInteropUtil interop = new FGWebInteropUtil(IFGContainer.UNIT_SIZE_PX);
                         initialFontMetricsTransmissions.forEach(t -> fontCollector.add(interop.setMetricsTransmission(t)));
                         FGContainer container = new FGContainer(template, sessionId.toString(), interop);
-                        return sessionHost_.hostContainer(container);
+                        Set<String> fontsWithMetricsAlreadyReceived = new HashSet<>();
+                        return sessionHost_.hostContainer(container, fontsWithMetricsAlreadyReceived);
                     }
                 });
 

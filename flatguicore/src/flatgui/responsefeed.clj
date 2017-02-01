@@ -67,7 +67,7 @@
 (defn extract-viewport-matrix [container]
   (extract-single :viewport-matrix affinetransform container))
 
-(defn- clip-size-extractor [c] [(m/x c) (m/y c)])
+(defn clip-size-extractor [c] [(m/x c) (m/y c)])
 
 (defn extract-clip-size [container]
   (extract-single :clip-size clip-size-extractor container))

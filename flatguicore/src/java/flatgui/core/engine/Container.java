@@ -114,7 +114,7 @@ public class Container
 
     public void evolve(Integer componentUid, Object evolveReason)
     {
-//        long evolveStartTime = System.currentTimeMillis();
+        long evolveStartTime = System.currentTimeMillis();
         indexBufferSize_ = 0;
 
         log("----------------Started evolve cycle ---- for reason: " + valueToString(evolveReason));
@@ -214,7 +214,7 @@ public class Container
                     containerMutator_.setValue(nodeIndex, newValue);
 
                     List<Object> componentPath = component.getComponentPath();
-                    resultCollector_.appendResult(node.getParentComponentUid(), componentPath, node.getComponentUid(), node.getPropertyId(), newValue);
+                    resultCollector_.appendResult(node.getParentComponentUid(), componentPath, node, newValue);
 
                     addNodeDependentsToEvolvebuffer(node);
 
@@ -303,8 +303,8 @@ public class Container
             }
         }
 
-//        long spentEvolving = System.currentTimeMillis() - evolveStartTime;
-//        System.out.println("-DLTEMP- Container.evolve spent evolving " + spentEvolving);
+        long spentEvolving = System.currentTimeMillis() - evolveStartTime;
+        //System.out.println("-DLTEMP- Container.evolve spent evolving " + spentEvolving);
     }
 
     public IContainerAccessor getContainerAccessor()
@@ -335,6 +335,16 @@ public class Container
     public IComponent getComponent(Integer componentUid)
     {
         return components_.get(componentUid.intValue());
+    }
+
+    public Node getNode(Integer nodeId)
+    {
+        return nodes_.get(nodeId);
+    }
+
+    public int getNodeCount()
+    {
+        return nodes_.size();
     }
 
     public <V> V getPropertyValue(Integer index)
@@ -444,6 +454,7 @@ public class Container
     private void initializeAddedComponent(Integer componentUid)
     {
         evolve(componentUid, null);
+        //getResultCollector().componentInitialized(this, componentUid); TODO is looks like we are good without this
         ComponentAccessor component = components_.get(componentUid);
         Iterable<Integer> childIndices = component.getChildIndices();
         if (childIndices != null)
@@ -808,6 +819,8 @@ public class Container
     {
         Integer getPropertyIndex(Object key);
 
+        Collection<Integer> getPropertyIndices();
+
         List<Integer> getChildIndices();
 
         Integer getChildIndex(Object childId);
@@ -946,6 +959,12 @@ public class Container
         }
 
         @Override
+        public Collection<Integer> getPropertyIndices()
+        {
+            return propertyIdToIndex_.values();
+        }
+
+        @Override
         public Object getCustomData()
         {
             return customData_;
@@ -1041,7 +1060,7 @@ public class Container
     /**
      * Represents a property of a component (internal indexed)
      */
-    private static class Node
+    public static class Node
     {
         private final Integer componentUid_;
         private final Object propertyId_;

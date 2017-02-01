@@ -31,7 +31,7 @@ public class FGAWTAppContainer extends FGAppContainer<FGWebInteropUtil>
 
     public FGAWTAppContainer(Map<Object, Object> container, int unitSizePx)
     {
-        super(container.get(ClojureContainerParser.getIdKey()).toString(), container, new FGWebInteropUtil(unitSizePx), unitSizePx);
+        super(container.get(ClojureContainerParser.getIdKey()).toString(), container, new FGWebInteropUtil(unitSizePx), new FGClojureResultCollector(unitSizePx), unitSizePx);
 
         hostComponent_ = new HostComponent();
     }

@@ -370,6 +370,8 @@ public class FGContainerWebSocket implements WebSocketListener
 
         if (response.size() > 0)
         {
+            //System.out.println("-DLTEMP- FGContainerWebSocket.collectAndSendResponse SENDING " + response.size() + " BUFs");
+
             response.forEach(this::sendBytesToRemote);
             sendBytesToRemote(ByteBuffer.wrap(new byte[]{FGWebContainerWrapper.REPAINT_CACHED_COMMAND_CODE}));
 

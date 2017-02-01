@@ -10,10 +10,12 @@
 
 package flatgui.core;
 
+import java.util.Set;
+
 /**
  * @author Denis Lebedev
  */
 public interface IFGContainerHost<H>
 {
-    public H hostContainer(IFGContainer container);
+    public H hostContainer(IFGContainer container, Set<String> fontsWithMetricsAlreadyReceived);
 }

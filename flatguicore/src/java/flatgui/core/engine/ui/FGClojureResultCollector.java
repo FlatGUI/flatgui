@@ -61,8 +61,16 @@ public class FGClojureResultCollector implements IResultCollector
     }
 
     @Override
-    public void appendResult(Integer parentComponentUid, List<Object> path, Integer componentUid, Object property, Object newValue)
+    public void componentInitialized(Container container, Integer componentUid)
     {
+    }
+
+    @Override
+    public void appendResult(Integer parentComponentUid, List<Object> path, Container.Node node, Object newValue)
+    {
+        Integer componentUid = node.getComponentUid();
+        Object property = node.getPropertyId();
+
         changedComponents_.add(componentUid);
         changedComponentsForRemote_.add(componentUid);
 
@@ -109,9 +117,15 @@ public class FGClojureResultCollector implements IResultCollector
             containerMutator.setValue(componentDataCache.getLookVecIndex(), lookVec);
 
             lookVectors_.set(changedComponentUid.intValue(), lookVec);
+
+            lookVectorGenerated(changedComponentUid, lookVec);
         }
 
         changedComponents_.clear();
+    }
+
+    protected void lookVectorGenerated(Integer componentUid, List<Object> lookVec)
+    {
     }
 
     boolean hasVisiblePopupChildren(Integer componentUid)

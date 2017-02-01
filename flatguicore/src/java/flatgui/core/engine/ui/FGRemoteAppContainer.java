@@ -8,7 +8,7 @@ import flatgui.core.FGEvolveResultData;
 import flatgui.core.engine.Container;
 import flatgui.core.websocket.FGWebInteropUtil;
 
-import java.awt.event.ActionListener;
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -18,14 +18,25 @@ import java.util.concurrent.Future;
  */
 public class FGRemoteAppContainer extends FGAppContainer<FGWebInteropUtil>
 {
-    public FGRemoteAppContainer(String sessionId, Map<Object, Object> container)
+    public FGRemoteAppContainer(String sessionId, Map<Object, Object> container, FGRemoteClojureResultCollector resultCollector)
     {
-        this(sessionId, container, DFLT_UNIT_SIZE_PX);
+        this(sessionId, container, DFLT_UNIT_SIZE_PX, resultCollector);
     }
 
-    public FGRemoteAppContainer(String sessionId, Map<Object, Object> container, int unitSizePx)
+    public FGRemoteAppContainer(String sessionId, Map<Object, Object> container, int unitSizePx, FGRemoteClojureResultCollector resultCollector)
     {
-        super(sessionId, container, new FGWebInteropUtil(unitSizePx), unitSizePx);
+        super(sessionId, container, new FGWebInteropUtil(unitSizePx), resultCollector, unitSizePx);
+        resultCollector.initialize(this::getPaintAllSequence);
+    }
+
+    public Collection<ByteBuffer> getDiffsToTransmit()
+    {
+        return ((FGRemoteClojureResultCollector)getResultCollector()).getDiffsToTransmit();
+    }
+
+    public Collection<ByteBuffer> getInitialDataToTransmit()
+    {
+        return ((FGRemoteClojureResultCollector)getResultCollector()).getInitialDataToTransmit(getContainer());
     }
 
     //
@@ -79,6 +90,12 @@ public class FGRemoteAppContainer extends FGAppContainer<FGWebInteropUtil>
 
     public List<Object> getPaintAllSequence()
     {
+        if (getContainer() == null)
+        {
+            // TODO this is called by new result collector during container initialization, needs to be refactored
+            return null;
+        }
+
         // TODO 1 can know list size in advance
         // TODO 2 no need to do this on each cycle
         List<Object> sequence = new ArrayList<>();

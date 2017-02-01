@@ -19,7 +19,7 @@ import java.util.Map;
  */
 public class FGAppContainer<Interop extends IFGInteropUtil> extends AppContainer<FGClojureContainerParser, FGClojureResultCollector>
 {
-    protected static final int DFLT_UNIT_SIZE_PX = 64;
+    public static final int DFLT_UNIT_SIZE_PX = 64;
 
     private static final Keyword INTEROP_KW = Keyword.intern("interop");
 
@@ -28,13 +28,13 @@ public class FGAppContainer<Interop extends IFGInteropUtil> extends AppContainer
 
     public FGAppContainer(String containerId, Map<Object, Object> container, Interop interopUtil)
     {
-        this(containerId, container, interopUtil, DFLT_UNIT_SIZE_PX);
+        this(containerId, container, interopUtil, new FGClojureResultCollector(DFLT_UNIT_SIZE_PX), DFLT_UNIT_SIZE_PX);
     }
 
-    public FGAppContainer(String containerId, Map<Object, Object> container, Interop interopUtil, int unitSizePx)
+    public FGAppContainer(String containerId, Map<Object, Object> container, Interop interopUtil, FGClojureResultCollector resultCollector, int unitSizePx)
     {
         super(containerId, new FGClojureContainerParser(),
-                new FGClojureResultCollector(unitSizePx), assocInterop(container, interopUtil));
+                resultCollector, assocInterop(container, interopUtil));
 
         interopUtil_ = interopUtil;
 

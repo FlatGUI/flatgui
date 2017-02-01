@@ -16,6 +16,8 @@ import clojure.lang.Var;
 import java.awt.Font;
 import flatgui.core.FGWebContainerWrapper;
 import flatgui.core.IFGContainer;
+
+import java.util.Set;
 import java.util.concurrent.atomic.LongAccumulator;
 
 /**
@@ -38,11 +40,11 @@ public class FGContainerSession
 
     private volatile FGContainerWebSocket accosiatedWebSocket_;
 
-    public FGContainerSession(IFGContainer container)
+    public FGContainerSession(IFGContainer container, Set<String> fontsWithMetricsAlreadyReceived)
     {
         sessionId_ = container.getId();
 
-        containerWrapper_ = new FGWebContainerWrapper(container);
+        containerWrapper_ = new FGWebContainerWrapper(container, fontsWithMetricsAlreadyReceived);
         containerWrapper_.initialize();
 
         interopUtil_ = (FGWebInteropUtil) container.getInterop();

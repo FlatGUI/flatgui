@@ -9,6 +9,7 @@ import flatgui.core.awt.FGMouseTargetComponentInfo;
 import flatgui.core.engine.ui.FGRemoteAppContainer;
 
 import java.awt.event.ActionListener;
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -24,10 +25,20 @@ public class FGLegacyCoreGlue implements IFGContainer, IFGModule
     private FGAbstractModule glueModule_;
     private FGRemoteAppContainer container_;
 
-    public FGLegacyCoreGlue(FGRemoteAppContainer container)
+    public FGLegacyCoreGlue(FGRemoteAppContainer container, GlueModule glueModule)
     {
         container_ = container;
-        glueModule_ = new GlueModule(container.getContainerId());
+        glueModule_ = glueModule;
+    }
+
+    public Collection<ByteBuffer> getDiffsToTransmit()
+    {
+        return container_.getDiffsToTransmit();
+    }
+
+    public Collection<ByteBuffer> getInitialDataToTransmit()
+    {
+        return container_.getInitialDataToTransmit();
     }
 
     //
@@ -192,7 +203,7 @@ public class FGLegacyCoreGlue implements IFGContainer, IFGModule
 
     // // // Innner
 
-    private static class GlueModule extends FGAbstractModule
+    public static class GlueModule extends FGAbstractModule
     {
         public GlueModule(String containerName)
         {

@@ -17,6 +17,7 @@ import flatgui.core.IFGContainerHost;
 
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
@@ -33,7 +34,7 @@ public class FGAWTContainerHost implements IFGContainerHost<Component>
     }
 
     @Override
-    public Component hostContainer(IFGContainer container)
+    public Component hostContainer(IFGContainer container, Set<String> fontsWithMetricsAlreadyReceived)
     {
         c_.initialize(container);
         ActionListener eventFedCallBack = c_.getEventFedCallback();
