@@ -30,12 +30,9 @@ import flatgui.core.util.Tuple;
  */
 public class FGDefaultPrimitivePainter implements IFGPrimitivePainter
 {
-    private static Map<Class, Class> NUMBER_CLASS_TO_PRIMITIVE = new HashMap<>();
-    static
-    {
-        NUMBER_CLASS_TO_PRIMITIVE.put(Integer.class, Integer.TYPE);
-        NUMBER_CLASS_TO_PRIMITIVE.put(Long.class, Integer.TYPE);
-    }
+    public static final String SET_CLIP = "setClip";
+    public static final String CLIP_RECT = "clipRect";
+    public static final String TRANSFORM = "transform";
 
     private static final String PUSH_CURRENT_CLIP = "pushCurrentClip";
     private static final String POP_CURRENT_CLIP = "popCurrentClip";
@@ -43,6 +40,23 @@ public class FGDefaultPrimitivePainter implements IFGPrimitivePainter
     private static final String FIT_IMAGE = "fitImage";
     private static final String FILL_IMAGE = "fillImage";
     private static final String SET_FONT = "setFont";
+
+
+    private static Map<Class, Class> NUMBER_CLASS_TO_PRIMITIVE = new HashMap<>();
+    private static Set<String> COMMANDS_ALLOWED_WHEN_CLIPPED_OUT;
+    static
+    {
+        NUMBER_CLASS_TO_PRIMITIVE.put(Integer.class, Integer.TYPE);
+        NUMBER_CLASS_TO_PRIMITIVE.put(Long.class, Integer.TYPE);
+
+        Set<String> cmdSet = new HashSet<>();
+        cmdSet.add(SET_CLIP);
+        cmdSet.add(CLIP_RECT);
+        cmdSet.add(PUSH_CURRENT_CLIP);
+        cmdSet.add(POP_CURRENT_CLIP);
+        cmdSet.add(TRANSFORM);
+        COMMANDS_ALLOWED_WHEN_CLIPPED_OUT = Collections.unmodifiableSet(cmdSet);
+    }
 
     private static final Var strToFont_ = clojure.lang.RT.var("flatgui.awt", "str->font");
 
@@ -101,6 +115,12 @@ public class FGDefaultPrimitivePainter implements IFGPrimitivePainter
         }
 
         String methodName = (String)primitive.get(0);
+
+        Rectangle clipBounds = g.getClipBounds();
+        if (clipBounds != null && clipBounds.width <= 0 && !COMMANDS_ALLOWED_WHEN_CLIPPED_OUT.contains(methodName))
+        {
+            return;
+        }
 
         Object[] argValues = primitive.stream().skip(1).map(e -> e instanceof Double
                 ? (int) (((Double) e).doubleValue()*unitSizePx_)

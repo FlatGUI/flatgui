@@ -6,6 +6,7 @@ package flatgui.core.engine.ui;
 import clojure.lang.Keyword;
 import clojure.lang.PersistentHashMap;
 import clojure.lang.Var;
+import flatgui.core.awt.FGDefaultPrimitivePainter;
 import flatgui.core.engine.Container;
 import flatgui.core.engine.IResultCollector;
 
@@ -166,9 +167,9 @@ public class FGClojureResultCollector implements IResultCollector
             Arrays.asList("pushCurrentClip"));
     private final List<Object> POP_CURRENT_CLIP = Collections.unmodifiableList(
             Arrays.asList("popCurrentClip"));
-    private final List<Object> SET_CLIP = Arrays.asList("setClip", 0, 0, null, null);
-    private final List<Object> CLIP_RECT = Arrays.asList("clipRect", 0, 0, null, null);
-    private final List<Object> TRANSFORM = Arrays.asList("transform", null);
+    private final List<Object> SET_CLIP = Arrays.asList(FGDefaultPrimitivePainter.SET_CLIP, 0, 0, null, null);
+    private final List<Object> CLIP_RECT = Arrays.asList(FGDefaultPrimitivePainter.CLIP_RECT, 0, 0, null, null);
+    private final List<Object> TRANSFORM = Arrays.asList(FGDefaultPrimitivePainter.TRANSFORM, null);
 
     private final List<Object> setClip(Double clipW, Double clipH)
     {

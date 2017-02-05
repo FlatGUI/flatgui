@@ -20,6 +20,8 @@ import java.net.URL;
  */
 public class FGImageLoader implements IFGImageLoader
 {
+    // TODO cache
+
     @Override
     public Image getImage(String url) throws IOException
     {
