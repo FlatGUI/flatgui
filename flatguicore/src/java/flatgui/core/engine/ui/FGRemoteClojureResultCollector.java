@@ -121,7 +121,7 @@ public class FGRemoteClojureResultCollector extends FGClojureResultCollector
 
     public Collection<ByteBuffer> getInitialDataToTransmit(Container container)
     {
-        resetAll();
+        resetAll(true);
         int nodeCount = container.getNodeCount();
         for (int i=0; i<nodeCount; i++)
         {
@@ -135,7 +135,7 @@ public class FGRemoteClojureResultCollector extends FGClojureResultCollector
 
     public Collection<ByteBuffer> getDiffsToTransmit()
     {
-        resetAll();
+        resetAll(false);
 
         Collection<ByteBuffer> diffs = new ArrayList<>(diffsToTransmit_);
         diffsToTransmit_.clear();
@@ -191,14 +191,14 @@ public class FGRemoteClojureResultCollector extends FGClojureResultCollector
         }
     }
 
-    private void resetAll()
+    private void resetAll(boolean full)
     {
         paintAllList_ = null;
         componentIdToStringPool_.clear();
         componentIdToResourceStringPool_.clear();
         for (IDataTransmitterWrapper w : allWrappers_)
         {
-            w.reset();
+            w.reset(full);
         }
     }
 
@@ -207,8 +207,6 @@ public class FGRemoteClojureResultCollector extends FGClojureResultCollector
         if (paintAllList_ != null)
         //if (paintAllListChanged_)
         {
-            System.out.println("-DLTEMP- postProcessAfterEvolveCycle transmitting paintAllList_ " + paintAllList_.size());
-
             // TODO Transmit it (or even everything) only once after init. It makes no sense to transmit repeatedly during the init process
             diffsToTransmit_.add(paintAllTransmitter_.convertToBinary(paintAllTransmitter_.getCommandCode(), paintAllList_));
         }
@@ -252,7 +250,7 @@ public class FGRemoteClojureResultCollector extends FGClojureResultCollector
 
         ByteBuffer commitAndWriteDataDiff();
 
-        void reset();
+        void reset(boolean full);
     }
 
     private static abstract class AbstractDataTransmitterWrapper<V> implements IDataTransmitterWrapper
@@ -270,19 +268,24 @@ public class FGRemoteClojureResultCollector extends FGClojureResultCollector
         @Override
         public ByteBuffer commitAndWriteDataDiff()
         {
-            if (!componentUidToData_.isEmpty())
+            if (hasDataToTransmit())
             {
                 //System.out.println("-DLTEMP- commitAndWriteDataDiff NEW " + dataTransmitter_.getCommandCode() + " coding: " + componentUidToData_);
                 FGWebContainerWrapper.DEBUG_OP = "NEW";
                 ByteBuffer b = dataTransmitter_.convertToBinary(dataTransmitter_.getCommandCode(), (Map) componentUidToData_);
                 FGWebContainerWrapper.DEBUG_OP = "OLD";
-                componentUidToData_.clear();
+                //reset(false);
                 return b;
             }
             else
             {
                 return null;
             }
+        }
+
+        protected boolean hasDataToTransmit()
+        {
+            return !componentUidToData_.isEmpty();
         }
 
         protected final Set<Object> setOf(Object... elems)
@@ -293,7 +296,7 @@ public class FGRemoteClojureResultCollector extends FGClojureResultCollector
         }
 
         @Override
-        public void reset()
+        public void reset(boolean full)
         {
             componentUidToData_.clear();
         }
@@ -427,6 +430,8 @@ public class FGRemoteClojureResultCollector extends FGClojureResultCollector
         private static final Keyword POPUP_KW = Keyword.intern("popup");
         private static final Keyword VISIBLE_KW = Keyword.intern("visible");
 
+        private boolean hasDataToTransmit_;
+
         BooleanFlagsMapTransmitterWrapper(FGWebContainerWrapper.IKeyCache keyCache)
         {
             super(new FGWebContainerWrapper.BooleanFlagsMapTransmitter(keyCache, null));
@@ -468,8 +473,28 @@ public class FGRemoteClojureResultCollector extends FGClojureResultCollector
             }
         }
 
-        private static Byte changeFlag(Byte oldFlags, byte flagMask, boolean add)
+        @Override
+        protected boolean hasDataToTransmit()
         {
+            return hasDataToTransmit_;
+        }
+
+        @Override
+        public void reset(boolean full)
+        {
+            if (full)
+            {
+                super.reset(full);
+            }
+            else
+            {
+                hasDataToTransmit_ = false;
+            }
+        }
+
+        private Byte changeFlag(Byte oldFlags, byte flagMask, boolean add)
+        {
+            hasDataToTransmit_ = true;
             if (add)
             {
                 return Byte.valueOf(oldFlags != null ? (byte) (oldFlags.byteValue() | flagMask) : flagMask);

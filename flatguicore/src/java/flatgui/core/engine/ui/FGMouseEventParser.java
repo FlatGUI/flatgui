@@ -24,7 +24,6 @@ public class FGMouseEventParser implements IInputEventParser<MouseEvent, FGMouse
 
     private final int unitSizePx_;
 
-    private boolean targetReached_ = false;
     private double mouseXRel_;
     private double mouseYRel_;
 
@@ -47,7 +46,6 @@ public class FGMouseEventParser implements IInputEventParser<MouseEvent, FGMouse
         double mouseX = ((double)mouseEvent.getX()) / ((double)unitSizePx_);
         double mouseY = ((double)mouseEvent.getY()) / ((double)unitSizePx_);
 
-        targetReached_ = false;
         Integer targetComponentUid = getTargetComponentUid(0, container, mouseX, mouseY);
 
         if (newLeftButtonDown)
@@ -97,72 +95,58 @@ public class FGMouseEventParser implements IInputEventParser<MouseEvent, FGMouse
     private Integer getTargetComponentUid(Integer componentUid, Container rootContainer, double mouseX, double mouseY)
     {
         Container.IComponent component = rootContainer.getComponent(componentUid);
-
-        FGClojureContainerParser.FGComponentDataCache componentDataCache =
-                (FGClojureContainerParser.FGComponentDataCache) component.getCustomData();
-        Integer pmIndex = componentDataCache.getPositionMatrixIndex();
-        Integer csIndex = componentDataCache.getClipSizeIndex();
-
-        List<List<Number>> positionMatrix = rootContainer.getPropertyValue(pmIndex);
-        List<List<Number>> clipSize = rootContainer.getPropertyValue(csIndex);
-
-        double x = positionMatrix.get(0).get(3).doubleValue();
-        double y = positionMatrix.get(1).get(3).doubleValue();
-        double w = clipSize.get(0).get(0).doubleValue();
-        double h = clipSize.get(1).get(0).doubleValue();
-
-        if (((FGClojureResultCollector)rootContainer.getResultCollector()).hasVisiblePopupChildren(componentUid) ||
-                in(mouseX, x, x+w) && in(mouseY, y, y+h))
+        List<Integer> childIndices = component.getChildIndices();
+        if (childIndices != null)
         {
-            List<Integer> childIndices = component.getChildIndices();
-            if (childIndices != null)
+            for (int i = childIndices.size() - 1; i >= 0; i--)
             {
-                for (int i=childIndices.size()-1; i >= 0; i--)
-                {
-                    Integer childIndex = childIndices.get(i);
-                    Container.IComponent childComponent = rootContainer.getComponent(childIndex);
-                    FGClojureContainerParser.FGComponentDataCache childComponentDataCache =
-                            (FGClojureContainerParser.FGComponentDataCache) childComponent.getCustomData();
-                    Integer childVisibleIndex = childComponentDataCache.getVisibleIndex();
-                    Object childVisible = rootContainer.getPropertyValue(childVisibleIndex);
-                    boolean childVisibleBool = childVisible != null && !(childVisible instanceof Boolean && !((Boolean) childVisible).booleanValue());
+                Integer childIndex = childIndices.get(i);
 
-                    if (childVisibleBool)
+                Container.IComponent childComponent = rootContainer.getComponent(childIndex);
+                FGClojureContainerParser.FGComponentDataCache childComponentDataCache =
+                        (FGClojureContainerParser.FGComponentDataCache) childComponent.getCustomData();
+
+                Integer childVisibleIndex = childComponentDataCache.getVisibleIndex();
+                Object childVisible = rootContainer.getPropertyValue(childVisibleIndex);
+                boolean childVisibleBool = childVisible != null && !(childVisible instanceof Boolean && !((Boolean) childVisible).booleanValue());
+
+                if (childVisibleBool)
+                {
+                    Integer pmIndex = childComponentDataCache.getPositionMatrixIndex();
+                    Integer csIndex = childComponentDataCache.getClipSizeIndex();
+
+                    List<List<Number>> positionMatrix = rootContainer.getPropertyValue(pmIndex);
+                    List<List<Number>> clipSize = rootContainer.getPropertyValue(csIndex);
+
+                    double x = positionMatrix.get(0).get(3).doubleValue();
+                    double y = positionMatrix.get(1).get(3).doubleValue();
+                    double w = clipSize.get(0).get(0).doubleValue();
+                    double h = clipSize.get(1).get(0).doubleValue();
+
+                    boolean forceEnter = ((FGClojureResultCollector) rootContainer.getResultCollector()).hasVisiblePopupChildren(childIndex);
+                    boolean mouseActuallyIn = in(mouseX, x, x + w) && in(mouseY, y, y + h);
+                    if (forceEnter || mouseActuallyIn)
                     {
-                        double mouseXRel = mouseX - x;
-                        double mouseYRel = mouseY - y;
-                        Integer target = getTargetComponentUid(childIndex, rootContainer, mouseXRel, mouseYRel);
-                        if (target != null)
+                        Integer found = getTargetComponentUid(childIndex, rootContainer, mouseX - x, mouseY - y);
+                        if (forceEnter && !mouseActuallyIn)
                         {
-                            if (!targetReached_)
+                            if (!found.equals(childIndex))
                             {
-                                mouseXRel_ = mouseXRel;
-                                mouseYRel_ = mouseYRel;
-//
-//                                System.out.println("-DLTEMP- FGMouseEventParser.getTargetComponentUid TGT(1) " + ((Container.ComponentAccessor) component).getComponentPath());
-//
-                                targetReached_ = true;
+                                // Found some popup; otherwise keep looking
+                                return found;
                             }
-                            return target;
+                        }
+                        else
+                        {
+                            return found;
                         }
                     }
                 }
             }
-            if (!targetReached_)
-            {
-                mouseXRel_ = mouseX-x;
-                mouseYRel_ = mouseY-y;
-//
-//                System.out.println("-DLTEMP- FGMouseEventParser.getTargetComponentUid TGT(2) " + ((Container.ComponentAccessor)component).getComponentPath());
-//
-                targetReached_ = true;
-            }
-            return componentUid;
         }
-        else
-        {
-            return null;
-        }
+        mouseXRel_ = mouseX;
+        mouseYRel_ = mouseY;
+        return componentUid;
     }
 
     private static boolean in(double n, double min, double max)

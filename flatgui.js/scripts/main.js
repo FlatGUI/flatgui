@@ -758,7 +758,7 @@ function repaintWholeCache()
     //ci=0;
     paintComponent(paintAllSequence, 1)
     var spentTime = Date.now() - pTime;
-    console.log("painting spentTime=" + spentTime);
+    //console.log("painting spentTime=" + spentTime);
 }
 
 // Note prefetch is implemented for images only.
@@ -883,7 +883,6 @@ function decodeCommandVector(stream, byteLength)
             c = decodeStringPool(stream, c, byteLength, stringPools, false);
             break;
         case RESOURCE_STRING_POOL_MAP_COMMAND_CODE:
-            console.log("Got resource string pool");
             c = decodeStringPool(stream, c, byteLength, resourceStringPools, true);
             break;
         case CLIENT_EVOLVER_MAP_COMMAND_CODE:

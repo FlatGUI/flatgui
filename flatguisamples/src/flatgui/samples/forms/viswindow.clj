@@ -36,14 +36,9 @@
      :background (awt/color 9 17 26)
      :click-happened false
      :evolvers {:click-happened click-happened-evolver}
-     :children {:c1_1 (fg/defcomponent
-                      floatingbar/floatingbar
-                      :c1_1
-                      {:position-matrix (m/translation 0.25 0.25)
-                       :clip-size (m/defpoint 0.5 0.5)
-                       :background (awt/color 26 86 17)
-                       :look bar-look
-                       })}}
+     :children {
+
+                }}
 
     (fg/defcomponent
       floatingbar/floatingbar
@@ -52,6 +47,19 @@
        :clip-size (m/defpoint 2 2)
        :background (awt/color 86 26 17)
        :look bar-look
-       :visible false
-       :evolvers {:visible visible-evolver}
+       :visible true
+       :click-happened false
+       :evolvers {:visible visible-evolver
+                  :click-happened click-happened-evolver}
+       :children {:c1_1 (fg/defcomponent
+                          floatingbar/floatingbar
+                          :c1_1
+                          {:position-matrix (m/translation 0.25 0.25)
+                           :clip-size (m/defpoint 0.5 0.5)
+                           :background (awt/color 26 86 17)
+                           :look bar-look
+                           :popup true
+                           :visible false
+                           :evolvers {:visible visible-evolver}
+                           })}
        })))
