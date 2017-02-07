@@ -15,11 +15,9 @@ import flatgui.core.util.Tuple;
 
 import java.lang.reflect.Array;
 import java.util.*;
-import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  * @author Denis Lebedev
@@ -33,7 +31,6 @@ public class Container
 
     private final List<ComponentAccessor> components_;
     private final Map<List<Object>, Integer> componentPathToIndex_;
-    private final List<Integer> naturalComponentOrder_;
 
     private final List<Node> nodes_;
     private final List<Node> nodesWithAmbiguousDependencies_;
@@ -59,7 +56,6 @@ public class Container
         containerParser_ = containerParser;
         resultCollector_ = resultCollector;
         components_ = new ArrayList<>();
-        naturalComponentOrder_ = new ArrayList<>();
         componentPathToIndex_ = new HashMap<>();
         vacantComponentIndices_ = new HashSet<>();
         vacantNodeIndices_ = new HashSet<>();
@@ -84,7 +80,7 @@ public class Container
 
     public Integer addComponent(List<Object> componentPath, ComponentAccessor component)
     {
-        return addComponent(componentPath, component, false);
+        return addComponentImpl(componentPath, component);
     }
 
     public Integer indexOfPath(List<Object> path)
@@ -190,27 +186,64 @@ public class Container
                     }
                 }
 
-                if (!Objects.equals(oldValue, newValue) || initializedNodes_ != null && !initializedNodes_.contains(nodeIndex))
+                boolean propertyChanged;
+                Set<Object> removedChildIds = null;
+                Set<Object> changedChildIds = null;
+                Set<Object> addedChildIds = null;
+                if (node.isChildrenProperty())
+                {
+                    removedChildIds = new HashSet<>();
+                    changedChildIds = new HashSet<>();
+                    addedChildIds = new HashSet<>();
+
+                    Map<Object, Map<Object, Object>> newValueMap = (Map<Object, Map<Object, Object>>)newValue;
+                    if (newValueMap == null)
+                    {
+                        newValueMap = Collections.emptyMap();
+                    }
+                    newValue = new HashMap<>();
+                    for (Object cid : newValueMap.keySet())
+                    {
+                        // TODO(f) backward compatibility. Non-children maps are there by keys:
+                        // :_flexible-childset-added
+                        // :_flex-target-id-paths-added
+                        if (!cid.toString().contains("_flex"))
+                        {
+                            ((Map<Object, Map<Object, Object>>) newValue).put(cid, newValueMap.get(cid));
+                        }
+                    }
+                    newValue = PersistentHashMap.create((Map)newValue);
+
+                    Map<Object, Map<Object, Object>> children = (Map<Object, Map<Object, Object>>) oldValue;
+                    Map<Object, Map<Object, Object>> oldChildren = children != null ? children : Collections.emptyMap();
+                    Set<Object> allIds = new HashSet<>();
+                    allIds.addAll(oldChildren.keySet());
+                    allIds.addAll(((Map)newValue).keySet());
+                    for (Object id : allIds)
+                    {
+                        if (!oldChildren.containsKey(id))
+                        {
+                            addedChildIds.add(id);
+                        }
+                        else if (!((Map)newValue).containsKey(id))
+                        {
+                            removedChildIds.add(id);
+                        }
+                        else if (!oldChildren.get(id).equals(((Map)newValue).get(id)))
+                        {
+                            changedChildIds.add(id);
+                        }
+                    }
+                    propertyChanged = addedChildIds.size() > 0 || removedChildIds.size() > 0 || changedChildIds.size() > 0;
+                }
+                else
+                {
+                    propertyChanged = !Objects.equals(oldValue, newValue);
+                }
+
+                if (propertyChanged || initializedNodes_ != null && !initializedNodes_.contains(nodeIndex))
                 {
                     log(" Evolved: " + nodeIndex + " " + node.getNodePath() + " for reason: " + valueToString(triggeringReason) + ": " + valueToString(oldValue) + " -> " + valueToString(newValue));
-
-                    if (node.isChildrenProperty())
-                    {
-                        Map<Object, Map<Object, Object>> newValueMap = (Map<Object, Map<Object, Object>>)newValue;
-                        newValue = new HashMap<>();
-                        for (Object cid : newValueMap.keySet())
-                        {
-                            // TODO(f) backward compatibility. Non-children maps are there by keys:
-                            // :_flexible-childset-added
-                            // :_flex-target-id-paths-added
-                            if (!cid.toString().contains("_flex"))
-                            {
-                                ((Map<Object, Map<Object, Object>>) newValue).put(cid, newValueMap.get(cid));
-                            }
-                        }
-                        newValue = PersistentHashMap.create((Map)newValue);
-                    }
-
                     containerMutator_.setValue(nodeIndex, newValue);
 
                     List<Object> componentPath = component.getComponentPath();
@@ -221,28 +254,37 @@ public class Container
                     if (triggeringReason != null && node.isChildrenProperty())
                     {
                         log(" Detected children change");
-                        Map<Object, Map<Object, Object>> children = (Map<Object, Map<Object, Object>>) oldValue;
-                        Map<Object, Map<Object, Object>> oldChildren = children != null ? children : Collections.emptyMap();
                         Map<Object, Map<Object, Object>> newChildren = (Map<Object, Map<Object, Object>>) newValue;
-                        if (newChildren.size() > oldChildren.size())
+
+                        Set<Object> idsToRemove = new HashSet<>(removedChildIds);
+                        idsToRemove.addAll(changedChildIds);
+                        Set<Object> idsToAdd = new HashSet<>(addedChildIds);
+                        idsToAdd.addAll(changedChildIds);
+
+                        log(" Removing " + removedChildIds.size() + " removed and " + changedChildIds.size() + " changed children...");
+                        for (Object id : idsToRemove)
                         {
-                            log(" Adding " + (newChildren.size() - oldChildren.size()) + " new children...");
-                            Set<Object> newChildIds  = newChildren.keySet().stream()
-                                    .filter(childId -> !oldChildren.containsKey(childId)).collect(Collectors.toSet());
-                            Set<Integer> newChildIndices = new HashSet<>(newChildIds.size());
-                            Map<Object, Integer> newChildIdToIndex = new HashMap<>();
-
-                            newChildIds
-                                    .forEach(childId -> {
-                                        Map<Object, Object> child = newChildren.get(childId);
-                                        Integer index = addContainer(node.getComponentUid(), component.getComponentPath(), child);
-                                        addedComponentIds.add(index);
-                                        newChildIndices.add(index);
-                                        newChildIdToIndex.put(childId, index);
-                            });
-
-                            component.addChildIndices(newChildIndices, newChildIdToIndex);
+                            List<Object> childPath = new ArrayList<>(componentPath.size()+1);
+                            childPath.addAll(componentPath);
+                            childPath.add(id);
+                            Integer removedChildIndex = getComponentUid(childPath);
+                            removeComponent(removedChildIndex);
                         }
+
+                        log(" Adding " + changedChildIds.size() + " changed and " + addedChildIds.size() + " added children...");
+                        Set<Integer> newChildIndices = new HashSet<>(idsToAdd.size());
+                        Map<Object, Integer> newChildIdToIndex = new HashMap<>();
+
+                        idsToAdd
+                                .forEach(childId -> {
+                                    Map<Object, Object> child = newChildren.get(childId);
+                                    Integer index = addContainer(node.getComponentUid(), component.getComponentPath(), child);
+                                    addedComponentIds.add(index);
+                                    newChildIndices.add(index);
+                                    newChildIdToIndex.put(childId, index);
+                                });
+
+                        component.addChildIndices(newChildIndices, newChildIdToIndex);
                     }
                     if (node.isChildOrderProperty() && newValue != null)
                     {
@@ -317,11 +359,6 @@ public class Container
         return propertyValueAccessor_;
     }
 
-    public Iterable<Integer> getComponentNaturalOrder()
-    {
-        return naturalComponentOrder_;
-    }
-
     public final Integer getComponentUid(List<Object> componentPath)
     {
         return componentPathToIndex_.get(componentPath);
@@ -365,7 +402,7 @@ public class Container
 
     // Private
 
-    private Integer addComponent(List<Object> componentPath, ComponentAccessor component, boolean needToResolveNaturalOrder)
+    private Integer addComponentImpl(List<Object> componentPath, ComponentAccessor component)
     {
         Integer index;
         if (vacantComponentIndices_.isEmpty())
@@ -381,18 +418,47 @@ public class Container
         }
         componentPathToIndex_.put(componentPath, index);
 
-        if (needToResolveNaturalOrder)
-        {
-            // TODO
-        }
-        else
-        {
-            naturalComponentOrder_.add(index);
-        }
-
         resultCollector_.componentAdded(index);
 
         return index;
+    }
+
+    private void removeComponent(Integer componentUid)
+    {
+        if (componentUid.intValue() >= components_.size())
+        {
+            throw new IllegalArgumentException("Component does not exist: " + componentUid);
+        }
+        ComponentAccessor c = components_.get(componentUid.intValue());
+        if (c == null)
+        {
+            throw new IllegalArgumentException("Component already removed: " + componentUid);
+        }
+
+        Collection<Integer> propertyIndices = c.getPropertyIndices();
+        propertyIndices.forEach(i -> {
+            vacantNodeIndices_.add(i);
+            Node node = nodes_.set(i.intValue(), null);
+            nodesWithAmbiguousDependencies_.remove(node);//TODO there should be indices, not nodes
+            values_.set(i.intValue(), null);
+            pathToIndex_.remove(node.getNodePath());
+            if (initializedNodes_ != null)
+            {
+                initializedNodes_.remove(i);
+            }
+        });
+
+        components_.set(componentUid.intValue(), null);
+        componentPathToIndex_.remove(c.getComponentPath());
+
+        vacantComponentIndices_.add(componentUid);
+        resultCollector_.componentRemoved(componentUid);
+
+        List<Integer> children = c.getChildIndices();
+        if (children != null)
+        {
+            children.forEach(this::removeComponent);
+        }
     }
 
     private Integer addContainer(Integer parentComponentUid, List<Object> pathToContainer, Map<Object, Object> container)

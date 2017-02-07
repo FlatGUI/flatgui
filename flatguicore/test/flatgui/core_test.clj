@@ -484,3 +484,133 @@
         _ (.evolve container-engine [:main] {:do :children})
         _ (.evolve container-engine [:main :c3] {:do :a})]
     (test/is (= (+ 5 6 7 1) (get @results :res)))))
+
+(test/deftest chanhge-remove-children-test
+  (let [_ (core/defevolverfn evolver-res :res (if (and (vector? (get-reason)) (= (count (get-reason)) 2))
+                                                (let [c-id (second (get-reason))]
+                                                  (assoc old-res c-id (get-property [:this c-id] :a)))
+                                                old-res))
+        _ (core/defevolverfn :children (if (and (map? (get-reason)) (= :children (:do (get-reason))))
+                                         (let [c1 (:c1 old-children)
+                                               cmd (:cmd (get-reason))]
+                                           (cond
+                                             (= :add cmd)
+                                             (assoc
+                                               old-children
+                                               :c2 (assoc c1 :id :c2 :a "c2_1")
+                                               :c3 (assoc c1 :id :c3 :a "c3_1"))
+                                             (= :change cmd)
+                                             (assoc-in old-children [:c2 :a] "c2_2")
+                                             :else
+                                             (dissoc old-children :c3)))
+                                         old-children))
+        container (core/defroot
+                    {:id :main
+                     :src 1
+                     :res {}
+                     :x 11
+                     :y 22
+                     :evolvers {:res evolver-res
+                                :children children-evolver}
+                     :children {:c1 {:id :c1
+                                     :a "c1_1"}}})
+        results (atom {})
+        removed-res (atom #{})
+        result-collector (proxy [IResultCollector] []
+                           (appendResult [_parentComponentUid, _path, node, newValue]
+                             (swap! results (fn [r] (assoc r (.getPropertyId node) newValue)))
+                             )
+                           (componentAdded [_componentUid])
+                           (componentRemoved [componentUid] (swap! removed-res (fn [r] (conj r componentUid))))
+                           (postProcessAfterEvolveCycle [_a _m]))
+        container-engine (Container.
+                           (ClojureContainerParser.)
+                           result-collector
+                           container)
+        _ (.evolve container-engine [:main] {:do :children :cmd :add})
+        _ (.evolve container-engine [:main] {:do :children :cmd :change})
+        _ (.evolve container-engine [:main] {:do :children})]
+    (test/is (= {:c1 "c1_1" :c2 "c2_2" :c3 "c3_1"} (get @results :res)))
+    (test/is (= 2 (count (get @results :children))))
+    (test/is (= 2 (count @removed-res)))))
+
+(test/deftest chanhge-remove-children-test
+  (let [_ (core/defevolverfn evolver-res :res (if (and (vector? (get-reason)) (= (count (get-reason)) 2))
+                                                (let [c-id (second (get-reason))]
+                                                  (assoc old-res c-id (get-property [:this c-id] :a)))
+                                                old-res))
+        _ (core/defevolverfn :children (if (and (map? (get-reason)) (= :children (:do (get-reason))))
+                                         (let [c1 (:c1 old-children)
+                                               cmd (:cmd (get-reason))]
+                                           (cond
+                                             (= :add cmd)
+                                             (assoc
+                                               old-children
+                                               :c2 (assoc c1 :id :c2 :a "c2_1")
+                                               :c3 (assoc c1 :id :c3 :a "c3_1"))
+                                             (= :change cmd)
+                                             (assoc-in old-children [:c2 :a] "c2_2")
+                                             :else
+                                             (dissoc old-children :c3)))
+                                         old-children))
+        container (core/defroot
+                    {:id :main
+                     :src 1
+                     :res {}
+                     :x 11
+                     :y 22
+                     :evolvers {:res evolver-res
+                                :children children-evolver}
+                     :children {:c1 {:id :c1
+                                     :a "c1_1"}}})
+        results (atom {})
+        removed-res (atom #{})
+        result-collector (proxy [IResultCollector] []
+                           (appendResult [_parentComponentUid, _path, node, newValue]
+                             (swap! results (fn [r] (assoc r (.getPropertyId node) newValue)))
+                             )
+                           (componentAdded [_componentUid])
+                           (componentRemoved [componentUid] (swap! removed-res (fn [r] (conj r componentUid))))
+                           (postProcessAfterEvolveCycle [_a _m]))
+        container-engine (Container.
+                           (ClojureContainerParser.)
+                           result-collector
+                           container)
+        _ (.evolve container-engine [:main] {:do :children :cmd :add})
+        _ (.evolve container-engine [:main] {:do :children :cmd :change})
+        _ (.evolve container-engine [:main] {:do :children})]
+    (test/is (= {:c1 "c1_1" :c2 "c2_2" :c3 "c3_1"} (get @results :res)))
+    (test/is (= 2 (count (get @results :children))))
+    (test/is (= 2 (count @removed-res)))))
+
+(test/deftest add-remove-with-children-test
+  (let [c1-prototype {:id :c1
+                      :children {:c1_1 {:id :c1_1}
+                                 :c1_2 {:id :c1_2}}}
+        _ (core/defevolverfn :children (if (and (map? (get-reason)) (= :children (:do (get-reason))))
+                                         (let [cmd (:cmd (get-reason))]
+                                           (cond
+                                             (= :add cmd)
+                                             (assoc old-children :c1 c1-prototype)
+                                             :else
+                                             (dissoc old-children :c1)))
+                                         old-children))
+        container (core/defroot
+                    {:id :main
+                     :evolvers {:children children-evolver}
+                     :children {:c1 c1-prototype}})
+        added-res (atom {0 0 1 0 2 0 3 0})
+        removed-res (atom {0 0 1 0 2 0 3 0})
+        result-collector (proxy [IResultCollector] []
+                           (appendResult [_parentComponentUid, _path, _node, _newValue])
+                           (componentAdded [componentUid] (swap! added-res (fn [r] (assoc r componentUid (inc (get r componentUid))))))
+                           (componentRemoved [componentUid] (swap! removed-res (fn [r] (assoc r componentUid (inc (get r componentUid))))))
+                           (postProcessAfterEvolveCycle [_a _m]))
+        container-engine (Container.
+                           (ClojureContainerParser.)
+                           result-collector
+                           container)
+        _ (.evolve container-engine [:main] {:do :children})
+        _ (.evolve container-engine [:main] {:do :children :cmd :add})]
+    (test/is (= {0 0 1 1 2 1 3 1} @removed-res))
+    (test/is (= {0 1 1 2 2 2 3 2} @added-res))))

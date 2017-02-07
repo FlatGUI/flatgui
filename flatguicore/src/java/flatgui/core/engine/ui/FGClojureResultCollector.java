@@ -59,6 +59,9 @@ public class FGClojureResultCollector implements IResultCollector
     public void componentRemoved(Integer componentUid)
     {
         lookVectors_.set(componentUid.intValue(), null);
+        parentToVisiblePopupChildCount_.remove(componentUid);
+        changedComponents_.remove(componentUid);
+        changedComponentsForRemote_.remove(componentUid);
     }
 
     @Override
