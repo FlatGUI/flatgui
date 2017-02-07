@@ -53,10 +53,10 @@
                                                 :d evolver-c2-d}}}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [_parentComponentUid, path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, path, node, newValue]
                              (swap! results (fn [r]
-                                              (if (not (or (= :children property) (= :evolvers property)))
-                                                (assoc r [path property] newValue)
+                                              (if (not (or (= :children (.getPropertyId node)) (= :evolvers (.getPropertyId node))))
+                                                (assoc r [path (.getPropertyId node)] newValue)
                                                 r)))
                              )
                            (componentAdded [_componentUid])
@@ -90,10 +90,10 @@
                                      :evolvers {:z-position z-position-evolver}}}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [_parentComponentUid, path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, path, node, newValue]
                              (swap! results (fn [r]
-                                              (if (not (or (= :children property) (= :evolvers property)))
-                                                (assoc r [path property] newValue)
+                                              (if (not (or (= :children (.getPropertyId node)) (= :evolvers (.getPropertyId node))))
+                                                (assoc r [path (.getPropertyId node)] newValue)
                                                 r)))
                              )
                            (componentAdded [_componentUid])
@@ -121,10 +121,10 @@
                                      :evolvers {:b evolver-c2-b}}}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [_parentComponentUid, _path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, _path, node, newValue]
                              (swap! results (fn [r]
-                                              (if (not (or (= :children property) (= :evolvers property)))
-                                                (assoc r property newValue)
+                                              (if (not (or (= :children (.getPropertyId node)) (= :evolvers (.getPropertyId node))))
+                                                (assoc r (.getPropertyId node) newValue)
                                                 r)))
                              )
                            (componentAdded [_componentUid])
@@ -166,10 +166,10 @@
                                      :evolvers {:a evolver-a}}}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [_parentComponentUid, path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, path, node, newValue]
                              (swap! results (fn [r]
-                                              (if (not (or (= :children property) (= :evolvers property)))
-                                                (assoc r [path property] newValue)
+                                              (if (not (or (= :children (.getPropertyId node)) (= :evolvers (.getPropertyId node))))
+                                                (assoc r [path (.getPropertyId node)] newValue)
                                                 r)))
                              )
                            (componentAdded [_componentUid])
@@ -216,10 +216,10 @@
                                      :c2 200}}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [_parentComponentUid, _path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, _path, node, newValue]
                              (swap! results (fn [r]
-                                              (if (not (or (= :children property) (= :evolvers property)))
-                                                (assoc r property newValue)
+                                              (if (not (or (= :children (.getPropertyId node)) (= :evolvers (.getPropertyId node))))
+                                                (assoc r (.getPropertyId node) newValue)
                                                 r)))
                              )
                            (componentAdded [_componentUid])
@@ -242,10 +242,10 @@
                      :evolvers {:a a-evolver}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [_parentComponentUid, path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, path, node, newValue]
                              (swap! results (fn [r]
-                                              (if (not (or (= :children property) (= :evolvers property)))
-                                                (assoc r [path property] newValue)
+                                              (if (not (or (= :children (.getPropertyId node)) (= :evolvers (.getPropertyId node))))
+                                                (assoc r [path (.getPropertyId node)] newValue)
                                                 r)))
                              )
                            (componentAdded [_componentUid])
@@ -273,10 +273,10 @@
                      :evolvers {:a a-evolver}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [_parentComponentUid, path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, path, node, newValue]
                              (swap! results (fn [r]
-                                              (if (not (or (= :children property) (= :evolvers property)))
-                                                (assoc r [path property] newValue)
+                                              (if (not (or (= :children (.getPropertyId node)) (= :evolvers (.getPropertyId node))))
+                                                (assoc r [path (.getPropertyId node)] newValue)
                                                 r)))
                              )
                            (componentAdded [_componentUid])
@@ -381,10 +381,10 @@
                                      :a 5}}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [_parentComponentUid, _path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, _path, node, newValue]
                              (swap! results (fn [r]
-                                              (if (not (or (= :children property) (= :evolvers property)))
-                                                (assoc r property newValue)
+                                              (if (not (or (= :children (.getPropertyId node)) (= :evolvers (.getPropertyId node))))
+                                                (assoc r (.getPropertyId node) newValue)
                                                 r)))
                              )
                            (componentAdded [_componentUid])
@@ -423,10 +423,10 @@
                                      :a 5}}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [_parentComponentUid, _path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, _path, node, newValue]
                              (swap! results (fn [r]
-                                              (if (not (or (= :children property) (= :evolvers property)))
-                                                (assoc r property newValue)
+                                              (if (not (or (= :children (.getPropertyId node)) (= :evolvers (.getPropertyId node))))
+                                                (assoc r (.getPropertyId node) newValue)
                                                 r)))
                              )
                            (componentAdded [_componentUid])
@@ -469,10 +469,10 @@
                                      :evolvers {:a a-evolver}}}})
         results (atom {})
         result-collector (proxy [IResultCollector] []
-                           (appendResult [_parentComponentUid, _path, _componentUid, property, newValue]
+                           (appendResult [_parentComponentUid, _path, node, newValue]
                              (swap! results (fn [r]
-                                              (if (not (or (= :children property) (= :evolvers property)))
-                                                (assoc r property newValue)
+                                              (if (not (or (= :children (.getPropertyId node)) (= :evolvers (.getPropertyId node))))
+                                                (assoc r (.getPropertyId node) newValue)
                                                 r)))
                              )
                            (componentAdded [_componentUid])
