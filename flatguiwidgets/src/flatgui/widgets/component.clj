@@ -89,22 +89,24 @@ flatgui.widgets.component
     (fn [ch] {ch (list p)})
     (dep/get-input-channel-dependencies (p evolvers))))
 
-(fg/defevolverfn :input-channel-subscribers
-  (let [id (:id component)
-        channel-to-properties (let [evolvers (:evolvers component)
-                                    all-properties (for [[k _v] evolvers] k)]
-                                (apply
-                                  merge-with
-                                  concat
-                                  (mapcat (fn [p] (get-channel-to-propery-map-list p evolvers)) all-properties)))]
-    (concat
-      (list [[id] channel-to-properties])
-      (let [child-ids (for [[k _] (get-property [:this] :children)] k)]
-        (map
-          (fn [[child-id-path child-ch-to-props]] [(vec (concat [id] child-id-path)) child-ch-to-props])
-          (mapcat
-            (fn [k] (get-property [:this k] :input-channel-subscribers))
-            child-ids))))))
+;; TODO worked wrond when removing componentes feature has been added; probably this is not needed at all
+;(fg/defevolverfn :input-channel-subscribers
+;  (let [id (:id component)
+;        channel-to-properties (let [evolvers (:evolvers component)
+;                                    all-properties (for [[k _v] evolvers] k)]
+;                                (apply
+;                                  merge-with
+;                                  concat
+;                                  (mapcat (fn [p] (get-channel-to-propery-map-list p evolvers)) all-properties)))]
+;    (concat
+;      (list [[id] channel-to-properties])
+;      (let [child-ids (for [[k _] (get-property [:this] :children)] k)]
+;        (map
+;          (fn [[child-id-path child-ch-to-props]] [(vec (concat [id] child-id-path)) child-ch-to-props])
+;          (mapcat
+;            (fn [k] (get-property [:this k] :input-channel-subscribers))
+;            child-ids))))))
+(fg/defevolverfn :input-channel-subscribers old-input-channel-subscribers)
 
 (defn- default-properties-to-evolve-provider [container target-cell-ids reason]
   (fn [component]

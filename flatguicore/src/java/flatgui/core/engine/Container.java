@@ -186,7 +186,7 @@ public class Container
                     }
                 }
 
-                boolean propertyChanged;
+                boolean changeDetected = initializedNodes_ != null && !initializedNodes_.contains(nodeIndex);
                 Set<Object> removedChildIds = null;
                 Set<Object> changedChildIds = null;
                 Set<Object> addedChildIds = null;
@@ -234,14 +234,27 @@ public class Container
                             changedChildIds.add(id);
                         }
                     }
-                    propertyChanged = addedChildIds.size() > 0 || removedChildIds.size() > 0 || changedChildIds.size() > 0;
+                    if (!changeDetected)
+                    {
+                        changeDetected = addedChildIds.size() > 0 || removedChildIds.size() > 0 || changedChildIds.size() > 0;
+                    }
                 }
                 else
                 {
-                    propertyChanged = !Objects.equals(oldValue, newValue);
+                    try
+                    {
+                        if (!changeDetected)
+                        {
+                            changeDetected = !Objects.equals(oldValue, newValue);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ex;
+                    }
                 }
 
-                if (propertyChanged || initializedNodes_ != null && !initializedNodes_.contains(nodeIndex))
+                if (changeDetected)
                 {
                     log(" Evolved: " + nodeIndex + " " + node.getNodePath() + " for reason: " + valueToString(triggeringReason) + ": " + valueToString(oldValue) + " -> " + valueToString(newValue));
                     containerMutator_.setValue(nodeIndex, newValue);
@@ -442,6 +455,7 @@ public class Container
             nodesWithAmbiguousDependencies_.remove(node);//TODO there should be indices, not nodes
             values_.set(i.intValue(), null);
             pathToIndex_.remove(node.getNodePath());
+            unMarkNodeAsDependent(node, node.getDependencyIndices());
             if (initializedNodes_ != null)
             {
                 initializedNodes_.remove(i);
@@ -559,6 +573,12 @@ public class Container
     {
         dependencies
             .forEach(dependencyTuple -> nodes_.get(dependencyTuple.getFirst()).addDependent(n.getNodeIndex(), n.getNodePath(), dependencyTuple.getSecond()));
+    }
+
+    private void unMarkNodeAsDependent(Container.Node n, Collection<Tuple> dependencies)
+    {
+        dependencies
+                .forEach(dependencyTuple -> nodes_.get(dependencyTuple.getFirst()).removeDependent(n.getNodeIndex()));
     }
 
     private void finishContainerIndexing()
@@ -1316,6 +1336,11 @@ public class Container
 
             log(nodeUid_ + " " + nodePath_ + " added dependent: " + nodeIndex + " " + nodeAbsPath + " referenced as " + relPath + " actual ref " + actualRef);
             dependentIndexToRelPath_.put(nodeIndex, actualRef);
+        }
+
+        public void removeDependent(Integer nodeIndex)
+        {
+            dependentIndexToRelPath_.remove(nodeIndex);
         }
 
         public Object getEvolverCode()

@@ -614,3 +614,47 @@
         _ (.evolve container-engine [:main] {:do :children :cmd :add})]
     (test/is (= {0 0 1 1 2 1 3 1} @removed-res))
     (test/is (= {0 1 1 2 2 2 3 2} @added-res))))
+
+(test/deftest remove-add-dependent-test
+  (let [_ (core/defevolverfn :a (if (= (get-reason) []) (get-property [] :res) old-a))
+        c1-prototype {:id :c1
+                      :a 0
+                      :evolvers {:a a-evolver}}
+        _ (core/defevolverfn evolver-res :res (if (= (get-reason) :res)
+                                                (inc old-res)
+                                                old-res))
+        _ (core/defevolverfn :children (if (and (map? (get-reason)) (= :children (:do (get-reason))))
+                                         (let [cmd (:cmd (get-reason))]
+                                           (cond
+                                             (= :add cmd)
+                                             (assoc old-children :c1 c1-prototype)
+                                             :else
+                                             (dissoc old-children :c1)))
+                                         old-children))
+        container (core/defroot
+                    {:id :main
+                     :res 0
+                     :evolvers {:res evolver-res
+                                :children children-evolver}
+                     :children {:c1 c1-prototype}})
+        results (atom #{})
+        result-collector (proxy [IResultCollector] []
+                           (appendResult [_parentComponentUid, _path, node, newValue]
+                             (swap! results (fn [r]
+                                              (if (= :a (.getPropertyId node))
+                                                (conj r newValue)
+                                                r))))
+                           (componentAdded [_componentUid])
+                           (componentRemoved [_componentUid])
+                           (postProcessAfterEvolveCycle [_a _m]))
+        container-engine (Container.
+                           (ClojureContainerParser.)
+                           result-collector
+                           container)
+        _ (.evolve container-engine [:main] :res)                       ; :res and :c1 :a become 1
+        _ (.evolve container-engine [:main] {:do :children})            ; :c1 is removed
+        _ (.evolve container-engine [:main] :res)                       ; :res is evolved with no dependents and becomes 2
+        _ (.evolve container-engine [:main] {:do :children :cmd :add})  ; fresh :c1 is added
+        _ (.evolve container-engine [:main] :res)                       ; :res and :c1 :a become 3
+        ]
+    (test/is (= #{0 1 3} @results))))
