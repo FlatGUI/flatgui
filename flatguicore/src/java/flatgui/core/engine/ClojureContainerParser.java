@@ -302,15 +302,21 @@ public class ClojureContainerParser implements Container.IContainerParser
 
         void link(List<Object> accessedPropertyRelPath, Object accessedProperty)
         {
-            // TODO
-            // what if path is statically determined but index is not resolved because referred component is not added yet
-            // and is going be added by pending :children evolver
-
             List<Object> accessedPropertyAbsPath = buildAbsPath(evolvedComponentPath_, accessedPropertyRelPath);
             accessedPropertyAbsPath.add(accessedProperty);
             accessedPropertyIndex_ = indexProvider_.apply(accessedPropertyAbsPath);
             Container.log(evolvedComponentPath_ + " linked " + accessedPropertyAbsPath + " -> " + accessedPropertyIndex_ + " Delegate: " + this);
-            linked_ = true;
+            if (accessedPropertyIndex_ != null)
+            {
+                // accessedPropertyIndex_ may not be resolved if referenced component does not exist. Referenced component
+                // may be added later so keeping linked_ == false allows giving it another try
+                linked_ = true;
+            }
+        }
+
+        void unlink()
+        {
+            linked_ = false;
         }
     }
 
@@ -325,6 +331,8 @@ public class ClojureContainerParser implements Container.IContainerParser
         private HashMap<Integer, Map<List<Object>, GetPropertyDelegate>> delegateByIdAndPathMap_;
         private HashMap<Integer, Map<Keyword, GetPropertyDelegate>> delegateByIdAndPropertyMap_;
         private HashMap<Integer, Map<List<Object>, Map<Keyword, GetPropertyDelegate>>> delegateByIdPathAndPropertyMap_;
+
+        private final Set<GetPropertyDelegate> allDelegates_;
 
         private final IFn evolverFn_;
         private final List<Object> evolvedComponentPath_;
@@ -341,6 +349,8 @@ public class ClojureContainerParser implements Container.IContainerParser
             delegateByIdAndPathMap_ = new HashMap<>();
             delegateByIdAndPropertyMap_ = new HashMap<>();
             delegateByIdPathAndPropertyMap_ = new HashMap<>();
+
+            allDelegates_ = new HashSet<>();
         }
 
         @Override
@@ -418,9 +428,16 @@ public class ClojureContainerParser implements Container.IContainerParser
             return delegate;
         }
 
+        void unlinkAllDelegates()
+        {
+            allDelegates_.forEach(d -> d.unlink());
+        }
+
         private GetPropertyDelegate createDelegate()
         {
-            return new GetPropertyDelegate(evolvedComponentPath_, indexProvider_, propertyValueAccessor_);
+            GetPropertyDelegate delegate = new GetPropertyDelegate(evolvedComponentPath_, indexProvider_, propertyValueAccessor_);
+            allDelegates_.add(delegate);
+            return delegate;
         }
     }
 }

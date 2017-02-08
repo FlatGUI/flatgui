@@ -658,3 +658,54 @@
         _ (.evolve container-engine [:main] :res)                       ; :res and :c1 :a become 3
         ]
     (test/is (= #{0 1 3} @results))))
+
+(test/deftest remove-dependency-test
+  (let [_ (core/defevolverfn :a (if (map? (get-reason))
+                                  (:a (get-reason))
+                                  old-a))
+        c1-prototype {:id :c1
+                      :a 0
+                      :evolvers {:a a-evolver}}
+        _ (core/defevolverfn evolver-res :res (get-property [:this :c1] :a))
+        ambiguous-child-id :c1
+        _ (core/defevolverfn evolver-res1 :res1 (get-property [:this ambiguous-child-id] :a))
+        _ (core/defevolverfn :children (if (and (map? (get-reason)) (= :children (:do (get-reason))))
+                                         (let [cmd (:cmd (get-reason))]
+                                           (cond
+                                             (= :add cmd)
+                                             (assoc old-children :c1 c1-prototype)
+                                             :else
+                                             (dissoc old-children :c1)))
+                                         old-children))
+        container (core/defroot
+                    {:id :main
+                     :res 0
+                     :res1 0
+                     :evolvers {:res evolver-res
+                                :res1 evolver-res1
+                                :children children-evolver}
+                     :children {:c1 c1-prototype}})
+        results (atom #{})
+        results1 (atom #{})
+        result-collector (proxy [IResultCollector] []
+                           (appendResult [_parentComponentUid, _path, node, newValue]
+                             (cond
+                               (= :res (.getPropertyId node))
+                               (swap! results (fn [r] (conj r newValue)))
+                               (= :res1 (.getPropertyId node))
+                               (swap! results1 (fn [r] (conj r newValue)))))
+                           (componentAdded [_componentUid])
+                           (componentRemoved [_componentUid])
+                           (postProcessAfterEvolveCycle [_a _m]))
+        container-engine (Container.
+                           (ClojureContainerParser.)
+                           result-collector
+                           container)
+        _ (.evolve container-engine [:main :c1] {:a 1})                 ; :res, :res1 and :c1 :a become 1
+        _ (.evolve container-engine [:main] {:do :children})            ; :c1 is removed
+        _ (.evolve container-engine [:main] {})                         ; :res, :res1 are evolved, their dependenies obtain nil
+        _ (.evolve container-engine [:main] {:do :children :cmd :add})  ; fresh :c1 is added
+        _ (.evolve container-engine [:main :c1] {:a 2})                 ; :c1 :a become 2; :res does not depend on :c1 any more but :res1 does again and also becomes 2
+        ]
+    (test/is (= #{0 nil 1} @results))
+    (test/is (= #{0 nil 1 2} @results1))))

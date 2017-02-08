@@ -456,6 +456,14 @@ public class Container
             values_.set(i.intValue(), null);
             pathToIndex_.remove(node.getNodePath());
             unMarkNodeAsDependent(node, node.getDependencyIndices());
+            for (Integer dependentIndex : node.getDependentIndices().keySet())
+            {
+                Node dependentNode = nodes_.get(dependentIndex.intValue());
+                if (dependentNode != null)
+                {
+                    dependentNode.forgetDependency(i);
+                }
+            }
             if (initializedNodes_ != null)
             {
                 initializedNodes_.remove(i);
@@ -578,7 +586,14 @@ public class Container
     private void unMarkNodeAsDependent(Container.Node n, Collection<Tuple> dependencies)
     {
         dependencies
-                .forEach(dependencyTuple -> nodes_.get(dependencyTuple.getFirst()).removeDependent(n.getNodeIndex()));
+                .forEach(dependencyTuple -> {
+                    // May be null - if node belonged to the component being removed
+                    Node dn = nodes_.get(dependencyTuple.getFirst());
+                    if (dn != null)
+                    {
+                        dn.removeDependent(n.getNodeIndex());
+                    }
+                });
     }
 
     private void finishContainerIndexing()
@@ -1356,6 +1371,12 @@ public class Container
         public void setEvolver(Function<Map<Object, Object>, Object> evolver)
         {
             evolver_ = evolver;
+        }
+
+        void forgetDependency(Integer nodeIndex)
+        {
+            dependencyIndices_.remove(nodeIndex);
+            ((ClojureContainerParser.EvolverWrapper)evolver_).unlinkAllDelegates();
         }
     }
 }
