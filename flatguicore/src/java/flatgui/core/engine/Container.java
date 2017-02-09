@@ -46,6 +46,7 @@ public class Container
     private Node[] reusableNodeBuffer_;
     private Object[] reusableReasonBuffer_;
     private int indexBufferSize_;
+    private int currentCycleBufIndex_;
 
     private Set<Integer> initializedNodes_;
 
@@ -134,11 +135,17 @@ public class Container
         }
 
         Set<Integer> addedComponentIds = new HashSet<>();
-        int currentIndex = 0;
-        while (currentIndex < indexBufferSize_)
+        currentCycleBufIndex_ = 0;
+        while (currentCycleBufIndex_ < indexBufferSize_)
         {
-            Node node = reusableNodeBuffer_[currentIndex];
-            Object triggeringReason = reusableReasonBuffer_[currentIndex];
+            Node node = reusableNodeBuffer_[currentCycleBufIndex_];
+            if (node == null)
+            {
+                // Component (with all its nodes) has been removed during this cycle, and its node have been
+                // removed from reusable buffer to prevent inconsistent calculations
+                continue;
+            }
+            Object triggeringReason = reusableReasonBuffer_[currentCycleBufIndex_];
             int nodeIndex = node.getNodeIndex().intValue();
             Function<Map<Object, Object>, Object> evolver = node.getEvolver();
 
@@ -325,7 +332,7 @@ public class Container
                 }
             }
 
-            currentIndex++;
+            currentCycleBufIndex_++;
         }
 
         resultCollector_.postProcessAfterEvolveCycle(containerAccessor_, containerMutator_);
@@ -467,6 +474,13 @@ public class Container
             if (initializedNodes_ != null)
             {
                 initializedNodes_.remove(i);
+            }
+            for (int r=currentCycleBufIndex_; r < indexBufferSize_; r++)
+            {
+                if (reusableNodeBuffer_[r] == node)
+                {
+                    reusableNodeBuffer_[r] = null;
+                }
             }
         });
 
