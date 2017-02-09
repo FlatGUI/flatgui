@@ -49,12 +49,13 @@ public abstract class AbstractHostComponent extends Canvas
         setFocusable(true);
 
         Consumer<Object> eventConsumer = this::acceptEvolveReason;
+        ActionListener resizeProcessor = e -> resetPendingImage();
 
         addMouseListener(new ContainerMouseListener(eventConsumer));
         addMouseMotionListener(new ContainerMouseMotionListener(eventConsumer));
         addMouseWheelListener(new ContainerMouseWheelListener(eventConsumer));
         addKeyListener(new ContainerKeyListener(eventConsumer));
-        //addComponentListener(new ContainerComponentListener(eventConsumer));
+        addComponentListener(new ContainerComponentListener(eventConsumer, resizeProcessor));
         setupBlinkHelperTimer(eventConsumer);
     }
 
@@ -136,16 +137,21 @@ public abstract class AbstractHostComponent extends Canvas
 
     Image getPendingImage()
     {
+        if (bufferImage_ == null)
+        {
+            bufferImage_ = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
+        }
         return bufferImage_;
     }
 
     private Graphics getBufferGraphics()
     {
-        if (bufferImage_ == null)
-        {
-            bufferImage_ = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
-        }
-        return bufferImage_.getGraphics();
+        return getPendingImage().getGraphics();
+    }
+
+    private void resetPendingImage()
+    {
+        bufferImage_ = null;
     }
 
     protected abstract void acceptEvolveReason(Object evolveReason);
@@ -231,11 +237,19 @@ public abstract class AbstractHostComponent extends Canvas
 
     private static class ContainerComponentListener extends ContainerListener implements ComponentListener
     {
-        ContainerComponentListener(Consumer<Object> eventConsumer)
-        {super(eventConsumer);}
+        private final ActionListener resizeProcessor_;
+
+        ContainerComponentListener(Consumer<Object> eventConsumer, ActionListener resizeProcessor)
+        {
+            super(eventConsumer);
+            resizeProcessor_ = resizeProcessor;
+        }
         @Override
         public void componentResized(ComponentEvent e)
-        {eventImpl(parseResizeEvent(e));}
+        {
+            resizeProcessor_.actionPerformed(null);
+            eventImpl(parseResizeEvent(e));
+        }
         @Override
         public void componentMoved(ComponentEvent e) {}
         @Override
