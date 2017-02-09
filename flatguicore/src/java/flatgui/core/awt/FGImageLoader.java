@@ -11,9 +11,14 @@
 package flatgui.core.awt;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.awt.*;
+import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Iterator;
 
 /**
  * @author Denis Lebedev
@@ -33,5 +38,44 @@ public class FGImageLoader implements IFGImageLoader
         {
             return ImageIO.read(new URL(url));
         }
+    }
+
+    public static Dimension getImageSize(String url)
+    {
+        if (url == null)
+        {
+            return null;
+        }
+
+        try (ImageInputStream is = ImageIO.createImageInputStream(new File(new URL(url).toURI())))
+        {
+            final Iterator<ImageReader> readers = ImageIO.getImageReaders(is);
+            if (readers.hasNext())
+            {
+                ImageReader reader = readers.next();
+                try
+                {
+                    reader.setInput(is);
+                    return new Dimension(reader.getWidth(0), reader.getHeight(0));
+                }
+                catch (Exception ex)
+                {
+                    ex.printStackTrace();
+                }
+                finally
+                {
+                    reader.dispose();
+                }
+            }
+        }
+        catch (IOException ex)
+        {
+            ex.printStackTrace();
+        }
+        catch (URISyntaxException e)
+        {
+            e.printStackTrace();
+        }
+        return null;
     }
 }
