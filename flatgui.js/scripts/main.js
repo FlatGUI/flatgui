@@ -45,28 +45,116 @@ var currentClip = {x: 0, y: 0, w: Infinity, h: Infinity};
 var clipRectStack = [];
 var currentFont;
 
+/*
+ * Per-component data
+ */
+// TODO track removed components
+var positions = [];
+var viewports = [];
+var clipSizes = [];
+var lookVectors = [];
+var childCounts = [];
+var booleanStateFlags = [];
+var stringPools = [];
+var resourceStringPools = [];
+var clientEvolvers = [];
+var indicesWithClientEvolvers = [];
+
+var paintAllSequence;
+
+var absPositions = [];
+/***/
 
 /*
  * Image cache
  */
+var componentIndexToUriWH = {}
+var uriWHToImage = {}
+/***/
 
-var uriToImage = {}
+//function resizeImage(img, w, h)
+//{
+//    var tmpCanvas=document.createElement("canvas");
+//    tmpCanvas.width=w;
+//    tmpCanvas.height=h;
+//    var tmpCtx=tmpCanvas.getContext("2d");
+//    tmpCtx.drawImage(img, 0, 0, w, h);
+//    try
+//    {
+//        var resizedDataUrl = tmpCanvas.toDataURL();
+//        img.src = resizedDataUrl;
+//    }
+//    catch(e)
+//    {
+//        console.log("Cannot resize " + img.src);
+//        console.log(e);
+//    }
+//}
 
-function getImage(uri)
+function getImage(index, uri)
 {
-    var img = uriToImage[uri];
+//    var w;
+//    var h;
+//    if (clipSizes[index])
+//    {
+//        w = clipSizes[index].w; h = clipSizes[index].h;
+//    }
+//    else
+//    {
+//        throw new Error("Unknown clipSize for component " + index);
+//    }
+//    var whCode = ""+w+"_"+h;
+//    var requestedUriWH = uri+whCode;
+    var requestedUriWH = uri;
+    var existingUriWHForIndex = componentIndexToUriWH[index];
+    //console.log("For " + index + " requested " + requestedUriWH);
+
+    if (requestedUriWH != existingUriWHForIndex)
+    {
+        if (existingUriWHForIndex)
+        {
+            var usedByOtherObjects = false;
+            for (var key in componentIndexToUriWH)
+            {
+                if (componentIndexToUriWH.hasOwnProperty(key) && key != index && componentIndexToUriWH[key] == existingUriWHForIndex)
+                {
+                    usedByOtherObjects = true;
+                    break;
+                }
+            }
+            if (!usedByOtherObjects)
+            {
+                console.log("For " + index + " deleting previous " + existingUriWHForIndex + " since it is not used by any other component");
+                delete uriWHToImage[existingUriWHForIndex];
+            }
+        }
+        componentIndexToUriWH[index] = requestedUriWH;
+    }
+
+    var img = uriWHToImage[requestedUriWH];
     if (img)
     {
+        //console.log("For " + index + " found cached image for key " + requestedUriWH);
         return img;
     }
     else
     {
+        //console.log("For " + index + " started loading image for key " + requestedUriWH);
         try
         {
             img = new Image;
+            //img.crossOrigin="anonymous";
             img.src = uri;
-            img.onload = function(){repaintWholeCache();}
-            uriToImage[uri] = img;
+            img.onload = function()
+            {
+                //console.log("Loaded " + uri + " " + img.width + " " + img.height);
+//                if (img.width > w || img.height > h)
+//                {
+//                    resizeImage(img, w, h);
+//                }
+                repaintWholeCache();
+            }
+            uriWHToImage[requestedUriWH] = img;
         }
         catch (e)
         {
@@ -74,6 +162,28 @@ function getImage(uri)
         }
         return img;
     }
+
+
+//    var img = uriToImage[uri];
+//    if (img)
+//    {
+//        return img;
+//    }
+//    else
+//    {
+//        try
+//        {
+//            img = new Image;
+//            img.src = uri;
+//            img.onload = function(){console.log("Loaded " + uri + " " + img.width + " " + img.height); repaintWholeCache();}
+//            uriToImage[uri] = img;
+//        }
+//        catch (e)
+//        {
+//            console.log(e);
+//        }
+//        return img;
+//    }
 }
 
 /**
@@ -339,20 +449,20 @@ function decodeLookVector(componentIndex, stream, byteLength)
                     // This is ok, look vector update with new image may arrive before string pool update, just need to check
                     if (imageUrl)
                     {
-                        var img = getImage(imageUrl);
+                        var img = getImage(componentIndex, imageUrl);
                         ctx.drawImage(img, codeObj.x, codeObj.y);
                     }
                     c += codeObj.len;
                     break;
                 case CODE_FIT_IMAGE_STRPOOL:
                     codeObj = decodeImageURIStrPool(stream, c);
-                    var img = getImage(resourceStringPools[componentIndex][codeObj.i]);
+                    var img = getImage(componentIndex, resourceStringPools[componentIndex][codeObj.i]);
                     ctx.drawImage(img, codeObj.x, codeObj.y, codeObj.w, codeObj.h);
                     c += codeObj.len;
                     break;
                 case CODE_FILL_IMAGE_STRPOOL:
                     codeObj = decodeImageURIStrPool(stream, c);
-                    var img = getImage(resourceStringPools[componentIndex][codeObj.i]);
+                    var img = getImage(componentIndex, resourceStringPools[componentIndex][codeObj.i]);
                     var w = img.width;
                     var h = img.height;
                     if (codeObj.w <= w && codeObj.h <= h)
@@ -572,23 +682,6 @@ var CURSORS_BY_CODE = [
   "zoom-out"
 ];
 
-// TODO track removed components
-
-var positions = [];
-var viewports = [];
-var clipSizes = [];
-var lookVectors = [];
-var childCounts = [];
-var booleanStateFlags = [];
-var stringPools = [];
-var resourceStringPools = [];
-var clientEvolvers = [];
-var indicesWithClientEvolvers = [];
-
-var paintAllSequence;
-
-var absPositions = [];
-
 var STATE_FLAGS_VISIBILITY_MASK = 1;
 var STATE_FLAGS_POPUP_MASK = 2;
 var STATE_FLAGS_ROLLOVER_DISABLED_MASK = 4;
@@ -748,7 +841,7 @@ function paintComponent(stream, c)
     catch(e)
     {
         console.log("Error painting component with index = " + index + ": " + e.message);
-        throw(e);
+        //throw(e);
     }
 }
 
@@ -786,8 +879,15 @@ function decodeStringPool(stream, c, byteLength, poolMatrix, prefetchResource)
 
             if (prefetchResource)
             {
-                console.log("Prefetching: " + str);
-                getImage(str);
+                if (clipSizes[index])
+                {
+                    console.log("Prefetching: " + str + " for component " + index + " of size " + clipSizes[index].w + ";" + clipSizes[index].h);
+                    getImage(index, str);
+                }
+                else
+                {
+                    console.log("Skipped prefetching " + str + " for component " + index + " because of unknown size");
+                }
             }
 
             if (!poolMatrix[index])
