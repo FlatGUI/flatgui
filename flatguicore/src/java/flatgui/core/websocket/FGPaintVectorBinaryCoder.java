@@ -1132,7 +1132,7 @@ public class FGPaintVectorBinaryCoder
             }
 
             // setFont command code (regular one or with instant metrics request)
-            if (alreadyRequestedMetricsFor_.contains(s))
+            if (alreadyRequestedMetricsFor_.contains(s)) // TODO continuously requests metrics for the same font
             {
                 stream[n] = 7;
             }
